@@ -32,14 +32,14 @@ NVCCFLAGS+= -O3 --threads=0 -diag-suppress 20054 --dlto
 endif
 
 # Compiler flags based on GPU target
-ifeq ($(GPU_TARGET),4090)
-NVCCFLAGS+= -arch=sm_89 -DKITTENS_4090
-else ifeq ($(GPU_TARGET),A100)
+ifeq ($(GPU_TARGET),A100)
 NVCCFLAGS+= -arch=sm_80 -DKITTENS_A100
+else ifeq ($(GPU_TARGET),4090)
+NVCCFLAGS+= -arch=sm_89 -DKITTENS_4090
 else ifeq ($(GPU_TARGET),H100)
-NVCCFLAGS+= -arch=sm_90a -DKITTENS_HOPPER -lcuda -lcudart
+NVCCFLAGS+= -arch=sm_90a -DKITTENS_4090 -DKITTENS_HOPPER -lcuda -lcudart
 else ifeq ($(GPU_TARGET),B200)
-NVCCFLAGS+= -arch=sm_100a -DKITTENS_HOPPER -DKITTENS_BLACKWELL -lcuda -lcudart
+NVCCFLAGS+= -arch=sm_100a -DKITTENS_4090 -DKITTENS_HOPPER -DKITTENS_BLACKWELL -lcuda -lcudart
 endif
 
 # Target binary name

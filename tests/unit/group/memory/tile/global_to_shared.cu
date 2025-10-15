@@ -50,7 +50,7 @@ struct g2s_sweep_gmem_type_2d {
         g2s_sweep_size_2d<test<float>, MAX_H, MAX_W, NUM_WORKERS, args...>::run(results);
         g2s_sweep_size_2d<test<kittens::bf16>, MAX_H, MAX_W, NUM_WORKERS, args...>::run(results);
         g2s_sweep_size_2d<test<kittens::half>, MAX_H, MAX_W, NUM_WORKERS, args...>::run(results);
-#ifdef KITTENS_HOPPER
+#ifdef KITTENS_4090
         g2s_sweep_size_2d<test<kittens::fp8e4m3>, MAX_H, MAX_W, NUM_WORKERS, args...>::run(results);
         g2s_sweep_size_2d<test<kittens::fp8e5m2>, MAX_H, MAX_W, NUM_WORKERS, args...>::run(results);
 #endif
@@ -62,7 +62,7 @@ struct group_shared_load_store {
     using dtype = T;
     template<int H, int W, int NW, typename axis> using valid = std::bool_constant<
         (H%NW==0 && W*H<=64)
-#ifdef KITTENS_HOPPER
+#ifdef KITTENS_4090
         && ( (!std::is_same_v<T, kittens::fp8e4m3> && !std::is_same_v<T, kittens::fp8e5m2>) || W%2 == 0 )
 #endif 
     >;

@@ -7,13 +7,13 @@ struct group_shared_reg_load_store {
     using dtype = T;
     template<int H, int W, int NW, kittens::ducks::rt_layout::all RL> using valid = std::bool_constant<
         ( H%NW==0 && W*H<=64 ) 
-#ifdef KITTENS_HOPPER
+#ifdef KITTENS_4090
         && ( (!std::is_same_v<T, kittens::fp8e4m3> && !std::is_same_v<T, kittens::fp8e5m2>) || W%2 == 0 )
 #endif
     >;
     static inline const std::string test_identifier = std::is_same_v<T, kittens::bf16> ? "group_shared_reg_loadstore_gmem=bf16" :
                                                       std::is_same_v<T, kittens::half> ? "group_shared_reg_loadstore_gmem=half" :
-#ifdef KITTENS_HOPPER
+#ifdef KITTENS_4090
                                                       std::is_same_v<T, kittens::fp8e4m3> ? "group_shared_reg_loadstore_gmem=fp8e4m3" :
                                                       std::is_same_v<T, kittens::fp8e5m2> ? "group_shared_reg_loadstore_gmem=fp8e5m2" :
 #endif 
