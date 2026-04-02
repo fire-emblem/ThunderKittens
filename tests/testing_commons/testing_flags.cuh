@@ -123,8 +123,10 @@
 
 /* ----------  MULTI_GPU TEST MACROS  ---------- */
 
-// For fast testing, set it to 2~4
+// For fast testing, set it to 2~4. Allow the build to override this for single-GPU hosts.
+#ifndef NUM_GPUS
 #define NUM_GPUS 2
+#endif
 
 // Macro for testing all the multi-gpu-related tests
 #if defined(TEST_ALL_MULTI_GPU) && NUM_GPUS > 1

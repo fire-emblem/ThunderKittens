@@ -76,6 +76,8 @@ struct test_cmplx_mma_AB {
     template<int H, int W, typename K> using make_c_layout = typename kittens::gl<kittens::bf16, 1, 1, 16*H, 16*W>;
 };
 
+constexpr float kWarpComplexMmaEps = 1.0f / 32.0f + 1e-6f;
+
 // Due to the strange sizes instantiated, we need a custom base wrapper here
 template<typename test, int H, int W, int NUM_WORKERS, typename _K, typename... args>
 struct cmplx_mma_wrapper_2d {
@@ -118,8 +120,8 @@ struct cmplx_mma_wrapper_2d {
             // fill in correct results on cpu
             test::template host_func<H, W, NUM_WORKERS, _K, args...>(re_i_ref, im_i_ref, re_o_ref, im_o_ref);
             // check and cleanup
-            test_result re_result = validate(d_re_i, d_re_o, re_i_ref, re_o_ref, this_result.label + "_real", W*16, 0.02); // mma's sometimes produce small errors. this appears to be hardware.
-            test_result im_result = validate(d_im_i, d_im_o, im_i_ref, im_o_ref, this_result.label + "_imag", W*16, 0.02);
+            test_result re_result = validate(d_re_i, d_re_o, re_i_ref, re_o_ref, this_result.label + "_real", W*16, kWarpComplexMmaEps);
+            test_result im_result = validate(d_im_i, d_im_o, im_i_ref, im_o_ref, this_result.label + "_imag", W*16, kWarpComplexMmaEps);
             if (re_result == test_result::PASSED && im_result == test_result::PASSED) {
                 // TODO change back
                 this_result.result = test_result::PASSED;

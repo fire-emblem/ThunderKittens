@@ -2,9 +2,10 @@
 # If you want to run lots of tests without parallel compilation, be prepared
 # to spend a *long* time compiling. (like, HOURS single-threaded.)
 
-# GPU Selection: Set to either H100, B200, or B300
-GPU_TARGET=H100
-COMP_LEVEL=fast
+# GPU Selection: Set to A100, RTX4080, H100, B200, or B300
+GPU_TARGET ?= RTX4080
+COMP_LEVEL ?= fast
+NUM_GPUS ?= 1
 
 # Compiler
 NVCC?=nvcc
@@ -20,7 +21,10 @@ NVCCFLAGS+= -DTEST_INTENSITY=2
 # -DTEST_ALL means run all tests.
 # You can also specify subsections, e.g. -DTEST_WARP_MEMORY
 # Or individual tests, like -DTEST_WARP_MEMORY_VEC_DSMEM. Useful for debugging!
-NVCCFLAGS+= -DTEST_ALL -DTEST_ALL_MULTI_GPU
+NVCCFLAGS+= -DTEST_ALL -DNUM_GPUS=$(NUM_GPUS)
+ifneq ($(NUM_GPUS),1)
+NVCCFLAGS+= -DTEST_ALL_MULTI_GPU
+endif
 # NVCCFLAGS+= -DTEST_ALL_WARP_MEMORY
 
 ifeq ($(COMP_LEVEL),fast)
@@ -33,13 +37,17 @@ endif
 
 # Compiler flags based on GPU target
 ifeq ($(GPU_TARGET),A100)
-NVCCFLAGS+= -gencode arch=compute_80a,code=sm_80 -DKITTENS_AMPERE -lcuda -lcudart
+NVCCFLAGS+= -gencode arch=compute_80,code=sm_80 -DKITTENS_AMPERE -lcuda -lcudart
+else ifeq ($(GPU_TARGET),RTX4080)
+NVCCFLAGS+= -gencode arch=compute_89,code=sm_89 -DKITTENS_AMPERE -DKITTENS_MAX_SHARED_MEMORY=101376 -lcuda -lcudart
 else ifeq ($(GPU_TARGET),H100)
 NVCCFLAGS+= -gencode arch=compute_90a,code=sm_90a -DKITTENS_HOPPER -lcuda -lcudart
 else ifeq ($(GPU_TARGET),B200)
 NVCCFLAGS+= -gencode arch=compute_100a,code=sm_100a -DKITTENS_BLACKWELL -lcuda -lcudart
 else ifeq ($(GPU_TARGET),B300)
 NVCCFLAGS+= -gencode arch=compute_103a,code=sm_103a -DKITTENS_BLACKWELL -lcuda -lcudart
+else
+$(error Unsupported GPU_TARGET: $(GPU_TARGET). Please set GPU_TARGET to A100, RTX4080, H100, B200, or B300.)
 endif
 
 # Target binary name

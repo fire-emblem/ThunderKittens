@@ -63,7 +63,9 @@ __device__ __forceinline__ int smid() {
     return static_cast<int>(r);
 }
 
-#if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
+#if defined(KITTENS_MAX_SHARED_MEMORY)
+constexpr int MAX_SHARED_MEMORY = KITTENS_MAX_SHARED_MEMORY;
+#elif defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
 constexpr int MAX_SHARED_MEMORY = 227 * 1024;
 #elif defined(KITTENS_AMPERE)
 constexpr int MAX_SHARED_MEMORY = 164 * 1024;
@@ -478,6 +480,7 @@ struct LaunchConfig {
         config.stream = stream;
     }
 
+    #if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
     __host__ inline LaunchConfig(dim3 grid, dim3 block, size_t dynamic_shared_memory, 
                                  cudaStream_t stream, dim3 cluster_preferred, dim3 cluster_minimum) noexcept requires(CLUSTER) {
         attributes[0].id = cudaLaunchAttributePreferredClusterDimension;
@@ -503,6 +506,7 @@ struct LaunchConfig {
     __host__ inline LaunchConfig(dim3 grid, dim3 block, size_t dynamic_shared_memory, 
                                  cudaStream_t stream, dim3 cluster) noexcept requires(CLUSTER)
         : LaunchConfig(grid, block, dynamic_shared_memory, stream, cluster, cluster) { }
+    #endif
 
     __host__ inline LaunchConfig(const LaunchConfig& other) noexcept : config(other.config) {
         std::copy_n(other.attributes, num_attributes, attributes);
