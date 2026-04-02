@@ -1,0 +1,182 @@
+#include <chrono>
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <string>
+
+#define ATTN_B 32
+#define ATTN_N 2048
+#define ATTN_H 16
+#define ATTN_D 64
+
+const int ATTN_D_2 = ATTN_D / 2;
+
+#define CudaCheckError() __cudaCheckError(__FILE__, __LINE__)
+inline void __cudaCheckError(const char *file, const int line) {
+    cudaError err = cudaGetLastError();
+    if (cudaSuccess != err) {
+        fprintf(stderr, "cudaCheckError() failed at %s:%i : %s\n",
+                file, line, cudaGetErrorString(err));
+        exit(-1);
+    }
+    err = cudaDeviceSynchronize();
+    if (cudaSuccess != err) {
+        fprintf(stderr, "cudaCheckError() with sync failed at %s:%i : %s\n",
+                file, line, cudaGetErrorString(err));
+        exit(-1);
+    }
+}
+
+long long flops(int batch, int seqlen, int headdim, int nheads) {
+    long long f = batch * static_cast<long long>(seqlen) * nheads * (headdim / 2);
+    f += batch * static_cast<long long>(seqlen) * nheads * (headdim / 2);
+    f += batch * static_cast<long long>(seqlen) * nheads * (headdim / 2);
+    return f;
+}
+
+double efficiency(long long flop, double time) {
+    const double tflops = flop / 1e12;
+    const double time_ms = time / 1e6;
+    return tflops / time_ms;
+}
+
+int main(int argc, char **argv) {
+    std::cout << "Entered main!" << std::endl;
+
+    constexpr int TOTAL_ELEMENTS_X = ATTN_B * ATTN_H * ATTN_N * ATTN_D;
+    constexpr int TOTAL_ELEMENTS_O = ATTN_B * ATTN_H * ATTN_N * ATTN_D;
+    constexpr int TOTAL_UNIQUE_ELEMENTS_X = ATTN_N * ATTN_D;
+    constexpr int TOTAL_UNIQUE_ELEMENTS_O = ATTN_N * ATTN_D;
+    constexpr int TOTAL_ELEMENTS_COS_IN = ATTN_N * ATTN_D_2;
+
+    float *x = new float[TOTAL_UNIQUE_ELEMENTS_X];
+    bf16 *x_bf = new bf16[TOTAL_ELEMENTS_X];
+
+    float *o_ref = new float[TOTAL_UNIQUE_ELEMENTS_O];
+    bf16 *o_bf = new bf16[TOTAL_ELEMENTS_O];
+    float *o = new float[TOTAL_ELEMENTS_O];
+
+    float *cos_in = new float[TOTAL_ELEMENTS_COS_IN];
+    bf16 *cos_in_bf = new bf16[TOTAL_ELEMENTS_COS_IN];
+    float *sin_in = new float[TOTAL_ELEMENTS_COS_IN];
+    bf16 *sin_in_bf = new bf16[TOTAL_ELEMENTS_COS_IN];
+
+    if (argc > 1) {
+        std::ifstream infile(argv[1]);
+        printf("Loading from %s\n", argv[1]);
+        for (int i = 0; i < TOTAL_UNIQUE_ELEMENTS_X; i++) {
+            infile >> x[i];
+        }
+        for (int i = 0; i < TOTAL_UNIQUE_ELEMENTS_O; i++) {
+            infile >> o_ref[i];
+        }
+        for (int i = 0; i < TOTAL_ELEMENTS_COS_IN; i++) {
+            infile >> cos_in[i];
+        }
+        for (int i = 0; i < TOTAL_ELEMENTS_COS_IN; i++) {
+            infile >> sin_in[i];
+        }
+    }
+
+    for (int i = 0; i < TOTAL_ELEMENTS_X; i++) {
+        x_bf[i] = __float2bfloat16(x[i % TOTAL_UNIQUE_ELEMENTS_X]);
+    }
+    for (int i = 0; i < TOTAL_ELEMENTS_COS_IN; i++) {
+        cos_in_bf[i] = __float2bfloat16(cos_in[i]);
+        sin_in_bf[i] = __float2bfloat16(sin_in[i]);
+    }
+
+    bf16 *d_x = nullptr;
+    bf16 *d_o = nullptr;
+    bf16 *d_cos_in = nullptr;
+    bf16 *d_sin_in = nullptr;
+
+    cudaMalloc(&d_x, TOTAL_ELEMENTS_X * sizeof(bf16));
+    cudaMalloc(&d_o, TOTAL_ELEMENTS_O * sizeof(bf16));
+    cudaMalloc(&d_cos_in, TOTAL_ELEMENTS_COS_IN * sizeof(bf16));
+    cudaMalloc(&d_sin_in, TOTAL_ELEMENTS_COS_IN * sizeof(bf16));
+
+    cudaMemcpy(d_x, x_bf, TOTAL_ELEMENTS_X * sizeof(bf16), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_o, o_bf, TOTAL_ELEMENTS_O * sizeof(bf16), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_cos_in, cos_in_bf, TOTAL_ELEMENTS_COS_IN * sizeof(bf16), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_sin_in, sin_in_bf, TOTAL_ELEMENTS_COS_IN * sizeof(bf16), cudaMemcpyHostToDevice);
+
+    cudaDeviceSynchronize();
+    CudaCheckError();
+
+    constexpr int ITER = 10;
+    const auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < ITER; i++) {
+        dispatch_fused_rotary(
+            d_o,
+            d_x,
+            d_sin_in,
+            d_cos_in,
+            ATTN_B,
+            ATTN_H,
+            ATTN_N,
+            ATTN_D,
+            ATTN_D
+        );
+    }
+    cudaDeviceSynchronize();
+    const auto finish = std::chrono::high_resolution_clock::now();
+    CudaCheckError();
+
+    cudaMemcpy(o_bf, d_o, TOTAL_ELEMENTS_O * sizeof(bf16), cudaMemcpyDeviceToHost);
+    for (int i = 0; i < TOTAL_ELEMENTS_O; i++) {
+        o[i] = __bfloat162float(o_bf[i]);
+    }
+
+    bool good = true;
+    float max_diff = 0.0f;
+    std::ofstream o_ref_file("printouts/o_ref.txt");
+    std::ofstream o_file("printouts/o.txt");
+    std::ofstream diff_file("printouts/diff.txt");
+    for (int i = 0; i < TOTAL_ELEMENTS_O; i++) {
+        const float diff = o[i] - o_ref[i % TOTAL_UNIQUE_ELEMENTS_O];
+        if (i < TOTAL_UNIQUE_ELEMENTS_O) {
+            o_ref_file << o_ref[i % TOTAL_UNIQUE_ELEMENTS_O] << ' ';
+            o_file << o[i] << ' ';
+            diff_file << diff << ' ';
+        }
+        if (std::fabs(diff) > 0.1f || std::isnan(diff)) {
+            good = false;
+        }
+        max_diff = std::max(std::fabs(diff), max_diff);
+    }
+
+    if (good) {
+        std::cout << "Correct out :)\n";
+    }
+    else {
+        std::cout << "Incorrect out :(\n";
+    }
+    std::cout << "Max diff: " << max_diff << "\n";
+
+    const auto elapsed_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
+    std::cout << "Average execution time for " << ITER
+              << " ITERS (Q and K): " << elapsed_us << " us" << std::endl;
+
+    const long long f = flops(ATTN_B, ATTN_N, ATTN_D, ATTN_H);
+    const double e = efficiency(f, elapsed_us);
+    std::cout << "FLOPS: " << f << std::endl;
+    std::cout << "Efficiency: " << e << " TFLOPS" << std::endl;
+
+    cudaFree(d_x);
+    cudaFree(d_sin_in);
+    cudaFree(d_cos_in);
+    cudaFree(d_o);
+
+    delete[] x;
+    delete[] o;
+    delete[] o_ref;
+    delete[] x_bf;
+    delete[] o_bf;
+    delete[] sin_in;
+    delete[] sin_in_bf;
+    delete[] cos_in;
+    delete[] cos_in_bf;
+    return 0;
+}
