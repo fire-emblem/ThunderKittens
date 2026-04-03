@@ -6,6 +6,12 @@
 #include "../common.cuh"
 #include "kittens.cuh"
 
+#ifdef KITTENS_C500
+#ifndef __grid_constant__
+#define __grid_constant__
+#endif
+#endif
+
 using namespace kittens;
 
 namespace bf16_ampere {

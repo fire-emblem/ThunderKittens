@@ -74,14 +74,22 @@ __device__ static inline void load_async(SV &dst, const GL &src, const COORD &id
     #pragma unroll
     for(uint32_t i = threadIdx.x%GROUP_THREADS; i < total_calls; i+=GROUP_THREADS) {
         if(i * elem_per_transfer < SV::length) {
+#ifdef KITTENS_C500
+            float4 tmp;
+            move<float4>::ldg(tmp, (float4*)&src_ptr[i*elem_per_transfer]);
+            move<float4>::sts(dst_ptr + sizeof(typename SV::dtype)*i*elem_per_transfer, tmp);
+#else
             asm volatile(
                 "cp.async.cg.shared.global.L2::128B [%0], [%1], 16;\n"
                 :: "r"(dst_ptr + (uint32_t)sizeof(typename SV::dtype)*i*elem_per_transfer), "l"((uint64_t)&src_ptr[i*elem_per_transfer])
                 : "memory"
             );
+#endif
         }
     }
+#ifndef KITTENS_C500
     asm volatile("cp.async.commit_group;\n" ::: "memory");
+#endif
 }
 
 
@@ -102,12 +110,20 @@ __device__ static inline void load_async_small(SV &dst, const GL &src, const COO
     #pragma unroll
     for(uint32_t i = threadIdx.x%GROUP_THREADS; i < total_calls; i+=GROUP_THREADS) {
         if(i * elem_per_transfer < SV::length) {
+#ifdef KITTENS_C500
+            float tmp;
+            move<float>::ldg(tmp, (float*)&src_ptr[i*elem_per_transfer]);
+            move<float>::sts(dst_ptr + sizeof(typename SV::dtype)*i*elem_per_transfer, tmp);
+#else
             asm volatile(
                 "cp.async.ca.shared.global.L2::128B [%0], [%1], 4;\n"
                 :: "r"(dst_ptr + (uint32_t)sizeof(typename SV::dtype)*i*elem_per_transfer), "l"((uint64_t)&src_ptr[i*elem_per_transfer])
                 : "memory"
             );
+#endif
         }
     }
+#ifndef KITTENS_C500
     asm volatile("cp.async.commit_group;\n" ::: "memory");
+#endif
 }

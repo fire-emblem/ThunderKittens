@@ -230,12 +230,16 @@ template<int num_warps> __device__ static inline void arrive_and_wait(barrier<nu
 }
 
 template<int N=0> __device__ static inline void load_async_wait() { // for completing (non-TMA) async loads
+#ifdef KITTENS_C500
+    __syncwarp();
+#else
     if constexpr (N == 0) {
         asm volatile("cp.async.wait_all;\n" ::);
     } else {
         asm volatile("cp.async.wait_group %0;\n" :: "n"(N));
     }
     __syncwarp();
+#endif
 }
 
 // meant to be used only with shared tiles and shared vectors
