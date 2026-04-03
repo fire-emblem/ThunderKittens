@@ -7,6 +7,8 @@
  **************************************************************************************************/
 
 #include <iostream>
+#include <cstdlib>
+#include <string>
 #include <vector>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
@@ -34,6 +36,36 @@
 
 static constexpr int warmup_iters = 500;
 static constexpr int profiling_iters = 100;
+
+struct ShapeSpec {
+  int m;
+  int n;
+  int k;
+};
+
+static bool parse_arg_int(char **begin, char **end, const std::string &flag, int &value) {
+  for (char **it = begin; it != end; ++it) {
+    if (flag != *it || it + 1 == end) {
+      continue;
+    }
+    value = std::atoi(*(it + 1));
+    return true;
+  }
+  return false;
+}
+
+static bool has_flag(char **begin, char **end, const std::string &flag) {
+  for (char **it = begin; it != end; ++it) {
+    if (flag == *it) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void print_usage(const char *program) {
+  std::cout << "Usage: " << program << " [--m M --n N --k K] [--no-check]" << std::endl;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // cuBLAS GEMM: D = A * B
@@ -71,7 +103,7 @@ void cublas_gemm(
 // Benchmark function
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-void benchmark(int M, int N, int K) {
+void benchmark(int M, int N, int K, bool verify) {
   // Cooldown between configurations
   sleep_ms(500);
 
@@ -115,8 +147,10 @@ void benchmark(int M, int N, int K) {
   CHECK_CUDA(cudaDeviceSynchronize());
 
   // Compute reference GEMM
-  reference_gemm<__nv_bfloat16, __nv_bfloat16>(block_D_ref, blocks_A[0], blocks_B[0], M, N, K);
-  CHECK_CUDA(cudaDeviceSynchronize());
+  if (verify) {
+    reference_gemm<__nv_bfloat16, __nv_bfloat16>(block_D_ref, blocks_A[0], blocks_B[0], M, N, K);
+    CHECK_CUDA(cudaDeviceSynchronize());
+  }
 
   // cuBLAS Benchmark
   cudaStream_t stream;
@@ -154,10 +188,12 @@ void benchmark(int M, int N, int K) {
   std::cout << "Performance: " << tflops << " TFLOP/s" << std::endl;
 
   // Verify correctness
-  fill<__nv_bfloat16, FillMode::CONSTANT>(blocks_D[0], size_D, 0.0f);
-  cublas_gemm(handle, blocks_A[0], blocks_B[0], blocks_D[0], M, N, K);
-  CHECK_CUDA(cudaDeviceSynchronize());
-  check_correctness(blocks_D[0], block_D_ref, size_D);
+  if (verify) {
+    fill<__nv_bfloat16, FillMode::CONSTANT>(blocks_D[0], size_D, 0.0f);
+    cublas_gemm(handle, blocks_A[0], blocks_B[0], blocks_D[0], M, N, K);
+    CHECK_CUDA(cudaDeviceSynchronize());
+    check_correctness(blocks_D[0], block_D_ref, size_D);
+  }
 
   // Cleanup
   CHECK_CUDA(cudaEventDestroy(start));
@@ -176,17 +212,37 @@ void benchmark(int M, int N, int K) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-int main() {
+int main(int argc, char **argv) {
   std::cout << "cuBLAS BF16 GEMM Profiler" << std::endl;
   std::cout << "D = A * B, A: RowMajor (MxK), B: ColMajor (NxK), D: RowMajor (MxN)" << std::endl;
   std::cout << "Accumulator: FP32, Output: BF16" << std::endl;
   std::cout << "Warmup: " << warmup_iters << ", Profiling: " << profiling_iters << std::endl;
 
-  benchmark(1024, 1024, 1024);
-  benchmark(2048, 2048, 2048);
-  benchmark(4096, 4096, 4096);
-  benchmark(8192, 8192, 8192);
-  benchmark(16384, 16384, 16384);
+  if (has_flag(argv + 1, argv + argc, "--help")) {
+    print_usage(argv[0]);
+    return 0;
+  }
+
+  ShapeSpec shape{0, 0, 0};
+  const bool has_m = parse_arg_int(argv + 1, argv + argc, "--m", shape.m);
+  const bool has_n = parse_arg_int(argv + 1, argv + argc, "--n", shape.n);
+  const bool has_k = parse_arg_int(argv + 1, argv + argc, "--k", shape.k);
+  const bool verify = !has_flag(argv + 1, argv + argc, "--no-check");
+
+  if (has_m || has_n || has_k) {
+    if (!(has_m && has_n && has_k)) {
+      std::cerr << "Expected all of --m, --n, and --k when overriding shape." << std::endl;
+      return 1;
+    }
+    benchmark(shape.m, shape.n, shape.k, verify);
+    return 0;
+  }
+
+  benchmark(1024, 1024, 1024, verify);
+  benchmark(2048, 2048, 2048, verify);
+  benchmark(4096, 4096, 4096, verify);
+  benchmark(8192, 8192, 8192, verify);
+  benchmark(16384, 16384, 16384, verify);
 
   return 0;
 }

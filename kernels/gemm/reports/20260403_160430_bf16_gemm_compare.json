@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-04-03T16:04:20Z",
+  "gpu_name": "NVIDIA GeForce RTX 4080",
+  "results_by_shape": [
+    {
+      "results": [
+        {
+          "avg_time_us": 223.162,
+          "implementation": "TK Ampere",
+          "relative_to_best": 0.9388269038696294,
+          "status": "ok",
+          "tflops": 76.9839
+        },
+        {
+          "avg_time_us": 209.51,
+          "implementation": "cuBLAS",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 82.0001
+        }
+      ],
+      "shape": {
+        "k": 2048,
+        "m": 2048,
+        "n": 2048
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 1381.31,
+          "implementation": "TK Ampere",
+          "relative_to_best": 0.9715171457584754,
+          "status": "ok",
+          "tflops": 99.4989
+        },
+        {
+          "avg_time_us": 1341.96,
+          "implementation": "cuBLAS",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 102.416
+        }
+      ],
+      "shape": {
+        "k": 4096,
+        "m": 4096,
+        "n": 4096
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 2670.5899999999997,
+          "implementation": "TK Ampere",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 102.928
+        },
+        {
+          "avg_time_us": 2678.48,
+          "implementation": "cuBLAS",
+          "relative_to_best": 0.997056194621483,
+          "status": "ok",
+          "tflops": 102.625
+        }
+      ],
+      "shape": {
+        "k": 4096,
+        "m": 4096,
+        "n": 8192
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 2657.79,
+          "implementation": "TK Ampere",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 103.424
+        },
+        {
+          "avg_time_us": 2683.67,
+          "implementation": "cuBLAS",
+          "relative_to_best": 0.9903504022277227,
+          "status": "ok",
+          "tflops": 102.426
+        }
+      ],
+      "shape": {
+        "k": 4096,
+        "m": 8192,
+        "n": 4096
+      }
+    }
+  ]
+}

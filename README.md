@@ -193,6 +193,35 @@ ThunderKittens is actually a pretty small library, in terms of what it gives you
 
 Therefore, the best way to learn ThunderKittens is to start looking into kernels and run the them yourself! We have a step-by-step, educational kernel series on matrix multiplication under [kernels/gemm/educational_h100](kernels/gemm/educational_h100).
 
+## RTX 4080 BF16 GEMM Baseline
+
+This repo now includes an Ada-targeted BF16 GEMM baseline for `RTX 4080` under [kernels/gemm/bf16_ampere](kernels/gemm/bf16_ampere). On the current validation machine, the `4096x4096x4096` benchmark reaches about `94.7 TFLOP/s`, while the cuBLAS baseline for the same problem is about `102.4 TFLOP/s`.
+
+For a one-command comparison between the ThunderKittens kernel and cuBLAS, run:
+
+```bash
+./kernels/gemm/run_bf16_gemm_bench.sh
+```
+
+By default this detects the local GPU, runs the matching implementations, benchmarks a small set of representative GEMM shapes, and writes both Markdown and JSON reports under `kernels/gemm/reports/`.
+
+On `RTX 4080`, the default shape set is:
+
+```text
+2048x2048x2048
+4096x4096x4096
+4096x8192x4096
+8192x4096x4096
+```
+
+You can also override the shapes or the implementations explicitly:
+
+```bash
+./kernels/gemm/run_bf16_gemm_bench.sh --shape 4096x4096x4096
+./kernels/gemm/run_bf16_gemm_bench.sh --shape 4096x4096x4096 --shape 4096x8192x4096
+./kernels/gemm/run_bf16_gemm_bench.sh --implementations "TK Ampere" cuBLAS
+```
+
 Once you get used to its APIs, there are still a few sharp edges that you might encounter if you don’t know what’s going on under the hood. So, we do recommend giving this manual a good read before sitting down to write a serious kernel -- it’s not too long, we promise!
 
 #### NVIDIA’s Programming Model

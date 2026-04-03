@@ -1,6 +1,8 @@
 #include <cuda_runtime.h>
 
+#include <cstdlib>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "../common.cuh"
@@ -122,10 +124,43 @@ __host__ void launch_gemm(bf16 *A, bf16 *B, bf16 *C) {
 
 }  // namespace bf16_ampere
 
-int main() {
-    constexpr int M = 4096;
-    constexpr int N = 4096;
-    constexpr int K = 4096;
+struct ShapeSpec {
+    int m;
+    int n;
+    int k;
+};
+
+static bool parse_arg_int(char **begin, char **end, const std::string &flag, int &value) {
+    for (char **it = begin; it != end; ++it) {
+        if (flag != *it || it + 1 == end) {
+            continue;
+        }
+        value = std::atoi(*(it + 1));
+        return true;
+    }
+    return false;
+}
+
+static bool has_flag(char **begin, char **end, const std::string &flag) {
+    for (char **it = begin; it != end; ++it) {
+        if (flag == *it) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void print_usage(const char *program) {
+    std::cout << "Usage: " << program << " [--m M --n N --k K] [--no-check]" << std::endl;
+    std::cout << "Supported shapes:" << std::endl;
+    std::cout << "  2048x2048x2048" << std::endl;
+    std::cout << "  4096x4096x4096" << std::endl;
+    std::cout << "  4096x8192x4096" << std::endl;
+    std::cout << "  8192x4096x4096" << std::endl;
+}
+
+template <int M, int N, int K>
+int run_benchmark(bool verify) {
 
     std::cout << "bf16_ampere TK GEMM" << std::endl;
     std::cout << "Problem size: M=" << M << ", N=" << N << ", K=" << K << std::endl;
@@ -153,8 +188,10 @@ int main() {
     fill<__nv_bfloat16, FillMode::CONSTANT>(d_C_ref, size_c, 0.0f);
     cudaDeviceSynchronize();
 
-    reference_gemm<__nv_bfloat16, __nv_bfloat16, false>(d_C_ref, d_A, d_B, M, N, K);
-    cudaDeviceSynchronize();
+    if (verify) {
+        reference_gemm<__nv_bfloat16, __nv_bfloat16, false>(d_C_ref, d_A, d_B, M, N, K);
+        cudaDeviceSynchronize();
+    }
 
     constexpr int warmup_iters = 25;
     constexpr int profiling_iters = 100;
@@ -194,11 +231,13 @@ int main() {
     std::cout << "Average runtime: " << runtime_ms << " ms" << std::endl;
     std::cout << "Performance: " << tflops << " TFLOP/s" << std::endl;
 
-    bf16_ampere::launch_gemm<M, N, K>(reinterpret_cast<bf16 *>(d_A),
-                                      reinterpret_cast<bf16 *>(d_B),
-                                      reinterpret_cast<bf16 *>(d_C));
-    cudaDeviceSynchronize();
-    check_correctness(d_C, d_C_ref, size_c);
+    if (verify) {
+        bf16_ampere::launch_gemm<M, N, K>(reinterpret_cast<bf16 *>(d_A),
+                                          reinterpret_cast<bf16 *>(d_B),
+                                          reinterpret_cast<bf16 *>(d_C));
+        cudaDeviceSynchronize();
+        check_correctness(d_C, d_C_ref, size_c);
+    }
 
     for (int i = 0; i < profiling_iters; ++i) {
         cudaEventDestroy(starts[i]);
@@ -211,4 +250,34 @@ int main() {
     cudaFree(l2_clear);
 
     return 0;
+}
+
+int main(int argc, char **argv) {
+    ShapeSpec shape{4096, 4096, 4096};
+    parse_arg_int(argv + 1, argv + argc, "--m", shape.m);
+    parse_arg_int(argv + 1, argv + argc, "--n", shape.n);
+    parse_arg_int(argv + 1, argv + argc, "--k", shape.k);
+    const bool verify = !has_flag(argv + 1, argv + argc, "--no-check");
+
+    if (has_flag(argv + 1, argv + argc, "--help")) {
+        print_usage(argv[0]);
+        return 0;
+    }
+
+    if (shape.m == 2048 && shape.n == 2048 && shape.k == 2048) {
+        return run_benchmark<2048, 2048, 2048>(verify);
+    }
+    if (shape.m == 4096 && shape.n == 4096 && shape.k == 4096) {
+        return run_benchmark<4096, 4096, 4096>(verify);
+    }
+    if (shape.m == 4096 && shape.n == 8192 && shape.k == 4096) {
+        return run_benchmark<4096, 8192, 4096>(verify);
+    }
+    if (shape.m == 8192 && shape.n == 4096 && shape.k == 4096) {
+        return run_benchmark<8192, 4096, 4096>(verify);
+    }
+
+    std::cerr << "Unsupported shape M=" << shape.m << ", N=" << shape.n << ", K=" << shape.k << std::endl;
+    print_usage(argv[0]);
+    return 1;
 }
