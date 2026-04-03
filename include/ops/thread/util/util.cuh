@@ -21,30 +21,62 @@ template<typename T> struct move {
     __device__ static inline void stg(T* dst, const T& src);
 };
 #ifdef KITTENS_C500
+template<size_t Bytes> struct c500_shared_raw;
+template<> struct c500_shared_raw<2>  { using type = uint16_t; };
+template<> struct c500_shared_raw<4>  { using type = uint32_t; };
+template<> struct c500_shared_raw<8>  { using type = uint64_t; };
+template<> struct c500_shared_raw<16> { using type = __NATIVE_VECTOR__(4, uint32_t); };
+
 template<typename T>
-__device__ static inline uint16_t c500_load_shared_u16(uint32_t src) {
-    uint32_t tmp;
-    asm volatile("ld.shared.u16 %0, [%1];\n" : "=r"(tmp) : "r"(src));
-    return static_cast<uint16_t>(tmp);
+__device__ static inline T c500_load_shared(uint32_t src) {
+    using Raw = typename c500_shared_raw<sizeof(T)>::type;
+    auto *ptr = reinterpret_cast<Raw __attribute__((address_space(3))) *>(static_cast<size_t>(src));
+    Raw raw = *ptr;
+    return std::bit_cast<T>(raw);
 }
 template<typename T>
-__device__ static inline void c500_store_shared_u16(uint32_t dst, uint16_t src) {
-    asm volatile("st.shared.u16 [%1], %0;\n" : : "r"(static_cast<uint32_t>(src)), "r"(dst));
+__device__ static inline void c500_store_shared(uint32_t dst, const T &src) {
+    using Raw = typename c500_shared_raw<sizeof(T)>::type;
+    auto *ptr = reinterpret_cast<Raw __attribute__((address_space(3))) *>(static_cast<size_t>(dst));
+    *ptr = std::bit_cast<Raw>(src);
+}
+
+template<>
+__device__ inline bf16_2 c500_load_shared<bf16_2>(uint32_t src) {
+    auto *ptr = reinterpret_cast<uint32_t __attribute__((address_space(3))) *>(static_cast<size_t>(src));
+    uint32_t raw = *ptr;
+    return *reinterpret_cast<bf16_2*>(&raw);
+}
+template<>
+__device__ inline void c500_store_shared<bf16_2>(uint32_t dst, const bf16_2 &src) {
+    auto *ptr = reinterpret_cast<uint32_t __attribute__((address_space(3))) *>(static_cast<size_t>(dst));
+    *ptr = *reinterpret_cast<const uint32_t*>(&src);
+}
+
+template<>
+__device__ inline half_2 c500_load_shared<half_2>(uint32_t src) {
+    auto *ptr = reinterpret_cast<uint32_t __attribute__((address_space(3))) *>(static_cast<size_t>(src));
+    uint32_t raw = *ptr;
+    return *reinterpret_cast<half_2*>(&raw);
+}
+template<>
+__device__ inline void c500_store_shared<half_2>(uint32_t dst, const half_2 &src) {
+    auto *ptr = reinterpret_cast<uint32_t __attribute__((address_space(3))) *>(static_cast<size_t>(dst));
+    *ptr = *reinterpret_cast<const uint32_t*>(&src);
 }
 #endif
 // unpacked types
 template<> struct move<bf16> {
     __device__ static inline void lds(bf16& dst, uint32_t src) {
 #ifdef KITTENS_C500
-        uint16_t tmp = c500_load_shared_u16<bf16>(src);
-        dst = *reinterpret_cast<bf16*>(&tmp);
+        dst = c500_load_shared<bf16>(src);
 #else
         asm volatile("ld.shared.b16 %0, [%1];\n" : "=h"(*(uint16_t*)&dst) : "r"(src));
 #endif
     }
     __device__ static inline void sts(uint32_t dst, const bf16& src) {
 #ifdef KITTENS_C500
-        c500_store_shared_u16<bf16>(dst, *reinterpret_cast<const uint16_t*>(&src));
+        c500_store_shared(dst, src);
 #else
         asm volatile("st.shared.b16 [%1], %0;\n" : : "h"(*(uint16_t*)&src), "r"(dst));
 #endif
@@ -67,15 +99,14 @@ template<> struct move<bf16> {
 template<> struct move<half> {
     __device__ static inline void lds(half& dst, uint32_t src) {
 #ifdef KITTENS_C500
-        uint16_t tmp = c500_load_shared_u16<half>(src);
-        dst = *reinterpret_cast<half*>(&tmp);
+        dst = c500_load_shared<half>(src);
 #else
         asm volatile("ld.shared.b16 %0, [%1];\n" : "=h"(*(uint16_t*)&dst) : "r"(src));
 #endif
     }
     __device__ static inline void sts(uint32_t dst, const half& src) {
 #ifdef KITTENS_C500
-        c500_store_shared_u16<half>(dst, *reinterpret_cast<const uint16_t*>(&src));
+        c500_store_shared(dst, src);
 #else
         asm volatile("st.shared.b16 [%1], %0;\n" : : "h"(*(uint16_t*)&src), "r"(dst));
 #endif
@@ -98,16 +129,14 @@ template<> struct move<half> {
 template<> struct move<float> {
     __device__ static inline void lds(float& dst, uint32_t src) {
 #ifdef KITTENS_C500
-        uint32_t tmp;
-        asm volatile("ld.shared.u32 %0, [%1];\n" : "=r"(tmp) : "r"(src));
-        dst = *reinterpret_cast<float*>(&tmp);
+        dst = c500_load_shared<float>(src);
 #else
         asm volatile("ld.shared.f32 %0, [%1];\n" : "=f"(dst) : "r"(src));
 #endif
     }
     __device__ static inline void sts(uint32_t dst, const float& src) {
 #ifdef KITTENS_C500
-        asm volatile("st.shared.u32 [%1], %0;\n" : : "r"(*reinterpret_cast<const uint32_t*>(&src)), "r"(dst));
+        c500_store_shared(dst, src);
 #else
         asm volatile("st.shared.f32 [%1], %0;\n" : : "f"(src), "r"(dst));
 #endif
@@ -153,13 +182,17 @@ template<> struct move<int> {
 template<> struct move<bf16_2> {
     __device__ static inline void lds(bf16_2& dst, uint32_t src) {
 #ifdef KITTENS_C500
-        asm volatile("ld.shared.b32 %0, [%1];\n" : "=r"(*(uint32_t*)&dst) : "r"(src));
+        dst = c500_load_shared<bf16_2>(src);
 #else
         asm volatile("ld.shared.b32 %0, [%1];\n" : "=r"(*(uint32_t*)&dst) : "r"(src));
 #endif
     }
     __device__ static inline void sts(uint32_t dst, const bf16_2& src) {
+#ifdef KITTENS_C500
+        c500_store_shared(dst, src);
+#else
         asm volatile("st.shared.b32 [%1], %0;\n" : : "r"(*(uint32_t*)&src), "r"(dst));
+#endif
     }
     __device__ static inline void ldg(bf16_2& dst, bf16_2* src) {
 #ifdef KITTENS_C500
@@ -214,10 +247,18 @@ template<> struct move<bf16_2> {
 };
 template<> struct move<half_2> {
     __device__ static inline void lds(half_2& dst, uint32_t src) {
+#ifdef KITTENS_C500
+        dst = c500_load_shared<half_2>(src);
+#else
         asm volatile("ld.shared.b32 %0, [%1];\n" : "=r"(*(uint32_t*)&dst) : "r"(src));
+#endif
     }
     __device__ static inline void sts(uint32_t dst, const half_2& src) {
+#ifdef KITTENS_C500
+        c500_store_shared(dst, src);
+#else
         asm volatile("st.shared.b32 [%1], %0;\n" : : "r"(*(uint32_t*)&src), "r"(dst));
+#endif
     }
     __device__ static inline void ldg(half_2& dst, half_2* src) {
 #ifdef KITTENS_C500
@@ -273,19 +314,14 @@ template<> struct move<half_2> {
 template<> struct move<float2> {
     __device__ static inline void lds(float2& dst, uint32_t src) {
 #ifdef KITTENS_C500
-        uint32_t x, y;
-        asm volatile("ld.shared.u32 %0, [%2];\n" : "=r"(x) : "0"(x), "r"(src));
-        asm volatile("ld.shared.u32 %0, [%2];\n" : "=r"(y) : "0"(y), "r"(src + 4));
-        dst.x = *reinterpret_cast<float*>(&x);
-        dst.y = *reinterpret_cast<float*>(&y);
+        dst = c500_load_shared<float2>(src);
 #else
         asm volatile("ld.shared.v2.f32 {%0, %1}, [%2];\n" : "=f"(dst.x), "=f"(dst.y) : "r"(src));
 #endif
     }
     __device__ static inline void sts(uint32_t dst, const float2& src) {
 #ifdef KITTENS_C500
-        asm volatile("st.shared.u32 [%1], %0;\n" : : "r"(*reinterpret_cast<const uint32_t*>(&src.x)), "r"(dst));
-        asm volatile("st.shared.u32 [%1], %0;\n" : : "r"(*reinterpret_cast<const uint32_t*>(&src.y)), "r"(dst + 4));
+        c500_store_shared(dst, src);
 #else
         asm volatile("st.shared.v2.f32 [%2], {%0, %1};\n" : : "f"(src.x), "f"(src.y), "r"(dst));
 #endif
@@ -308,25 +344,14 @@ template<> struct move<float2> {
 template<> struct move<float4> {
     __device__ static inline void lds(float4& dst, uint32_t src) {
 #ifdef KITTENS_C500
-        uint32_t x, y, z, w;
-        asm volatile("ld.shared.u32 %0, [%2];\n" : "=r"(x) : "0"(x), "r"(src));
-        asm volatile("ld.shared.u32 %0, [%2];\n" : "=r"(y) : "0"(y), "r"(src + 4));
-        asm volatile("ld.shared.u32 %0, [%2];\n" : "=r"(z) : "0"(z), "r"(src + 8));
-        asm volatile("ld.shared.u32 %0, [%2];\n" : "=r"(w) : "0"(w), "r"(src + 12));
-        dst.x = *reinterpret_cast<float*>(&x);
-        dst.y = *reinterpret_cast<float*>(&y);
-        dst.z = *reinterpret_cast<float*>(&z);
-        dst.w = *reinterpret_cast<float*>(&w);
+        dst = c500_load_shared<float4>(src);
 #else
         asm volatile("ld.shared.v4.f32 {%0, %1, %2, %3}, [%4];\n" : "=f"(dst.x), "=f"(dst.y), "=f"(dst.z), "=f"(dst.w) : "r"(src));
 #endif
     }
     __device__ static inline void sts(uint32_t dst, const float4& src) {
 #ifdef KITTENS_C500
-        asm volatile("st.shared.u32 [%1], %0;\n" : : "r"(*reinterpret_cast<const uint32_t*>(&src.x)), "r"(dst));
-        asm volatile("st.shared.u32 [%1], %0;\n" : : "r"(*reinterpret_cast<const uint32_t*>(&src.y)), "r"(dst + 4));
-        asm volatile("st.shared.u32 [%1], %0;\n" : : "r"(*reinterpret_cast<const uint32_t*>(&src.z)), "r"(dst + 8));
-        asm volatile("st.shared.u32 [%1], %0;\n" : : "r"(*reinterpret_cast<const uint32_t*>(&src.w)), "r"(dst + 12));
+        c500_store_shared(dst, src);
 #else
         asm volatile("st.shared.v4.f32 [%4], {%0, %1, %2, %3};\n" : : "f"(src.x), "f"(src.y), "f"(src.z), "f"(src.w), "r"(dst));
 #endif
