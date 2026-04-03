@@ -153,6 +153,8 @@ static bool has_flag(char **begin, char **end, const std::string &flag) {
 static void print_usage(const char *program) {
     std::cout << "Usage: " << program << " [--m M --n N --k K] [--no-check]" << std::endl;
     std::cout << "Supported shapes:" << std::endl;
+    std::cout << "  512x512x512" << std::endl;
+    std::cout << "  1024x1024x1024" << std::endl;
     std::cout << "  2048x2048x2048" << std::endl;
     std::cout << "  4096x4096x4096" << std::endl;
     std::cout << "  4096x8192x4096" << std::endl;
@@ -266,6 +268,12 @@ int main(int argc, char **argv) {
 
     if (shape.m == 2048 && shape.n == 2048 && shape.k == 2048) {
         return run_benchmark<2048, 2048, 2048>(verify);
+    }
+    if (shape.m == 512 && shape.n == 512 && shape.k == 512) {
+        return run_benchmark<512, 512, 512>(verify);
+    }
+    if (shape.m == 1024 && shape.n == 1024 && shape.k == 1024) {
+        return run_benchmark<1024, 1024, 1024>(verify);
     }
     if (shape.m == 4096 && shape.n == 4096 && shape.k == 4096) {
         return run_benchmark<4096, 4096, 4096>(verify);

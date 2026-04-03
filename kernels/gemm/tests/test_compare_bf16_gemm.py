@@ -7,6 +7,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from kernels.gemm.compare_bf16_gemm import (
+    DEFAULT_SHAPES_BY_TARGET,
     Implementation,
     ShapeSpec,
     find_problem_result,
@@ -84,6 +85,14 @@ def test_parse_shape_spec_accepts_compact_mnk_triplet():
     shape = parse_shape_spec("4096x8192x4096")
 
     assert shape == ShapeSpec(m=4096, n=8192, k=4096)
+
+
+def test_rtx4080_default_shapes_include_smaller_cases():
+    shapes = DEFAULT_SHAPES_BY_TARGET["RTX4080"]
+
+    assert ShapeSpec(512, 512, 512) in shapes
+    assert ShapeSpec(1024, 1024, 1024) in shapes
+    assert ShapeSpec(2048, 2048, 2048) in shapes
 
 
 def test_rank_results_marks_relative_to_best_for_successful_runs():

@@ -208,6 +208,8 @@ By default this detects the local GPU, runs the matching implementations, benchm
 On `RTX 4080`, the default shape set is:
 
 ```text
+512x512x512
+1024x1024x1024
 2048x2048x2048
 4096x4096x4096
 4096x8192x4096

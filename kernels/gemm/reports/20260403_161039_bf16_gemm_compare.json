@@ -1,0 +1,144 @@
+{
+  "generated_at": "2026-04-03T16:10:21Z",
+  "gpu_name": "NVIDIA GeForce RTX 4080",
+  "results_by_shape": [
+    {
+      "results": [
+        {
+          "avg_time_us": 21.0355,
+          "implementation": "TK Ampere",
+          "relative_to_best": 0.3100899329087379,
+          "status": "ok",
+          "tflops": 12.7611
+        },
+        {
+          "avg_time_us": 6.52288,
+          "implementation": "cuBLAS",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 41.1529
+        }
+      ],
+      "shape": {
+        "k": 512,
+        "m": 512,
+        "n": 512
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 41.319,
+          "implementation": "TK Ampere",
+          "relative_to_best": 0.7234627189777212,
+          "status": "ok",
+          "tflops": 51.9732
+        },
+        {
+          "avg_time_us": 29.8928,
+          "implementation": "cuBLAS",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 71.8395
+        }
+      ],
+      "shape": {
+        "k": 1024,
+        "m": 1024,
+        "n": 1024
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 223.943,
+          "implementation": "TK Ampere",
+          "relative_to_best": 0.9348683096128559,
+          "status": "ok",
+          "tflops": 76.7152
+        },
+        {
+          "avg_time_us": 209.35799999999998,
+          "implementation": "cuBLAS",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 82.0599
+        }
+      ],
+      "shape": {
+        "k": 2048,
+        "m": 2048,
+        "n": 2048
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 1379.84,
+          "implementation": "TK Ampere",
+          "relative_to_best": 0.9728305351265297,
+          "status": "ok",
+          "tflops": 99.6052
+        },
+        {
+          "avg_time_us": 1342.35,
+          "implementation": "cuBLAS",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 102.387
+        }
+      ],
+      "shape": {
+        "k": 4096,
+        "m": 4096,
+        "n": 4096
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 2666.68,
+          "implementation": "TK Ampere",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 103.079
+        },
+        {
+          "avg_time_us": 2683.3399999999997,
+          "implementation": "cuBLAS",
+          "relative_to_best": 0.9937911698794129,
+          "status": "ok",
+          "tflops": 102.439
+        }
+      ],
+      "shape": {
+        "k": 4096,
+        "m": 4096,
+        "n": 8192
+      }
+    },
+    {
+      "results": [
+        {
+          "avg_time_us": 2661.9199999999996,
+          "implementation": "TK Ampere",
+          "relative_to_best": 1.0,
+          "status": "ok",
+          "tflops": 103.263
+        },
+        {
+          "avg_time_us": 2682.9,
+          "implementation": "cuBLAS",
+          "relative_to_best": 0.9921753193302537,
+          "status": "ok",
+          "tflops": 102.455
+        }
+      ],
+      "shape": {
+        "k": 4096,
+        "m": 8192,
+        "n": 4096
+      }
+    }
+  ]
+}

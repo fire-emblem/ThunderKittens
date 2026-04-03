@@ -72,6 +72,8 @@ DEFAULT_IMPLEMENTATIONS_BY_TARGET = {
 
 DEFAULT_SHAPES_BY_TARGET = {
     "RTX4080": (
+        ShapeSpec(512, 512, 512),
+        ShapeSpec(1024, 1024, 1024),
         ShapeSpec(2048, 2048, 2048),
         ShapeSpec(4096, 4096, 4096),
         ShapeSpec(4096, 8192, 4096),
