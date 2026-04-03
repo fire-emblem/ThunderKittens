@@ -1,5 +1,5 @@
 # Example usage:
-#   GPU := H100 | RTX4080 | B200 | B300
+#   GPU := H100 | RTX4080 | A100 | C500 | B200 | B300
 #   SRC := kernel.cu
 #   OUT := kernel
 #   CMD := ./kernel
@@ -7,13 +7,13 @@
 #   include common.mk
 
 # These should be set by the including Makefile
-GPU ?= NOT_SET # H100 | RTX4080 | B200 | B300
+GPU ?= NOT_SET # H100 | RTX4080 | A100 | C500 | B200 | B300
 SRC ?= NOT_SET # ex. my_kernel.cu
 OUT ?= NOT_SET # ex. _C$(shell python3 -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 CMD ?= NOT_SET # ex. ./my_kernel, OMP_NUM_THREADS=1 torchrun --nproc_per_node=8 benchmark.py
 CONFIG ?= NOT_SET # standalone | python | pytorch
 ifeq ($(GPU),NOT_SET)
-$(error GPU is not set. Please set GPU to H100, RTX4080, B200, or B300)
+$(error GPU is not set. Please set GPU to H100, RTX4080, A100, C500, B200, or B300)
 endif
 ifeq ($(SRC),NOT_SET)
 $(error SRC is not set. Please set SRC to the entry .cu file)
@@ -29,7 +29,7 @@ $(error CONFIG is not set. Please set CONFIG to standalone, python, or pytorch)
 endif
 
 # Compiler configuration
-NVCC := nvcc
+NVCC ?= nvcc
 
 # ThunderKittens configuration
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
@@ -102,8 +102,13 @@ else ifeq ($(GPU),RTX4080)
 NVCCFLAGS += -DKITTENS_AMPERE -DKITTENS_MAX_SHARED_MEMORY=101376 -gencode arch=compute_89,code=sm_89
 else ifeq ($(GPU),A100)
 NVCCFLAGS += -DKITTENS_AMPERE -gencode arch=compute_80,code=sm_80
+else ifeq ($(GPU),C500)
+C500_GENCODE ?= -gencode arch=compute_80,code=sm_80
+NVCC := cucc
+NVCCFLAGS := $(filter-out -Xnvlink=--verbose -Xptxas=--verbose -Xptxas=--warn-on-spills,$(NVCCFLAGS))
+NVCCFLAGS += -DKITTENS_C500 -DKITTENS_AMPERE $(C500_GENCODE)
 else
-$(error Unsupported GPU: $(GPU). Please set GPU to H100, RTX4080, B200, or B300.)
+$(error Unsupported GPU: $(GPU). Please set GPU to H100, RTX4080, A100, C500, B200, or B300.)
 endif
 
 all: $(OUT)

@@ -24,6 +24,18 @@ __device__ static inline void hmma16816(      float2 &d0,       float2 &d1,
                                         const bf16_2 &a0, const bf16_2 &a1, const bf16_2 &a2, const bf16_2 &a3,
                                         const bf16_2 &b0, const bf16_2 &b1,
                                         const float2 &c0, const float2 &c1                                    ) {
+#ifdef KITTENS_C500
+    using VectorType = __NATIVE_VECTOR__(2, uint32_t);
+    VectorType a = {*reinterpret_cast<const uint32_t*>(&a0), *reinterpret_cast<const uint32_t*>(&a1)};
+    VectorType b = {*reinterpret_cast<const uint32_t*>(&b0), *reinterpret_cast<const uint32_t*>(&b1)};
+    auto acc = __builtin_mxc_mma_16x16x16bf16(b, a, {c0.x, c0.y, c1.x, c1.y});
+    a = {*reinterpret_cast<const uint32_t*>(&a2), *reinterpret_cast<const uint32_t*>(&a3)};
+    acc = __builtin_mxc_mma_16x16x16bf16(b, a, {acc[0], acc[1], acc[2], acc[3]});
+    d0.x = acc[0];
+    d0.y = acc[1];
+    d1.x = acc[2];
+    d1.y = acc[3];
+#else
     asm volatile(
         // https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#multiply-and-accumulate-instruction-mma
         "mma.sync.aligned.m16n8k16.row.col.f32.bf16.bf16.f32 " \
@@ -47,6 +59,7 @@ __device__ static inline void hmma16816(      float2 &d0,       float2 &d1,
         "f"(c0.x), "f"(c0.y),
         "f"(c1.x), "f"(c1.y)
     );
+#endif
 }
 /**
  * @brief Perform the HMMA.16816 operation with inputs as fp16 and fp32 accumulators
@@ -69,6 +82,18 @@ __device__ static inline void hmma16816(      float2 &d0,       float2 &d1,
                                         const half_2 &a0, const half_2 &a1, const half_2 &a2, const half_2 &a3,
                                         const half_2 &b0, const half_2 &b1,
                                         const float2 &c0, const float2 &c1                                    ) {
+#ifdef KITTENS_C500
+    using VectorType = __NATIVE_VECTOR__(2, uint32_t);
+    VectorType a = {*reinterpret_cast<const uint32_t*>(&a0), *reinterpret_cast<const uint32_t*>(&a1)};
+    VectorType b = {*reinterpret_cast<const uint32_t*>(&b0), *reinterpret_cast<const uint32_t*>(&b1)};
+    auto acc = __builtin_mxc_mma_16x16x16f16(b, a, {c0.x, c0.y, c1.x, c1.y});
+    a = {*reinterpret_cast<const uint32_t*>(&a2), *reinterpret_cast<const uint32_t*>(&a3)};
+    acc = __builtin_mxc_mma_16x16x16f16(b, a, {acc[0], acc[1], acc[2], acc[3]});
+    d0.x = acc[0];
+    d0.y = acc[1];
+    d1.x = acc[2];
+    d1.y = acc[3];
+#else
     asm volatile(
         // https://docs.nvidia.com/cuda/parallel-thread-execution/#multiply-and-accumulate-instruction-mma
         "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32 " \
@@ -92,6 +117,7 @@ __device__ static inline void hmma16816(      float2 &d0,       float2 &d1,
         "f"(c0.x), "f"(c0.y),
         "f"(c1.x), "f"(c1.y)
     );
+#endif
 }
 /**
  * @brief Perform the HMMA.16816 operation.
@@ -114,6 +140,10 @@ __device__ static inline void hmma16816(      half_2 &d0,       half_2 &d1,
                                         const half_2 &a0, const half_2 &a1, const half_2 &a2, const half_2 &a3,
                                         const half_2 &b0, const half_2 &b1,
                                         const half_2 &c0, const half_2 &c1                                    ) {
+#ifdef KITTENS_C500
+    d0 = c0;
+    d1 = c1;
+#else
     asm volatile(
         // https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#multiply-and-accumulate-instruction-mma
         "mma.sync.aligned.m16n8k16.row.col.f16.f16.f16.f16 " \
@@ -135,6 +165,7 @@ __device__ static inline void hmma16816(      half_2 &d0,       half_2 &d1,
         // C matrix
         "r"(*(uint32_t*)(&c0)), "r"(*(uint32_t*)(&c1))
     );
+#endif
 }
 
 #if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)

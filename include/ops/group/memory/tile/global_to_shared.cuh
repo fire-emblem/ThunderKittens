@@ -137,6 +137,24 @@ __device__ static inline void load_async(ST &dst, const GL &src, const COORD &id
         int row = load_idx / memcpy_per_row;
         int col = (load_idx*elem_per_memcpy) % ST::cols;
 
+#ifdef KITTENS_C500
+        if constexpr (assume_aligned) {
+            float4 tmp;
+            move<float4>::ldg(tmp, (float4*)&src_ptr[row*row_stride + col]);
+            move<float4>::sts(dst.idx(dst_ptr, {row, col}), tmp);
+        }
+        else {
+            if (row + unit_coord.template dim<axis>() < src.template shape<axis>()) {
+                float4 tmp;
+                move<float4>::ldg(tmp, (float4*)&src_ptr[row*row_stride + col]);
+                move<float4>::sts(dst.idx(dst_ptr, {row, col}), tmp);
+            }
+            else {
+                float4 zeros = {0.f,0.f,0.f,0.f};
+                move<float4>::sts(dst.idx(dst_ptr, {row, col}), zeros);
+            }
+        }
+#else
         if constexpr (assume_aligned) {
             asm volatile(
                 "cp.async.cg.shared.global.L2::128B [%0], [%1], 16;\n"
@@ -158,8 +176,11 @@ __device__ static inline void load_async(ST &dst, const GL &src, const COORD &id
                 move<float4>::sts(dst.idx(dst_ptr, {row, col}), zeros); // use the default value
             }
         }
+#endif
     }
+#ifndef KITTENS_C500
     asm volatile("cp.async.commit_group;\n" ::: "memory");
+#endif
 }
 template<ducks::st::all ST, ducks::gl::all GL, ducks::coord::tile COORD=coord<ST>>
 __device__ static inline void load_async(ST &dst, const GL &src, const COORD &idx) {
