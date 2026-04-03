@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-04-03T16:28:40Z",
+  "gpu_name": "NVIDIA GeForce RTX 4080",
+  "problem_size": {
+    "k": 1024,
+    "m": 1024,
+    "n": 1024
+  },
+  "results": [
+    {
+      "avg_time_us": 41.5386,
+      "implementation": "TK Ampere",
+      "relative_to_best": 0.8601023166826103,
+      "status": "ok",
+      "tflops": 51.6986
+    },
+    {
+      "avg_time_us": 54.528,
+      "implementation": "TK Ampere Small",
+      "relative_to_best": 0.6552110801480681,
+      "status": "ok",
+      "tflops": 39.3831
+    },
+    {
+      "avg_time_us": 35.7274,
+      "implementation": "cuBLAS",
+      "relative_to_best": 1.0,
+      "status": "ok",
+      "tflops": 60.1075
+    }
+  ]
+}

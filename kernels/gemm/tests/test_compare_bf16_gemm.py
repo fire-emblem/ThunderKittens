@@ -10,6 +10,7 @@ from kernels.gemm.compare_bf16_gemm import (
     DEFAULT_SHAPES_BY_TARGET,
     Implementation,
     ShapeSpec,
+    default_implementations_for_shape,
     find_problem_result,
     format_relative_to_best,
     filter_implementations,
@@ -81,6 +82,22 @@ def test_filter_implementations_selects_rtx4080_tk_and_cublas_pair():
     assert [item.name for item in filtered] == ["TK Ampere", "cuBLAS"]
 
 
+def test_filter_implementations_accepts_small_kernel_when_requested():
+    implementations = (
+        Implementation("TK Ampere", "kernels/gemm/bf16_ampere", ("RTX4080",)),
+        Implementation("TK Ampere Small", "kernels/gemm/bf16_ampere_small", ("RTX4080",)),
+        Implementation("cuBLAS", "kernels/gemm/baselines/bf16_cublas", ("RTX4080",)),
+    )
+
+    filtered = filter_implementations(
+        implementations,
+        gpu_target="RTX4080",
+        implementation_names=("TK Ampere Small", "cuBLAS"),
+    )
+
+    assert [item.name for item in filtered] == ["TK Ampere Small", "cuBLAS"]
+
+
 def test_parse_shape_spec_accepts_compact_mnk_triplet():
     shape = parse_shape_spec("4096x8192x4096")
 
@@ -93,6 +110,18 @@ def test_rtx4080_default_shapes_include_smaller_cases():
     assert ShapeSpec(512, 512, 512) in shapes
     assert ShapeSpec(1024, 1024, 1024) in shapes
     assert ShapeSpec(2048, 2048, 2048) in shapes
+
+
+def test_default_implementations_for_512_include_small_kernel():
+    names = default_implementations_for_shape("RTX4080", ShapeSpec(512, 512, 512))
+
+    assert names == ("TK Ampere Small", "TK Ampere", "cuBLAS")
+
+
+def test_default_implementations_for_1024_keep_main_kernel_first():
+    names = default_implementations_for_shape("RTX4080", ShapeSpec(1024, 1024, 1024))
+
+    assert names == ("TK Ampere", "TK Ampere Small", "cuBLAS")
 
 
 def test_rank_results_marks_relative_to_best_for_successful_runs():

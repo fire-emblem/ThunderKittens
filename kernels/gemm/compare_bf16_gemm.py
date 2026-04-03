@@ -48,6 +48,7 @@ class ShapeSpec:
 IMPLEMENTATIONS = (
     Implementation("TK H100", "kernels/gemm/bf16_h100", ("H100",)),
     Implementation("TK Ampere", "kernels/gemm/bf16_ampere", ("RTX4080",)),
+    Implementation("TK Ampere Small", "kernels/gemm/bf16_ampere_small", ("RTX4080",)),
     Implementation(
         "cuBLAS",
         "kernels/gemm/baselines/bf16_cublas",
@@ -118,6 +119,16 @@ def parse_shape_spec(value: str) -> ShapeSpec:
     return ShapeSpec(m=int(match.group(1)), n=int(match.group(2)), k=int(match.group(3)))
 
 
+def default_implementations_for_shape(gpu_target: str | None, shape: ShapeSpec) -> tuple[str, ...]:
+    if gpu_target == "RTX4080":
+        if shape == ShapeSpec(512, 512, 512):
+            return ("TK Ampere Small", "TK Ampere", "cuBLAS")
+        if shape == ShapeSpec(1024, 1024, 1024):
+            return ("TK Ampere", "TK Ampere Small", "cuBLAS")
+        return ("TK Ampere", "cuBLAS")
+    return DEFAULT_IMPLEMENTATIONS_BY_TARGET.get(gpu_target or "", ())
+
+
 def find_problem_result(output: str, m: int, n: int, k: int) -> dict[str, float]:
     for match in PROBLEM_BLOCK_PATTERN.finditer(output):
         block_m = int(match.group(1))
@@ -133,20 +144,20 @@ def filter_implementations(
     implementations: tuple[Implementation, ...],
     gpu_target: str | None,
     implementation_names: tuple[str, ...] | None,
+    shape: ShapeSpec | None = None,
 ) -> list[Implementation]:
+    implementation_map = {item.name: item for item in implementations}
     if implementation_names:
-        selected = [item for item in implementations if item.name in implementation_names]
-        name_set = {item.name for item in selected}
-        missing = [name for name in implementation_names if name not in name_set]
+        missing = [name for name in implementation_names if name not in implementation_map]
         if missing:
             raise ValueError(f"Unknown implementations requested: {', '.join(missing)}")
-        return selected
+        return [implementation_map[name] for name in implementation_names]
 
     if gpu_target is None:
         return []
 
-    default_names = DEFAULT_IMPLEMENTATIONS_BY_TARGET.get(gpu_target, ())
-    return [item for item in implementations if item.name in default_names]
+    default_names = default_implementations_for_shape(gpu_target, shape or ShapeSpec(4096, 4096, 4096))
+    return [implementation_map[name] for name in default_names if name in implementation_map]
 
 
 def rank_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -442,22 +453,22 @@ def main() -> int:
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     shapes = resolve_shapes(gpu_target, args.shapes)
 
-    selected = filter_implementations(
-        IMPLEMENTATIONS,
-        gpu_target=gpu_target,
-        implementation_names=tuple(args.implementations) if args.implementations else None,
-    )
-    if not selected:
-        raise SystemExit(f"No implementations selected for GPU target {gpu_target!r}.")
-
     results_by_shape: dict[ShapeSpec, list[dict[str, Any]]] = {}
     for shape in shapes:
+        selected = filter_implementations(
+            IMPLEMENTATIONS,
+            gpu_target=gpu_target,
+            implementation_names=tuple(args.implementations) if args.implementations else None,
+            shape=shape,
+        )
+        if not selected:
+            raise SystemExit(f"No implementations selected for GPU target {gpu_target!r} and shape {shape.compact()}.")
         problem_size = (shape.m, shape.n, shape.k)
         results = [run_implementation(item, gpu_target, problem_size) for item in selected]
         results_by_shape[shape] = rank_results(results)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    stem = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_bf16_gemm_compare")
+    stem = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f_bf16_gemm_compare")
     markdown_path = args.output_dir / f"{stem}.md"
     json_path = args.output_dir / f"{stem}.json"
 

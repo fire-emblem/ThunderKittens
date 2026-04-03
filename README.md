@@ -205,6 +205,8 @@ For a one-command comparison between the ThunderKittens kernel and cuBLAS, run:
 
 By default this detects the local GPU, runs the matching implementations, benchmarks a small set of representative GEMM shapes, and writes both Markdown and JSON reports under `kernels/gemm/reports/`.
 
+For `RTX 4080`, the benchmark flow is shape-aware: `512x512x512` includes an extra `TK Ampere Small` kernel tuned for smaller problems, while `1024+` shapes continue to use the main `TK Ampere` baseline as the primary implementation.
+
 On `RTX 4080`, the default shape set is:
 
 ```text
