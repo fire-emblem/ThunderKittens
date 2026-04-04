@@ -275,7 +275,7 @@
 #define TEST_GROUP_MMA
 #endif
 
-#if defined(TEST_C500_MMA_ATOM_BF16)
+#if defined(TEST_C500_MMA_ATOM_BF16) || defined(TEST_C500_MMA_GEMM_BF16)
 #define TEST_C500_MMA
 #endif
 
