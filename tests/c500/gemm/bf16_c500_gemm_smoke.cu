@@ -90,9 +90,7 @@ bool run_smoke(test_data &results) {
     info.result = validate(d_a, d_c, empty_input, ref_out, info.label, kN, 0.02f);
     results.push_back(info);
 
-    cudaFree(d_a);
     cudaFree(d_b);
-    cudaFree(d_c);
     cudaFree(d_ref);
     CudaCheckError();
     return info.result == test_result::PASSED;
