@@ -176,6 +176,8 @@
 
 #if defined(KITTENS_C500) && defined(TEST_C500_BACKEND_LAYER)
 #define TEST_C500_GEMM_BACKEND_COMPILE_PROBE
+#define TEST_C500_GEMM_LAYOUT_PROBE
+#define TEST_C500_GEMM_FRAGMENT_PROBE
 #endif
 
 // Now we need to go back up the tree and make sure all dependent flags are defined.
@@ -280,7 +282,8 @@
 #define TEST_GROUP_MMA
 #endif
 
-#if defined(TEST_C500_GEMM_BACKEND_COMPILE_PROBE) || defined(TEST_C500_MMA_ATOM_BF16) || defined(TEST_C500_MMA_GEMM_BF16)
+#if defined(TEST_C500_GEMM_BACKEND_COMPILE_PROBE) || defined(TEST_C500_GEMM_LAYOUT_PROBE) || \
+    defined(TEST_C500_GEMM_FRAGMENT_PROBE) || defined(TEST_C500_MMA_ATOM_BF16) || defined(TEST_C500_MMA_GEMM_BF16)
 #define TEST_C500_MMA
 #endif
 
