@@ -105,7 +105,11 @@ __device__ inline void export_accumulators(reg_tileC &dst,
     }
 }
 
-__global__ void gemm_smoke_kernel(const gemm_globals g) {
+#ifdef KITTENS_C500
+__global__ __launch_bounds__(kBlockSize) void gemm_smoke_kernel(const __grid_constant__ gemm_globals g) {
+#else
+__global__ __launch_bounds__(kBlockSize, 1) void gemm_smoke_kernel(const gemm_globals g) {
+#endif
     using load_group = kittens::group<(kNumWorkers / kLoadGroups)>;
     constexpr int kLoadBlocks = kNumWorkers / load_group::GROUP_WARPS;
 
