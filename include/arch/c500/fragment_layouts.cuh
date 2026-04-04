@@ -26,9 +26,16 @@ struct mma_input_16x16x16_fp32 {
 
 using mma_bf16_16x16x16_fp32 = mma_input_16x16x16_fp32<bf16>;
 using mma_f16_16x16x16_fp32 = mma_input_16x16x16_fp32<half>;
+struct bf16_mma_atom : mma_input_16x16x16_fp32<bf16> {};
 
 template<typename Input>
 struct fragment_layout_traits<mma_input_16x16x16_fp32<Input>> {
+    static __device__ inline int lane_row(int lane) { return lane & 0x0f; }
+    static __device__ inline int lane_group(int lane) { return lane >> 4; }
+};
+
+template<>
+struct fragment_layout_traits<bf16_mma_atom> {
     static __device__ inline int lane_row(int lane) { return lane & 0x0f; }
     static __device__ inline int lane_group(int lane) { return lane >> 4; }
 };

@@ -5,6 +5,9 @@
 #include "testing_commons.cuh"
 
 namespace c500::mma {
+namespace backend_compile_probe {
+void tests(test_data &results);
+}
 namespace atom_bf16 {
 void tests(test_data &results);
 }
@@ -14,6 +17,11 @@ void tests(test_data &results);
 
 void tests(test_data &results) {
     std::cout << " -------------------- Starting ops/c500/mma tests! --------------------\n" << std::endl;
+#ifdef TEST_C500_GEMM_BACKEND_COMPILE_PROBE
+    backend_compile_probe::tests(results);
+#else
+    std::cout << "INFO: Skipping ops/c500/mma/backend_compile_probe tests!\n" << std::endl;
+#endif
 #ifdef TEST_C500_MMA_ATOM_BF16
     atom_bf16::tests(results);
 #else
