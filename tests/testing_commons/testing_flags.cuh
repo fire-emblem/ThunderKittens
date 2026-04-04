@@ -165,6 +165,14 @@
 #define TEST_GROUP_REG_TILE_COMPLEX_MUL
 #endif
 
+/* ----------  C500-SPECIFIC TEST MACROS  ---------- */
+
+#if defined(KITTENS_C500) && defined(TEST_C500_NATIVE_ATOMS)
+#define TEST_C500_MMA_ATOM_BF16
+#define TEST_C500_MEMORY_SHARED_TO_NATIVE_A
+#define TEST_C500_MEMORY_SHARED_TO_NATIVE_B
+#endif
+
 // Now we need to go back up the tree and make sure all dependent flags are defined.
 
 /* -----  DEPTH 4 MACROS  ----- */
@@ -267,6 +275,14 @@
 #define TEST_GROUP_MMA
 #endif
 
+#if defined(TEST_C500_MMA_ATOM_BF16)
+#define TEST_C500_MMA
+#endif
+
+#if defined(TEST_C500_MEMORY_SHARED_TO_NATIVE_A) || defined(TEST_C500_MEMORY_SHARED_TO_NATIVE_B)
+#define TEST_C500_MEMORY
+#endif
+
 /* -----  DEPTH 1 MACROS  ----- */
 
 #if defined(TEST_THREAD_MEMORY)
@@ -275,6 +291,10 @@
 
 #if defined(TEST_GROUP_MEMORY) || defined(TEST_GROUP_SHARED) || defined(TEST_GROUP_MMA) || defined(TEST_GROUP_REG)
 #define TEST_GROUP
+#endif
+
+#if defined(TEST_C500_MMA) || defined(TEST_C500_MEMORY)
+#define TEST_C500
 #endif
 
 /* ----------  TEST INTENSITY MACROS  ---------- */
