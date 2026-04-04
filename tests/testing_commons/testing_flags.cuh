@@ -167,7 +167,7 @@
 
 /* ----------  C500-SPECIFIC TEST MACROS  ---------- */
 
-#if defined(KITTENS_C500) && defined(TEST_C500_NATIVE_ATOMS)
+#if defined(KITTENS_C500) && (defined(TEST_C500_NATIVE_ATOMS) || defined(TEST_ALL))
 #define TEST_C500_MMA_ATOM_BF16
 #define TEST_C500_MEMORY_SHARED_TO_NATIVE_A
 #define TEST_C500_MEMORY_SHARED_TO_NATIVE_B
