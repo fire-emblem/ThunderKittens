@@ -7,8 +7,8 @@ namespace kittens::arch::c500 {
 template<typename Atom>
 struct fragment_layout_traits;
 
-// First native wave64 atom tag for the C500 hot path. Packing stays open until
-// probe tests lock down the fragment payloads.
+// First native wave64 atom tag for the C500 hot path. This file keeps only
+// atom traits and lane mapping; fragment payloads live in the backend headers.
 template<typename Input>
 struct mma_input_16x16x16_fp32 {
     using a_scalar = Input;
@@ -19,6 +19,9 @@ struct mma_input_16x16x16_fp32 {
     static constexpr int N = 16;
     static constexpr int K = 16;
     static constexpr int wave_size = 64;
+    static constexpr int a_registers = 2;
+    static constexpr int b_registers = 2;
+    static constexpr int c_registers = 4;
 };
 
 using mma_bf16_16x16x16_fp32 = mma_input_16x16x16_fp32<bf16>;
