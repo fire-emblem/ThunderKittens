@@ -14,6 +14,9 @@ void tests(test_data &results);
 namespace fragment_probe {
 void tests(test_data &results);
 }
+namespace stage_probe {
+void tests(test_data &results);
+}
 namespace gemm_smoke {
 void tests(test_data &results);
 }
@@ -40,6 +43,11 @@ void tests(test_data &results) {
     fragment_probe::tests(results);
 #else
     std::cout << "INFO: Skipping ops/c500/mma/fragment_probe tests!\n" << std::endl;
+#endif
+#ifdef TEST_C500_GEMM_STAGE_PROBE
+    stage_probe::tests(results);
+#else
+    std::cout << "INFO: Skipping ops/c500/mma/stage_probe tests!\n" << std::endl;
 #endif
 #ifdef TEST_C500_GEMM_SMOKE
     gemm_smoke::tests(results);
