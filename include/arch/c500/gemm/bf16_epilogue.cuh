@@ -1,12 +1,16 @@
 #pragma once
 
+#include "../epilogue_atoms.cuh"
 #include "../layouts/accumulator_export.cuh"
 
 namespace kittens::arch::c500::gemm {
 
-template<typename GlobalC, typename Accumulator>
-__device__ inline void store_epilogue(const GlobalC &, const Accumulator &, int, int) {
-    // Placeholder Task 3 epilogue contract; writeback lands with the mainloop path.
+template<typename OutputTile>
+__device__ inline void store_epilogue(OutputTile &dst,
+                                      const fragment_c<mma_bf16_16x16x16_fp32> &src,
+                                      int tile_m,
+                                      int tile_n) {
+    store_c<mma_bf16_16x16x16_fp32>(dst, src, tile_m, tile_n);
 }
 
 } // namespace kittens::arch::c500::gemm
