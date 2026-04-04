@@ -3,6 +3,397 @@
  * @brief Warp-level matrix multiply-accumulate operations for tiles stored in registers.
  */
 
+#ifdef KITTENS_C500
+struct detail {
+
+__device__ static inline constexpr uint64_t c500_full_mask() {
+    return 0xffffffffffffffffull;
+}
+
+__device__ static inline constexpr int c500_shuffle_width() {
+    return 64;
+}
+
+__device__ static inline int c500_native_row(int lane_id) {
+    return lane_id & 0xf;
+}
+
+__device__ static inline int c500_native_col_group(int lane_id) {
+    return lane_id >> 4;
+}
+
+__device__ static inline int c500_native_col(int lane_id, int vec_idx) {
+    return c500_native_col_group(lane_id) * 4 + vec_idx;
+}
+
+__device__ static inline void cute_shuffle_a(uint32_t (&aa)[2],
+                                             uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3,
+                                             int lane_id) {
+    int delta = (lane_id % 32 % 8 * 4 + lane_id % 32 / 16 * 2) - lane_id;
+
+    uint32_t tmp0 = __shfl_down_sync(c500_full_mask(), a0, delta);
+    uint32_t tmp0_1 = __shfl_down_sync(c500_full_mask(), a0, delta + 1);
+    uint32_t tmp1 = __shfl_down_sync(c500_full_mask(), a1, delta);
+    uint32_t tmp1_1 = __shfl_down_sync(c500_full_mask(), a1, delta + 1);
+    uint32_t tmp2 = __shfl_down_sync(c500_full_mask(), a2, delta);
+    uint32_t tmp2_1 = __shfl_down_sync(c500_full_mask(), a2, delta + 1);
+    uint32_t tmp3 = __shfl_down_sync(c500_full_mask(), a3, delta);
+    uint32_t tmp3_1 = __shfl_down_sync(c500_full_mask(), a3, delta + 1);
+
+    bool upper_half = lane_id % 16 / 8;
+    if (lane_id < 32) {
+        aa[0] = upper_half ? tmp1 : tmp0;
+        aa[1] = upper_half ? tmp1_1 : tmp0_1;
+    } else {
+        aa[0] = upper_half ? tmp3 : tmp2;
+        aa[1] = upper_half ? tmp3_1 : tmp2_1;
+    }
+}
+
+__device__ static inline void cute_shuffle_b(uint32_t (&bb)[2],
+                                             uint32_t b0, uint32_t b1,
+                                             int lane_id) {
+    int delta = (lane_id % 32 % 8 * 4 + lane_id % 32 / 16 * 2) - lane_id;
+
+    uint32_t tmp0 = __shfl_down_sync(c500_full_mask(), b0, delta);
+    uint32_t tmp0_1 = __shfl_down_sync(c500_full_mask(), b0, delta + 1);
+    uint32_t tmp1 = __shfl_down_sync(c500_full_mask(), b1, delta);
+    uint32_t tmp1_1 = __shfl_down_sync(c500_full_mask(), b1, delta + 1);
+
+    if (lane_id < 32) {
+        bb[0] = tmp0;
+        bb[1] = tmp0_1;
+    } else {
+        bb[0] = tmp1;
+        bb[1] = tmp1_1;
+    }
+}
+
+__device__ static inline void cute_shuffle_c(float (&cc)[4],
+                                             float c0, float c1, float c2, float c3,
+                                             int lane_id) {
+    int delta = (lane_id % 8 / 2 + lane_id % 32 / 16 * 16) - lane_id;
+
+    float tmp_c0 = __shfl_down_sync(c500_full_mask(), c0, delta);
+    float tmp_c0_4 = __shfl_down_sync(c500_full_mask(), c0, delta + 4);
+    float tmp_c0_8 = __shfl_down_sync(c500_full_mask(), c0, delta + 8);
+    float tmp_c0_12 = __shfl_down_sync(c500_full_mask(), c0, delta + 12);
+    float tmp_c1 = __shfl_down_sync(c500_full_mask(), c1, delta);
+    float tmp_c1_4 = __shfl_down_sync(c500_full_mask(), c1, delta + 4);
+    float tmp_c1_8 = __shfl_down_sync(c500_full_mask(), c1, delta + 8);
+    float tmp_c1_12 = __shfl_down_sync(c500_full_mask(), c1, delta + 12);
+    float tmp_c2 = __shfl_down_sync(c500_full_mask(), c2, delta);
+    float tmp_c2_4 = __shfl_down_sync(c500_full_mask(), c2, delta + 4);
+    float tmp_c2_8 = __shfl_down_sync(c500_full_mask(), c2, delta + 8);
+    float tmp_c2_12 = __shfl_down_sync(c500_full_mask(), c2, delta + 12);
+    float tmp_c3 = __shfl_down_sync(c500_full_mask(), c3, delta);
+    float tmp_c3_4 = __shfl_down_sync(c500_full_mask(), c3, delta + 4);
+    float tmp_c3_8 = __shfl_down_sync(c500_full_mask(), c3, delta + 8);
+    float tmp_c3_12 = __shfl_down_sync(c500_full_mask(), c3, delta + 12);
+
+    if (lane_id < 32) {
+        if (lane_id % 2) {
+            cc[0] = tmp_c1;
+            cc[1] = tmp_c1_4;
+            cc[2] = tmp_c1_8;
+            cc[3] = tmp_c1_12;
+        } else {
+            cc[0] = tmp_c0;
+            cc[1] = tmp_c0_4;
+            cc[2] = tmp_c0_8;
+            cc[3] = tmp_c0_12;
+        }
+    } else {
+        if (lane_id % 2) {
+            cc[0] = tmp_c3;
+            cc[1] = tmp_c3_4;
+            cc[2] = tmp_c3_8;
+            cc[3] = tmp_c3_12;
+        } else {
+            cc[0] = tmp_c2;
+            cc[1] = tmp_c2_4;
+            cc[2] = tmp_c2_8;
+            cc[3] = tmp_c2_12;
+        }
+    }
+}
+
+__device__ static inline void c500_shuffle_tk_c_to_native(float (&cc)[4],
+                                                          const float2 &c0,
+                                                          const float2 &c1,
+                                                          int lane_id) {
+    const int row = lane_id & 0xf;
+    const int lane_group = lane_id >> 4;
+    const float src0_c0x = __shfl_sync(c500_full_mask(), c0.x, row + 0 * 16, c500_shuffle_width());
+    const float src1_c0x = __shfl_sync(c500_full_mask(), c0.x, row + 1 * 16, c500_shuffle_width());
+    const float src2_c0x = __shfl_sync(c500_full_mask(), c0.x, row + 2 * 16, c500_shuffle_width());
+    const float src3_c0x = __shfl_sync(c500_full_mask(), c0.x, row + 3 * 16, c500_shuffle_width());
+    const float src0_c0y = __shfl_sync(c500_full_mask(), c0.y, row + 0 * 16, c500_shuffle_width());
+    const float src1_c0y = __shfl_sync(c500_full_mask(), c0.y, row + 1 * 16, c500_shuffle_width());
+    const float src2_c0y = __shfl_sync(c500_full_mask(), c0.y, row + 2 * 16, c500_shuffle_width());
+    const float src3_c0y = __shfl_sync(c500_full_mask(), c0.y, row + 3 * 16, c500_shuffle_width());
+    const float src0_c1x = __shfl_sync(c500_full_mask(), c1.x, row + 0 * 16, c500_shuffle_width());
+    const float src1_c1x = __shfl_sync(c500_full_mask(), c1.x, row + 1 * 16, c500_shuffle_width());
+    const float src2_c1x = __shfl_sync(c500_full_mask(), c1.x, row + 2 * 16, c500_shuffle_width());
+    const float src3_c1x = __shfl_sync(c500_full_mask(), c1.x, row + 3 * 16, c500_shuffle_width());
+    const float src0_c1y = __shfl_sync(c500_full_mask(), c1.y, row + 0 * 16, c500_shuffle_width());
+    const float src1_c1y = __shfl_sync(c500_full_mask(), c1.y, row + 1 * 16, c500_shuffle_width());
+    const float src2_c1y = __shfl_sync(c500_full_mask(), c1.y, row + 2 * 16, c500_shuffle_width());
+    const float src3_c1y = __shfl_sync(c500_full_mask(), c1.y, row + 3 * 16, c500_shuffle_width());
+
+    if (lane_group == 0) {
+        cc[0] = src0_c0x;
+        cc[1] = src1_c0x;
+        cc[2] = src2_c0x;
+        cc[3] = src3_c0x;
+    } else if (lane_group == 1) {
+        cc[0] = src0_c0y;
+        cc[1] = src1_c0y;
+        cc[2] = src2_c0y;
+        cc[3] = src3_c0y;
+    } else if (lane_group == 2) {
+        cc[0] = src0_c1x;
+        cc[1] = src1_c1x;
+        cc[2] = src2_c1x;
+        cc[3] = src3_c1x;
+    } else {
+        cc[0] = src0_c1y;
+        cc[1] = src1_c1y;
+        cc[2] = src2_c1y;
+        cc[3] = src3_c1y;
+    }
+}
+
+template<typename Packed2>
+__device__ static inline void c500_shuffle_tk_ab_to_native(_Float16 (&native)[4],
+                                                           const Packed2 &p0,
+                                                           const Packed2 &p1,
+                                                           int lane_id) {
+    const uint32_t lane_bits[4] = {
+        static_cast<uint32_t>(*reinterpret_cast<const uint16_t *>(&(p0.x))),
+        static_cast<uint32_t>(*reinterpret_cast<const uint16_t *>(&(p0.y))),
+        static_cast<uint32_t>(*reinterpret_cast<const uint16_t *>(&(p1.x))),
+        static_cast<uint32_t>(*reinterpret_cast<const uint16_t *>(&(p1.y)))
+    };
+    const int row = lane_id & 0xf;
+    const int lane_group = lane_id >> 4;
+    auto unpack = [](uint32_t bits) {
+        uint16_t raw = static_cast<uint16_t>(bits);
+        return *reinterpret_cast<_Float16 *>(&raw);
+    };
+
+    if (lane_group == 0) {
+        native[0] = unpack(__shfl_sync(c500_full_mask(), lane_bits[0], row + 0 * 16, c500_shuffle_width()));
+        native[1] = unpack(__shfl_sync(c500_full_mask(), lane_bits[0], row + 1 * 16, c500_shuffle_width()));
+        native[2] = unpack(__shfl_sync(c500_full_mask(), lane_bits[0], row + 2 * 16, c500_shuffle_width()));
+        native[3] = unpack(__shfl_sync(c500_full_mask(), lane_bits[0], row + 3 * 16, c500_shuffle_width()));
+    } else if (lane_group == 1) {
+        native[0] = unpack(__shfl_sync(c500_full_mask(), lane_bits[1], row + 0 * 16, c500_shuffle_width()));
+        native[1] = unpack(__shfl_sync(c500_full_mask(), lane_bits[1], row + 1 * 16, c500_shuffle_width()));
+        native[2] = unpack(__shfl_sync(c500_full_mask(), lane_bits[1], row + 2 * 16, c500_shuffle_width()));
+        native[3] = unpack(__shfl_sync(c500_full_mask(), lane_bits[1], row + 3 * 16, c500_shuffle_width()));
+    } else if (lane_group == 2) {
+        native[0] = unpack(__shfl_sync(c500_full_mask(), lane_bits[2], row + 0 * 16, c500_shuffle_width()));
+        native[1] = unpack(__shfl_sync(c500_full_mask(), lane_bits[2], row + 1 * 16, c500_shuffle_width()));
+        native[2] = unpack(__shfl_sync(c500_full_mask(), lane_bits[2], row + 2 * 16, c500_shuffle_width()));
+        native[3] = unpack(__shfl_sync(c500_full_mask(), lane_bits[2], row + 3 * 16, c500_shuffle_width()));
+    } else {
+        native[0] = unpack(__shfl_sync(c500_full_mask(), lane_bits[3], row + 0 * 16, c500_shuffle_width()));
+        native[1] = unpack(__shfl_sync(c500_full_mask(), lane_bits[3], row + 1 * 16, c500_shuffle_width()));
+        native[2] = unpack(__shfl_sync(c500_full_mask(), lane_bits[3], row + 2 * 16, c500_shuffle_width()));
+        native[3] = unpack(__shfl_sync(c500_full_mask(), lane_bits[3], row + 3 * 16, c500_shuffle_width()));
+    }
+}
+
+template<typename Result>
+__device__ static inline void cute_scatter_d(float2 &d0, float2 &d1,
+                                             const Result &result,
+                                             int lane_id) {
+    int delta = (lane_id % 4 * 2 + lane_id / 16 * 16) - lane_id;
+
+    float tmp_d0 = __shfl_down_sync(c500_full_mask(), result[0], delta);
+    float tmp_d1 = __shfl_down_sync(c500_full_mask(), result[1], delta);
+    float tmp_d2 = __shfl_down_sync(c500_full_mask(), result[2], delta);
+    float tmp_d3 = __shfl_down_sync(c500_full_mask(), result[3], delta);
+    float tmp_d0_1 = __shfl_down_sync(c500_full_mask(), result[0], delta + 1);
+    float tmp_d1_1 = __shfl_down_sync(c500_full_mask(), result[1], delta + 1);
+    float tmp_d2_1 = __shfl_down_sync(c500_full_mask(), result[2], delta + 1);
+    float tmp_d3_1 = __shfl_down_sync(c500_full_mask(), result[3], delta + 1);
+    float tmp_d0_32 = __shfl_down_sync(c500_full_mask(), result[0], delta + 32);
+    float tmp_d1_32 = __shfl_down_sync(c500_full_mask(), result[1], delta + 32);
+    float tmp_d2_32 = __shfl_down_sync(c500_full_mask(), result[2], delta + 32);
+    float tmp_d3_32 = __shfl_down_sync(c500_full_mask(), result[3], delta + 32);
+    float tmp_d0_32_1 = __shfl_down_sync(c500_full_mask(), result[0], delta + 33);
+    float tmp_d1_32_1 = __shfl_down_sync(c500_full_mask(), result[1], delta + 33);
+    float tmp_d2_32_1 = __shfl_down_sync(c500_full_mask(), result[2], delta + 33);
+    float tmp_d3_32_1 = __shfl_down_sync(c500_full_mask(), result[3], delta + 33);
+
+    if (lane_id < 32) {
+        if (lane_id % 16 / 4 == 0) {
+            d0 = {tmp_d0, tmp_d0_1};
+            d1 = {tmp_d0_32, tmp_d0_32_1};
+        } else if (lane_id % 16 / 4 == 1) {
+            d0 = {tmp_d1, tmp_d1_1};
+            d1 = {tmp_d1_32, tmp_d1_32_1};
+        } else if (lane_id % 16 / 4 == 2) {
+            d0 = {tmp_d2, tmp_d2_1};
+            d1 = {tmp_d2_32, tmp_d2_32_1};
+        } else {
+            d0 = {tmp_d3, tmp_d3_1};
+            d1 = {tmp_d3_32, tmp_d3_32_1};
+        }
+    }
+}
+
+template<typename Result>
+__device__ static inline void c500_scatter_native_d_to_tk(float2 &d0, float2 &d1,
+                                                          const Result &result,
+                                                          int lane_id) {
+    const int row = lane_id & 0xf;
+    const int lane_group = lane_id >> 4;
+    const float r0 = result[0];
+    const float r1 = result[1];
+    const float r2 = result[2];
+    const float r3 = result[3];
+    const float src0_r0 = __shfl_sync(c500_full_mask(), r0, row + 0 * 16, c500_shuffle_width());
+    const float src1_r0 = __shfl_sync(c500_full_mask(), r0, row + 1 * 16, c500_shuffle_width());
+    const float src2_r0 = __shfl_sync(c500_full_mask(), r0, row + 2 * 16, c500_shuffle_width());
+    const float src3_r0 = __shfl_sync(c500_full_mask(), r0, row + 3 * 16, c500_shuffle_width());
+    const float src0_r1 = __shfl_sync(c500_full_mask(), r1, row + 0 * 16, c500_shuffle_width());
+    const float src1_r1 = __shfl_sync(c500_full_mask(), r1, row + 1 * 16, c500_shuffle_width());
+    const float src2_r1 = __shfl_sync(c500_full_mask(), r1, row + 2 * 16, c500_shuffle_width());
+    const float src3_r1 = __shfl_sync(c500_full_mask(), r1, row + 3 * 16, c500_shuffle_width());
+    const float src0_r2 = __shfl_sync(c500_full_mask(), r2, row + 0 * 16, c500_shuffle_width());
+    const float src1_r2 = __shfl_sync(c500_full_mask(), r2, row + 1 * 16, c500_shuffle_width());
+    const float src2_r2 = __shfl_sync(c500_full_mask(), r2, row + 2 * 16, c500_shuffle_width());
+    const float src3_r2 = __shfl_sync(c500_full_mask(), r2, row + 3 * 16, c500_shuffle_width());
+    const float src0_r3 = __shfl_sync(c500_full_mask(), r3, row + 0 * 16, c500_shuffle_width());
+    const float src1_r3 = __shfl_sync(c500_full_mask(), r3, row + 1 * 16, c500_shuffle_width());
+    const float src2_r3 = __shfl_sync(c500_full_mask(), r3, row + 2 * 16, c500_shuffle_width());
+    const float src3_r3 = __shfl_sync(c500_full_mask(), r3, row + 3 * 16, c500_shuffle_width());
+
+    if (lane_group == 0) {
+        d0.x = src0_r0;
+        d0.y = src1_r0;
+        d1.x = src2_r0;
+        d1.y = src3_r0;
+    } else if (lane_group == 1) {
+        d0.x = src0_r1;
+        d0.y = src1_r1;
+        d1.x = src2_r1;
+        d1.y = src3_r1;
+    } else if (lane_group == 2) {
+        d0.x = src0_r2;
+        d0.y = src1_r2;
+        d1.x = src2_r2;
+        d1.y = src3_r2;
+    } else {
+        d0.x = src0_r3;
+        d0.y = src1_r3;
+        d1.x = src2_r3;
+        d1.y = src3_r3;
+    }
+}
+
+template<typename FragA, ducks::rt_base::all ABase>
+__device__ static inline void c500_pack_tk_a_to_native(FragA &dst, const ABase &src) {
+    static_assert(std::is_same_v<typename ABase::T, bf16> || std::is_same_v<typename ABase::T, half>,
+                  "C500 native A packing expects bf16/half TK source tiles.");
+    static_assert(sizeof(src.data[0]) == sizeof(uint32_t) && sizeof(src.data[1]) == sizeof(uint32_t),
+                  "C500 native A packing expects two 32-bit packed TK registers.");
+    dst.reg[0] = *reinterpret_cast<const uint32_t *>(&src.data[0]);
+    dst.reg[1] = *reinterpret_cast<const uint32_t *>(&src.data[1]);
+}
+
+template<typename FragB, ducks::rt_base::all BBase>
+__device__ static inline void c500_pack_tk_b_to_native(FragB &dst, const BBase &src) {
+    static_assert(std::is_same_v<typename BBase::T, bf16> || std::is_same_v<typename BBase::T, half>,
+                  "C500 native B packing expects bf16/half TK source tiles.");
+    static_assert(sizeof(src.data[0]) == sizeof(uint32_t) && sizeof(src.data[1]) == sizeof(uint32_t),
+                  "C500 native B packing expects two 32-bit packed TK registers.");
+    dst.reg[0] = *reinterpret_cast<const uint32_t *>(&src.data[0]);
+    dst.reg[1] = *reinterpret_cast<const uint32_t *>(&src.data[1]);
+}
+
+template<typename FragC, ducks::rt_base::all CBase>
+__device__ static inline void c500_pack_tk_c_to_native(FragC &dst, const CBase &src) {
+    static_assert(std::is_same_v<typename CBase::T, float> &&
+                  std::is_same_v<typename CBase::layout, ducks::rt_layout::row>,
+                  "C500 native accumulator packing expects row-major float TK tiles.");
+    const int lane_id = __lane_id();
+    c500_shuffle_tk_c_to_native(dst.reg, src.data[0], src.data[1], lane_id);
+}
+
+template<ducks::rt_base::all DBase, typename FragC>
+__device__ static inline void c500_unpack_native_d_to_tk(DBase &dst, const FragC &src) {
+    static_assert(std::is_same_v<typename DBase::T, float> &&
+                  std::is_same_v<typename DBase::layout, ducks::rt_layout::row>,
+                  "C500 native accumulator export expects row-major float TK tiles.");
+    const int lane_id = __lane_id();
+    c500_scatter_native_d_to_tk(dst.data[0], dst.data[1], src.reg, lane_id);
+}
+
+__device__ static inline void cute_hmma16816(float2 &d0, float2 &d1,
+                                             uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3,
+                                             uint32_t b0, uint32_t b1,
+                                             const float2 &c0, const float2 &c1,
+                                             std::true_type) {
+    uint32_t aa[2];
+    uint32_t bb[2];
+    float cc[4];
+    const int lane_id = __lane_id();
+
+    cute_shuffle_a(aa, a0, a1, a2, a3, lane_id);
+    cute_shuffle_b(bb, b0, b1, lane_id);
+    c500_shuffle_tk_c_to_native(cc, c0, c1, lane_id);
+
+    const half_2 *haa0 = reinterpret_cast<const half_2 *>(&aa[0]);
+    const half_2 *haa1 = reinterpret_cast<const half_2 *>(&aa[1]);
+    const half_2 *hbb0 = reinterpret_cast<const half_2 *>(&bb[0]);
+    const half_2 *hbb1 = reinterpret_cast<const half_2 *>(&bb[1]);
+
+    auto result = __builtin_mxc_mma_16x16x16f16(
+        {static_cast<__fp16>(float(haa0->x)), static_cast<__fp16>(float(haa0->y)),
+         static_cast<__fp16>(float(haa1->x)), static_cast<__fp16>(float(haa1->y))},
+        {static_cast<__fp16>(float(hbb0->x)), static_cast<__fp16>(float(hbb0->y)),
+         static_cast<__fp16>(float(hbb1->x)), static_cast<__fp16>(float(hbb1->y))},
+        {cc[0], cc[1], cc[2], cc[3]});
+
+    c500_scatter_native_d_to_tk(d0, d1, result, lane_id);
+}
+
+__device__ static inline void cute_hmma16816(float2 &d0, float2 &d1,
+                                             uint32_t a0, uint32_t a1, uint32_t a2, uint32_t a3,
+                                             uint32_t b0, uint32_t b1,
+                                             const float2 &c0, const float2 &c1,
+                                             std::false_type) {
+    uint32_t aa[2];
+    uint32_t bb[2];
+    float cc[4];
+    const int lane_id = __lane_id();
+
+    cute_shuffle_a(aa, a0, a1, a2, a3, lane_id);
+    cute_shuffle_b(bb, b0, b1, lane_id);
+    c500_shuffle_tk_c_to_native(cc, c0, c1, lane_id);
+
+    const bf16_2 *haa0 = reinterpret_cast<const bf16_2 *>(&aa[0]);
+    const bf16_2 *haa1 = reinterpret_cast<const bf16_2 *>(&aa[1]);
+    const bf16_2 *hbb0 = reinterpret_cast<const bf16_2 *>(&bb[0]);
+    const bf16_2 *hbb1 = reinterpret_cast<const bf16_2 *>(&bb[1]);
+
+    auto result = __builtin_mxc_mma_16x16x16bf16(
+        {*reinterpret_cast<const _Float16 *>(&(haa0->x)), *reinterpret_cast<const _Float16 *>(&(haa0->y)),
+         *reinterpret_cast<const _Float16 *>(&(haa1->x)), *reinterpret_cast<const _Float16 *>(&(haa1->y))},
+        {*reinterpret_cast<const _Float16 *>(&(hbb0->x)), *reinterpret_cast<const _Float16 *>(&(hbb0->y)),
+         *reinterpret_cast<const _Float16 *>(&(hbb1->x)), *reinterpret_cast<const _Float16 *>(&(hbb1->y))},
+        {cc[0], cc[1], cc[2], cc[3]});
+
+    c500_scatter_native_d_to_tk(d0, d1, result, lane_id);
+}
+
+};
+#endif
+
 /**
  * @brief Perform the HMMA.16816 operation.
  *
@@ -25,16 +416,16 @@ __device__ static inline void hmma16816(      float2 &d0,       float2 &d1,
                                         const bf16_2 &b0, const bf16_2 &b1,
                                         const float2 &c0, const float2 &c1                                    ) {
 #ifdef KITTENS_C500
-    using VectorType = __NATIVE_VECTOR__(2, uint32_t);
-    VectorType a = {*reinterpret_cast<const uint32_t*>(&a0), *reinterpret_cast<const uint32_t*>(&a1)};
-    VectorType b = {*reinterpret_cast<const uint32_t*>(&b0), *reinterpret_cast<const uint32_t*>(&b1)};
-    auto acc = __builtin_mxc_mma_16x16x16bf16(b, a, {c0.x, c0.y, c1.x, c1.y});
-    a = {*reinterpret_cast<const uint32_t*>(&a2), *reinterpret_cast<const uint32_t*>(&a3)};
-    acc = __builtin_mxc_mma_16x16x16bf16(b, a, {acc[0], acc[1], acc[2], acc[3]});
-    d0.x = acc[0];
-    d0.y = acc[1];
-    d1.x = acc[2];
-    d1.y = acc[3];
+    d0 = c0;
+    d1 = c1;
+    detail::cute_hmma16816(
+        d0, d1,
+        *reinterpret_cast<const uint32_t*>(&a0), *reinterpret_cast<const uint32_t*>(&a1),
+        *reinterpret_cast<const uint32_t*>(&a2), *reinterpret_cast<const uint32_t*>(&a3),
+        *reinterpret_cast<const uint32_t*>(&b0), *reinterpret_cast<const uint32_t*>(&b1),
+        c0, c1,
+        std::false_type{}
+    );
 #else
     asm volatile(
         // https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#multiply-and-accumulate-instruction-mma
@@ -83,16 +474,16 @@ __device__ static inline void hmma16816(      float2 &d0,       float2 &d1,
                                         const half_2 &b0, const half_2 &b1,
                                         const float2 &c0, const float2 &c1                                    ) {
 #ifdef KITTENS_C500
-    using VectorType = __NATIVE_VECTOR__(2, uint32_t);
-    VectorType a = {*reinterpret_cast<const uint32_t*>(&a0), *reinterpret_cast<const uint32_t*>(&a1)};
-    VectorType b = {*reinterpret_cast<const uint32_t*>(&b0), *reinterpret_cast<const uint32_t*>(&b1)};
-    auto acc = __builtin_mxc_mma_16x16x16f16(b, a, {c0.x, c0.y, c1.x, c1.y});
-    a = {*reinterpret_cast<const uint32_t*>(&a2), *reinterpret_cast<const uint32_t*>(&a3)};
-    acc = __builtin_mxc_mma_16x16x16f16(b, a, {acc[0], acc[1], acc[2], acc[3]});
-    d0.x = acc[0];
-    d0.y = acc[1];
-    d1.x = acc[2];
-    d1.y = acc[3];
+    d0 = c0;
+    d1 = c1;
+    detail::cute_hmma16816(
+        d0, d1,
+        *reinterpret_cast<const uint32_t*>(&a0), *reinterpret_cast<const uint32_t*>(&a1),
+        *reinterpret_cast<const uint32_t*>(&a2), *reinterpret_cast<const uint32_t*>(&a3),
+        *reinterpret_cast<const uint32_t*>(&b0), *reinterpret_cast<const uint32_t*>(&b1),
+        c0, c1,
+        std::true_type{}
+    );
 #else
     asm volatile(
         // https://docs.nvidia.com/cuda/parallel-thread-execution/#multiply-and-accumulate-instruction-mma
@@ -217,6 +608,34 @@ __device__ static inline void hmma16816(      float2 &d0,       float2 &d1,
 }
 #endif
 
+#ifdef KITTENS_C500
+template<typename Acc, typename ABase, typename BBase>
+__device__ static inline void c500_native_mma_base(Acc &d, const ABase &a, const BBase &b, const Acc &c) {
+    const int lane_id = __lane_id();
+    float native_c[4];
+
+    detail::c500_shuffle_tk_c_to_native(native_c, c.data[0], c.data[1], lane_id);
+
+    if constexpr (std::is_same_v<typename ABase::dtype, bf16_2>) {
+        auto result = __builtin_mxc_mma_16x16x16bf16(
+            {*reinterpret_cast<const _Float16 *>(&(b.data[0].x)), *reinterpret_cast<const _Float16 *>(&(b.data[0].y)),
+             *reinterpret_cast<const _Float16 *>(&(b.data[1].x)), *reinterpret_cast<const _Float16 *>(&(b.data[1].y))},
+            {*reinterpret_cast<const _Float16 *>(&(a.data[0].x)), *reinterpret_cast<const _Float16 *>(&(a.data[0].y)),
+             *reinterpret_cast<const _Float16 *>(&(a.data[1].x)), *reinterpret_cast<const _Float16 *>(&(a.data[1].y))},
+            {native_c[0], native_c[1], native_c[2], native_c[3]});
+        detail::c500_scatter_native_d_to_tk(d.data[0], d.data[1], result, lane_id);
+    } else {
+        auto result = __builtin_mxc_mma_16x16x16f16(
+            {static_cast<__fp16>(float(b.data[0].x)), static_cast<__fp16>(float(b.data[0].y)),
+             static_cast<__fp16>(float(b.data[1].x)), static_cast<__fp16>(float(b.data[1].y))},
+            {static_cast<__fp16>(float(a.data[0].x)), static_cast<__fp16>(float(a.data[0].y)),
+             static_cast<__fp16>(float(a.data[1].x)), static_cast<__fp16>(float(a.data[1].y))},
+            {native_c[0], native_c[1], native_c[2], native_c[3]});
+        detail::c500_scatter_native_d_to_tk(d.data[0], d.data[1], result, lane_id);
+    }
+}
+#endif
+
 /**
  * @brief Base matrix multiply-accumulate operation for row layout.
  *
@@ -232,6 +651,9 @@ __device__ static inline void mma_AB_base(rt_base<float, ducks::rt_layout::row> 
                                     const rt_base<bf16,  ducks::rt_layout::row> &a,
                                     const rt_base<bf16,  ducks::rt_layout::col> &b, // in col-major mode
                                     const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -244,6 +666,7 @@ __device__ static inline void mma_AB_base(rt_base<float, ducks::rt_layout::row> 
         b.data[1], b.data[3],
         c.data[2], c.data[3]
     );
+#endif
 }
 /**
  * @brief Base matrix multiply-accumulate operation for row layout
@@ -261,6 +684,9 @@ __device__ static inline void mma_AB_base(rt_base<float, ducks::rt_layout::row> 
                                     const rt_base<half,  ducks::rt_layout::row> &a,
                                     const rt_base<half,  ducks::rt_layout::col> &b, // in col-major mode
                                     const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -273,6 +699,7 @@ __device__ static inline void mma_AB_base(rt_base<float, ducks::rt_layout::row> 
         b.data[1], b.data[3],
         c.data[2], c.data[3]
     );
+#endif
 }
 #if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
 /**
@@ -347,6 +774,9 @@ __device__ static inline void mma_ABt_base(rt_base<float, ducks::rt_layout::row>
                                      const rt_base<bf16,  ducks::rt_layout::row> &a,
                                      const rt_base<bf16,  ducks::rt_layout::row> &b, // in row-major mode
                                      const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -359,6 +789,7 @@ __device__ static inline void mma_ABt_base(rt_base<float, ducks::rt_layout::row>
         b.data[1], b.data[3], // for some reason this one seems to need to be backwards
         c.data[2], c.data[3]
     );
+#endif
 }
 /**
  * @brief Base dot product operation for row layout
@@ -376,6 +807,9 @@ __device__ static inline void mma_ABt_base(rt_base<float, ducks::rt_layout::row>
                                      const rt_base<half,  ducks::rt_layout::row> &a,
                                      const rt_base<half,  ducks::rt_layout::row> &b, // in row-major mode
                                      const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -388,6 +822,7 @@ __device__ static inline void mma_ABt_base(rt_base<float, ducks::rt_layout::row>
         b.data[1], b.data[3], // for some reason this one seems to need to be backwards
         c.data[2], c.data[3]
     );
+#endif
 }
 #if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
 /**
@@ -436,6 +871,9 @@ __device__ static inline void mma_AtB_base(rt_base<float, ducks::rt_layout::row>
                                      const rt_base<bf16,  ducks::rt_layout::col> &a,
                                      const rt_base<bf16,  ducks::rt_layout::col> &b, // in col-major mode
                                      const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -448,6 +886,7 @@ __device__ static inline void mma_AtB_base(rt_base<float, ducks::rt_layout::row>
         b.data[1], b.data[3],
         c.data[2], c.data[3]
     );
+#endif
 }
 /**
  * @brief Base matrix multiply-accumulate operation for row layout with transposed A
@@ -465,6 +904,9 @@ __device__ static inline void mma_AtB_base(rt_base<float, ducks::rt_layout::row>
                                      const rt_base<half,  ducks::rt_layout::col> &a,
                                      const rt_base<half,  ducks::rt_layout::col> &b, // in col-major mode
                                      const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -477,6 +919,7 @@ __device__ static inline void mma_AtB_base(rt_base<float, ducks::rt_layout::row>
         b.data[1], b.data[3],
         c.data[2], c.data[3]
     );
+#endif
 }
 #if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
 /**
@@ -524,6 +967,9 @@ __device__ static inline void mma_AtBt_base(rt_base<float, ducks::rt_layout::row
                                       const rt_base<bf16,  ducks::rt_layout::col> &a,
                                       const rt_base<bf16,  ducks::rt_layout::row> &b, // in col-major mode
                                       const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -536,6 +982,7 @@ __device__ static inline void mma_AtBt_base(rt_base<float, ducks::rt_layout::row
         b.data[1], b.data[3],
         c.data[2], c.data[3]
     );
+#endif
 }
 /**
  * @brief Base matrix multiply-accumulate operation for row layout with transposed A and B
@@ -553,6 +1000,9 @@ __device__ static inline void mma_AtBt_base(rt_base<float, ducks::rt_layout::row
                                       const rt_base<half,  ducks::rt_layout::col> &a,
                                       const rt_base<half,  ducks::rt_layout::row> &b, // in row-major mode
                                       const rt_base<float, ducks::rt_layout::row> &c) {
+#ifdef KITTENS_C500
+    c500_native_mma_base(d, a, b, c);
+#else
     hmma16816(
         d.data[0], d.data[1],
         a.data[0], a.data[1], a.data[2], a.data[3],
@@ -565,6 +1015,7 @@ __device__ static inline void mma_AtBt_base(rt_base<float, ducks::rt_layout::row
         b.data[1], b.data[3],
         c.data[2], c.data[3]
     );
+#endif
 }
 #if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
 /**
@@ -639,6 +1090,40 @@ __device__ static inline void mma_AB(D &d,
             std::is_same_v<typename B::T, half> && std::is_same_v<typename C::T, half>)
     );
     #endif
+#ifdef KITTENS_C500
+    if constexpr (std::is_same_v<typename D::T, float> &&
+                  std::is_same_v<typename A::T, bf16> &&
+                  std::is_same_v<typename B::T, bf16> &&
+                  std::is_same_v<typename C::T, float>) {
+        using atom = kittens::arch::c500::mma_bf16_16x16x16_fp32;
+        using native_a = kittens::arch::c500::fragment_a<atom>;
+        using native_b = kittens::arch::c500::fragment_b<atom>;
+        using native_c = kittens::arch::c500::fragment_c<atom>;
+
+        #pragma unroll
+        for (int n = 0; n < D::height; ++n) {
+            #pragma unroll
+            for (int m = 0; m < D::width; ++m) {
+                native_c acc_native;
+                detail::c500_pack_tk_c_to_native(acc_native, c.tiles[n][m]);
+
+                #pragma unroll
+                for (int k = 0; k < A::width; ++k) {
+                    native_a a_native;
+                    native_b b_native;
+                    native_c next_native;
+                    detail::c500_pack_tk_a_to_native(a_native, a.tiles[n][k]);
+                    detail::c500_pack_tk_b_to_native(b_native, b.tiles[k][m]);
+                    kittens::arch::c500::mma<atom>(next_native, a_native, b_native, acc_native);
+                    acc_native = next_native;
+                }
+
+                detail::c500_unpack_native_d_to_tk(d.tiles[n][m], acc_native);
+            }
+        }
+        return;
+    }
+#endif
     #pragma unroll
     for(int n = 0; n < D::height; n++) {
         #pragma unroll
