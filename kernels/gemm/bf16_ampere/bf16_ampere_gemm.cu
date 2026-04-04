@@ -122,51 +122,7 @@ __device__ inline void c500_export_accumulators(reg_tileC &dst,
     for (int m = 0; m < C500_ATOMS_M; ++m) {
 #pragma unroll
         for (int n = 0; n < C500_ATOMS_N; ++n) {
-            const int lane_id = kittens::laneid();
-            const int row = lane_id & 0x0f;
-            const int lane_group = lane_id >> 4;
-            const float r0 = acc[m][n].reg[0];
-            const float r1 = acc[m][n].reg[1];
-            const float r2 = acc[m][n].reg[2];
-            const float r3 = acc[m][n].reg[3];
-            const float src0_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 0 * 16, 64);
-            const float src1_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 1 * 16, 64);
-            const float src2_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 2 * 16, 64);
-            const float src3_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 3 * 16, 64);
-            const float src0_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 0 * 16, 64);
-            const float src1_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 1 * 16, 64);
-            const float src2_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 2 * 16, 64);
-            const float src3_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 3 * 16, 64);
-            const float src0_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 0 * 16, 64);
-            const float src1_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 1 * 16, 64);
-            const float src2_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 2 * 16, 64);
-            const float src3_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 3 * 16, 64);
-            const float src0_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 0 * 16, 64);
-            const float src1_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 1 * 16, 64);
-            const float src2_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 2 * 16, 64);
-            const float src3_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 3 * 16, 64);
-
-            if (lane_group == 0) {
-                dst.tiles[m][n].data[0].x = src0_r0;
-                dst.tiles[m][n].data[0].y = src1_r0;
-                dst.tiles[m][n].data[1].x = src2_r0;
-                dst.tiles[m][n].data[1].y = src3_r0;
-            } else if (lane_group == 1) {
-                dst.tiles[m][n].data[0].x = src0_r1;
-                dst.tiles[m][n].data[0].y = src1_r1;
-                dst.tiles[m][n].data[1].x = src2_r1;
-                dst.tiles[m][n].data[1].y = src3_r1;
-            } else if (lane_group == 2) {
-                dst.tiles[m][n].data[0].x = src0_r2;
-                dst.tiles[m][n].data[0].y = src1_r2;
-                dst.tiles[m][n].data[1].x = src2_r2;
-                dst.tiles[m][n].data[1].y = src3_r2;
-            } else {
-                dst.tiles[m][n].data[0].x = src0_r3;
-                dst.tiles[m][n].data[0].y = src1_r3;
-                dst.tiles[m][n].data[1].x = src2_r3;
-                dst.tiles[m][n].data[1].y = src3_r3;
-            }
+            kittens::arch::c500::store_c<c500_atom>(dst, acc[m][n], m, n);
         }
     }
 }
