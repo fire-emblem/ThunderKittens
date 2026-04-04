@@ -12,21 +12,23 @@ namespace {
 constexpr int kM = 128;
 constexpr int kN = 128;
 constexpr int kK = 32;
+constexpr int kWarpM = 64;
+constexpr int kWarpN = 64;
 constexpr int kLoadGroups = 2;
 constexpr int kNumWorkers = 4;
 constexpr int kBlockSize = kNumWorkers * kittens::WARP_THREADS;
 
 using atom = kittens::arch::c500::mma_bf16_16x16x16_fp32;
-using shared_tileA = kittens::st_bf<kM, kK>;
-using shared_tileB = kittens::st_bf<kK, kN>;
-using shared_tileC = kittens::st_bf<64, 64>;
-using reg_tileC = kittens::rt_fl<kM, kN>;
+using shared_tileA = kittens::st_bf<kWarpM, kK>;
+using shared_tileB = kittens::st_bf<kK, kWarpN>;
+using shared_tileC = kittens::st_bf<kWarpM, kWarpN>;
+using reg_tileC = kittens::rt_fl<kWarpM, kWarpN>;
 using frag_a = kittens::arch::c500::fragment_a<atom>;
 using frag_b = kittens::arch::c500::fragment_b<atom>;
 using frag_c = kittens::arch::c500::fragment_c<atom>;
 
-constexpr int kAtomsM = kM / atom::M;
-constexpr int kAtomsN = kN / atom::N;
+constexpr int kAtomsM = kWarpM / atom::M;
+constexpr int kAtomsN = kWarpN / atom::N;
 constexpr int kAtomsK = kK / atom::K;
 
 template <int M, int K>
