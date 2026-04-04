@@ -16,6 +16,25 @@ using namespace kittens;
 
 namespace bf16_ampere {
 
+#ifndef BF16_AMPERE_PROBLEM_M
+#define BF16_AMPERE_PROBLEM_M 4096
+#endif
+#ifndef BF16_AMPERE_PROBLEM_N
+#define BF16_AMPERE_PROBLEM_N 4096
+#endif
+#ifndef BF16_AMPERE_PROBLEM_K
+#define BF16_AMPERE_PROBLEM_K 4096
+#endif
+#ifndef BF16_AMPERE_WARMUP_ITERS
+#define BF16_AMPERE_WARMUP_ITERS 25
+#endif
+#ifndef BF16_AMPERE_PROFILE_ITERS
+#define BF16_AMPERE_PROFILE_ITERS 100
+#endif
+#ifndef BF16_AMPERE_C500_PIPE_STAGES
+#define BF16_AMPERE_C500_PIPE_STAGES 1
+#endif
+
 constexpr int MMA_M = 64;
 constexpr int MMA_N = 64;
 constexpr int MMA_K = 32;
@@ -36,6 +55,122 @@ using shared_tileC = st_bf<MMA_M, MMA_N>;
 using reg_tileA = rt_bf<MMA_M, MMA_K>;
 using reg_tileB = rt_bf<MMA_K, MMA_N, ducks::rt_layout::col>;
 using reg_tileC = rt_fl<MMA_M, MMA_N>;
+
+#ifdef KITTENS_C500
+using c500_atom = kittens::arch::c500::mma_bf16_16x16x16_fp32;
+using c500_frag_a = kittens::arch::c500::fragment_a<c500_atom>;
+using c500_frag_b = kittens::arch::c500::fragment_b<c500_atom>;
+using c500_frag_c = kittens::arch::c500::fragment_c<c500_atom>;
+
+constexpr int C500_ATOMS_M = MMA_M / c500_atom::M;
+constexpr int C500_ATOMS_N = MMA_N / c500_atom::N;
+constexpr int C500_ATOMS_K = MMA_K / c500_atom::K;
+
+__device__ inline void c500_zero_accumulators(c500_frag_c (&acc)[C500_ATOMS_M][C500_ATOMS_N]) {
+#pragma unroll
+    for (int m = 0; m < C500_ATOMS_M; ++m) {
+#pragma unroll
+        for (int n = 0; n < C500_ATOMS_N; ++n) {
+#pragma unroll
+            for (int r = 0; r < c500_atom::c_registers; ++r) {
+                acc[m][n].reg[r] = 0.0f;
+            }
+        }
+    }
+}
+
+template<typename SharedA, typename SharedB>
+__device__ inline void c500_mma_tile(c500_frag_c (&acc)[C500_ATOMS_M][C500_ATOMS_N],
+                                     const SharedA &a_tile,
+                                     const SharedB &b_tile) {
+    c500_frag_a a_frag[C500_ATOMS_M][C500_ATOMS_K];
+    c500_frag_b b_frag[C500_ATOMS_K][C500_ATOMS_N];
+
+#pragma unroll
+    for (int m = 0; m < C500_ATOMS_M; ++m) {
+#pragma unroll
+        for (int k = 0; k < C500_ATOMS_K; ++k) {
+            kittens::arch::c500::load_a<c500_atom>(a_frag[m][k], a_tile, m * c500_atom::M, k * c500_atom::K);
+        }
+    }
+
+#pragma unroll
+    for (int k = 0; k < C500_ATOMS_K; ++k) {
+#pragma unroll
+        for (int n = 0; n < C500_ATOMS_N; ++n) {
+            kittens::arch::c500::load_b<c500_atom>(b_frag[k][n], b_tile, k * c500_atom::K, n * c500_atom::N);
+        }
+    }
+
+#pragma unroll
+    for (int m = 0; m < C500_ATOMS_M; ++m) {
+#pragma unroll
+        for (int n = 0; n < C500_ATOMS_N; ++n) {
+#pragma unroll
+            for (int k = 0; k < C500_ATOMS_K; ++k) {
+                c500_frag_c next;
+                kittens::arch::c500::mma<c500_atom>(next, a_frag[m][k], b_frag[k][n], acc[m][n]);
+                acc[m][n] = next;
+            }
+        }
+    }
+}
+
+__device__ inline void c500_export_accumulators(reg_tileC &dst,
+                                                const c500_frag_c (&acc)[C500_ATOMS_M][C500_ATOMS_N]) {
+#pragma unroll
+    for (int m = 0; m < C500_ATOMS_M; ++m) {
+#pragma unroll
+        for (int n = 0; n < C500_ATOMS_N; ++n) {
+            const int lane_id = kittens::laneid();
+            const int row = lane_id & 0x0f;
+            const int lane_group = lane_id >> 4;
+            const float r0 = acc[m][n].reg[0];
+            const float r1 = acc[m][n].reg[1];
+            const float r2 = acc[m][n].reg[2];
+            const float r3 = acc[m][n].reg[3];
+            const float src0_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 0 * 16, 64);
+            const float src1_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 1 * 16, 64);
+            const float src2_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 2 * 16, 64);
+            const float src3_r0 = __shfl_sync(0xffffffffffffffffull, r0, row + 3 * 16, 64);
+            const float src0_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 0 * 16, 64);
+            const float src1_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 1 * 16, 64);
+            const float src2_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 2 * 16, 64);
+            const float src3_r1 = __shfl_sync(0xffffffffffffffffull, r1, row + 3 * 16, 64);
+            const float src0_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 0 * 16, 64);
+            const float src1_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 1 * 16, 64);
+            const float src2_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 2 * 16, 64);
+            const float src3_r2 = __shfl_sync(0xffffffffffffffffull, r2, row + 3 * 16, 64);
+            const float src0_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 0 * 16, 64);
+            const float src1_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 1 * 16, 64);
+            const float src2_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 2 * 16, 64);
+            const float src3_r3 = __shfl_sync(0xffffffffffffffffull, r3, row + 3 * 16, 64);
+
+            if (lane_group == 0) {
+                dst.tiles[m][n].data[0].x = src0_r0;
+                dst.tiles[m][n].data[0].y = src1_r0;
+                dst.tiles[m][n].data[1].x = src2_r0;
+                dst.tiles[m][n].data[1].y = src3_r0;
+            } else if (lane_group == 1) {
+                dst.tiles[m][n].data[0].x = src0_r1;
+                dst.tiles[m][n].data[0].y = src1_r1;
+                dst.tiles[m][n].data[1].x = src2_r1;
+                dst.tiles[m][n].data[1].y = src3_r1;
+            } else if (lane_group == 2) {
+                dst.tiles[m][n].data[0].x = src0_r2;
+                dst.tiles[m][n].data[0].y = src1_r2;
+                dst.tiles[m][n].data[1].x = src2_r2;
+                dst.tiles[m][n].data[1].y = src3_r2;
+            } else {
+                dst.tiles[m][n].data[0].x = src0_r3;
+                dst.tiles[m][n].data[0].y = src1_r3;
+                dst.tiles[m][n].data[1].x = src2_r3;
+                dst.tiles[m][n].data[1].y = src3_r3;
+            }
+        }
+    }
+}
+#endif
 
 template <int M, int K>
 using a_gl = gl<bf16, 1, 1, M, K, shared_tileA>;
@@ -60,9 +195,18 @@ __host__ gemm_globals<M, N, K> gemm_init(bf16 *d_A, bf16 *d_B, bf16 *d_C) {
 }
 
 template <int M, int N, int K>
+#ifdef KITTENS_C500
+__global__ __launch_bounds__(BLOCK_SIZE) void gemm_kernel(
+#else
 __global__ __launch_bounds__(BLOCK_SIZE, 1) void gemm_kernel(
+#endif
     const __grid_constant__ gemm_globals<M, N, K> g) {
     using load_group = kittens::group<(NUM_WORKERS / LOAD_GROUPS)>;
+#ifdef KITTENS_C500
+    constexpr int k_pipe_stages = BF16_AMPERE_C500_PIPE_STAGES;
+#else
+    constexpr int k_pipe_stages = PIPE_STAGES;
+#endif
 
     const int workerid = kittens::warpid();
     const int row_worker = workerid / 2;
@@ -73,20 +217,61 @@ __global__ __launch_bounds__(BLOCK_SIZE, 1) void gemm_kernel(
     const int warp_row = LOAD_GROUPS * blockIdx.y;
     const int warp_col = LOAD_GROUPS * blockIdx.x;
 
-    extern __shared__ alignment_dummy __shm[];
-    shared_allocator al((int *)&__shm[0]);
-
-    shared_tileA (&a_s)[LOAD_BLOCKS][PIPE_STAGES] =
-        al.allocate<shared_tileA, LOAD_BLOCKS, PIPE_STAGES>();
-    shared_tileB (&b_s)[LOAD_BLOCKS][PIPE_STAGES] =
-        al.allocate<shared_tileB, LOAD_BLOCKS, PIPE_STAGES>();
+    __shared__ shared_tileA a_s[LOAD_BLOCKS][k_pipe_stages];
+    __shared__ shared_tileB b_s[LOAD_BLOCKS][k_pipe_stages];
+#ifdef KITTENS_C500
+    c500_frag_c cr_native[C500_ATOMS_M][C500_ATOMS_N];
     reg_tileA ar_bf;
     reg_tileB br_bf;
+#else
+    reg_tileA ar_bf;
+    reg_tileB br_bf;
+#endif
     reg_tileC cr_fl;
 
+#ifdef KITTENS_C500
+    c500_zero_accumulators(cr_native);
+#else
     kittens::warp::zero(cr_fl);
+#endif
 
     const int num_k_tiles = K / MMA_K;
+#ifdef KITTENS_C500
+    static_assert(k_pipe_stages >= 1 && k_pipe_stages <= PIPE_STAGES,
+                  "C500 pipe stages must be between 1 and PIPE_STAGES.");
+    if constexpr (k_pipe_stages == 1) {
+        for (int inner = 0; inner < num_k_tiles; ++inner) {
+            load_group::load<2, true>(a_s[load_id][0], g.a, {warp_row + load_id, inner});
+            load_group::load<2, true>(b_s[load_id][0], g.b, {inner, warp_col + load_id});
+            __syncthreads();
+            c500_mma_tile(cr_native, a_s[row_worker][0], b_s[col_worker][0]);
+            if (inner + 1 < num_k_tiles) {
+                __syncthreads();
+            }
+        }
+    } else {
+        int tic = 0;
+        load_group::load<2, true>(a_s[load_id][tic], g.a, {warp_row + load_id, 0});
+        load_group::load<2, true>(b_s[load_id][tic], g.b, {0, warp_col + load_id});
+        __syncthreads();
+        for (int inner = 0; inner < num_k_tiles; ++inner) {
+            c500_mma_tile(cr_native, a_s[row_worker][tic], b_s[col_worker][tic]);
+
+            const int next_load_idx = inner + 1;
+            if (next_load_idx < num_k_tiles) {
+                const int next_tic = (tic + 1) % k_pipe_stages;
+                load_group::load<2, true>(a_s[load_id][next_tic], g.a,
+                                          {warp_row + load_id, next_load_idx});
+                load_group::load<2, true>(b_s[load_id][next_tic], g.b,
+                                          {next_load_idx, warp_col + load_id});
+                __syncthreads();
+                tic = next_tic;
+            }
+        }
+    }
+
+    c500_export_accumulators(cr_fl, cr_native);
+#else
     int tic = 0;
 
     load_group::load_async<2, true>(a_s[load_id][tic], g.a, {warp_row + load_id, 0});
@@ -110,6 +295,7 @@ __global__ __launch_bounds__(BLOCK_SIZE, 1) void gemm_kernel(
         kittens::warp::load(br_bf, b_s[col_worker][tic]);
         kittens::warp::mma_AB(cr_fl, ar_bf, br_bf, cr_fl);
     }
+#endif
 
     kittens::warp::store(g.c, cr_fl, {0, 0, warp_row + row_worker, warp_col + col_worker});
 }
@@ -120,18 +306,15 @@ __host__ void launch_gemm(bf16 *A, bf16 *B, bf16 *C) {
                     (M + (BLOCK_M * LOAD_GROUPS) - 1) / (BLOCK_M * LOAD_GROUPS));
     gemm_globals<M, N, K> g = gemm_init<M, N, K>(A, B, C);
 
-    unsigned long mem_size = 50000;
-    cudaFuncSetAttribute(gemm_kernel<M, N, K>,
-                         cudaFuncAttributeMaxDynamicSharedMemorySize, mem_size);
-    gemm_kernel<M, N, K><<<grid, BLOCK_SIZE, mem_size>>>(g);
+    gemm_kernel<M, N, K><<<grid, BLOCK_SIZE>>>(g);
 }
 
 }  // namespace bf16_ampere
 
 int main() {
-    constexpr int M = 4096;
-    constexpr int N = 4096;
-    constexpr int K = 4096;
+    constexpr int M = BF16_AMPERE_PROBLEM_M;
+    constexpr int N = BF16_AMPERE_PROBLEM_N;
+    constexpr int K = BF16_AMPERE_PROBLEM_K;
 
     std::cout << "bf16_ampere TK GEMM" << std::endl;
     std::cout << "Problem size: M=" << M << ", N=" << N << ", K=" << K << std::endl;
@@ -162,8 +345,8 @@ int main() {
     reference_gemm<__nv_bfloat16, __nv_bfloat16, false>(d_C_ref, d_A, d_B, M, N, K);
     cudaDeviceSynchronize();
 
-    constexpr int warmup_iters = 25;
-    constexpr int profiling_iters = 100;
+    constexpr int warmup_iters = BF16_AMPERE_WARMUP_ITERS;
+    constexpr int profiling_iters = BF16_AMPERE_PROFILE_ITERS;
 
     for (int i = 0; i < warmup_iters; ++i) {
         cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
