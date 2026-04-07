@@ -20,6 +20,7 @@ struct bf16_continuousc_128x128x128_stage4 {
         "tk_local_bf16_continuousc_128x128x128_stage4";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
+    static constexpr bool requires_zero_init = false;
 
     static inline dim3 grid(int m, int n) { return dim3(m / tile::tile_m, n / tile::tile_n); }
 
