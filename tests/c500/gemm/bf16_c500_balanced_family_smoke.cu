@@ -89,9 +89,7 @@ bool run_smoke(test_data &results) {
     results.push_back(info);
 
     cudaFree(d_ref);
-    cudaFree(d_c);
     cudaFree(d_b);
-    cudaFree(d_a);
     CudaCheckError();
     return info.result == test_result::PASSED;
 }
