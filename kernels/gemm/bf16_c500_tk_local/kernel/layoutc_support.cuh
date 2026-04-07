@@ -24,12 +24,20 @@ namespace bf16_c500_tk_local::kernel {
     ::bf16_c500_tk_local::primitives::ldg_b128_bsm_with_predicator<cmp_type>(  \
         reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr),      \
         cmp_op1, cmp_op2);
+#define LDG_B128_BSM_WITH_PREDICATOR_NORET0(saddr, gaddr, cmp_op1, cmp_op2, cmp_type) \
+    ::bf16_c500_tk_local::primitives::ldg_b128_bsm_with_predicator_noret0<cmp_type>(   \
+        reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr),               \
+        cmp_op1, cmp_op2);
 #define LDG_B64_BSM_NO_PREDICATOR(saddr, gaddr)                                \
     ::bf16_c500_tk_local::primitives::ldg_b64_bsm_no_predicator(               \
         reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr));
 #define LDG_B64_BSM_with_PREDICATOR(saddr, gaddr, cmp_op1, cmp_op2, cmp_type)  \
     ::bf16_c500_tk_local::primitives::ldg_b64_bsm_with_predicator<cmp_type>(   \
         reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr),      \
+        cmp_op1, cmp_op2);
+#define LDG_B64_BSM_WITH_PREDICATOR_NORET0(saddr, gaddr, cmp_op1, cmp_op2, cmp_type)   \
+    ::bf16_c500_tk_local::primitives::ldg_b64_bsm_with_predicator_noret0<cmp_type>(    \
+        reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr),               \
         cmp_op1, cmp_op2);
 
 using FLOAT4 = primitives::float4_native;

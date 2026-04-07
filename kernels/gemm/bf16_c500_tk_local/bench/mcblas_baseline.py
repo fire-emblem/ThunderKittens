@@ -61,6 +61,7 @@ def run_binary(binary: Path, dtype: str, m: int, n: int, k: int) -> dict:
         "mcblas_runtime_ns": float(RUNTIME_RE.search(text).group(1)) * 1e6,
         "mcblas_tflops": float(PERF_RE.search(text).group(1)),
         "mcblas_err_max": float(ERR_RE.search(text).group(1)),
+        "status": "ok",
     }
 
 
@@ -92,6 +93,7 @@ def main() -> int:
                 "mcblas_runtime_ns",
                 "mcblas_tflops",
                 "mcblas_err_max",
+                "status",
             ],
         )
         if write_header:
@@ -101,13 +103,31 @@ def main() -> int:
             if key in existing:
                 print(f"[{idx}/{len(unique)}] skip mcblas {dtype} M={m} N={n} K={k}")
                 continue
-            result = run_binary(binaries[dtype], dtype, m, n, k)
+            try:
+                result = run_binary(binaries[dtype], dtype, m, n, k)
+            except subprocess.CalledProcessError:
+                result = {
+                    "dtype": dtype,
+                    "m": m,
+                    "n": n,
+                    "k": k,
+                    "mcblas_runtime_ns": "",
+                    "mcblas_tflops": "",
+                    "mcblas_err_max": "",
+                    "status": "failed",
+                }
             writer.writerow(result)
             f.flush()
-            print(
-                f"[{idx}/{len(unique)}] mcblas {dtype} "
-                f"M={m} N={n} K={k} {result['mcblas_tflops']:.3f} TFLOP/s"
-            )
+            if result["status"] == "ok":
+                print(
+                    f"[{idx}/{len(unique)}] mcblas {dtype} "
+                    f"M={m} N={n} K={k} {float(result['mcblas_tflops']):.3f} TFLOP/s"
+                )
+            else:
+                print(
+                    f"[{idx}/{len(unique)}] mcblas {dtype} "
+                    f"M={m} N={n} K={k} status={result['status']}"
+                )
     print(f"Wrote {out_path}")
     return 0
 

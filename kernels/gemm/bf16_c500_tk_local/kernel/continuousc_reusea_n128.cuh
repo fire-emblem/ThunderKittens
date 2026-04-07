@@ -120,6 +120,7 @@ __global__ void __launch_bounds__(256) tk_local_continuousc_reusea_n(
 
 #pragma unroll
     for (int t = 0; t < Stages; ++t) {
+        asm("/* Stop compiler reordering (begin) */");
         for (int idxA = 0; idxA < APerWarp; ++idxA) {
             tmpA[t][idxA] = __builtin_mxc_load_global_async128(
                 reinterpret_cast<INT128 *>(A_ptr[idxA] + A_ptr_offset));
@@ -128,11 +129,10 @@ __global__ void __launch_bounds__(256) tk_local_continuousc_reusea_n(
 #pragma unroll
         for (int j = 0; j < SharedNumCycleB; j += WarpPerBlock) {
             const int pred = (j + warpIdInBlock) < splitNumCycleB ? 1 : 0;
-            LDG_B128_BSM_WITH_PREDICATOR(shared_ptr + shared_ptr_offset +
-                                             (j + warpIdInBlock) * 64,
-                                         B_ptr + B_ptr_offset +
-                                             (j + warpIdInBlock) * 64,
-                                         pred, 1, MACA_ICMP_EQ);
+            LDG_B128_BSM_WITH_PREDICATOR_NORET0(
+                shared_ptr + shared_ptr_offset + (j + warpIdInBlock) * 64,
+                B_ptr + B_ptr_offset + (j + warpIdInBlock) * 64, pred, 1,
+                MACA_ICMP_EQ);
         }
         shared_ptr_offset += SharedNumCycleB * 64;
         B_ptr_offset += NumCycleB * 64;
@@ -142,6 +142,7 @@ __global__ void __launch_bounds__(256) tk_local_continuousc_reusea_n(
         shared_ptr_offset = 0;
 #pragma unroll
         for (int t = 0; t < Stages; ++t) {
+            asm("/* Stop compiler reordering (loop) */");
             __builtin_mxc_arrive_gvmcnt((SharedArriveCount + APerWarp) *
                                         (Stages - 1));
             __builtin_mxc_barrier_inst();
@@ -169,11 +170,10 @@ __global__ void __launch_bounds__(256) tk_local_continuousc_reusea_n(
 #pragma unroll
             for (int j = 0; j < SharedNumCycleB; j += WarpPerBlock) {
                 const int pred = (j + warpIdInBlock) < splitNumCycleB ? 1 : 0;
-                LDG_B128_BSM_WITH_PREDICATOR(shared_ptr + shared_ptr_offset +
-                                                 (j + warpIdInBlock) * 64,
-                                             B_ptr + B_ptr_offset +
-                                                 (j + warpIdInBlock) * 64,
-                                             pred, 1, MACA_ICMP_EQ);
+                LDG_B128_BSM_WITH_PREDICATOR_NORET0(
+                    shared_ptr + shared_ptr_offset + (j + warpIdInBlock) * 64,
+                    B_ptr + B_ptr_offset + (j + warpIdInBlock) * 64, pred, 1,
+                    MACA_ICMP_EQ);
             }
             shared_ptr_offset += SharedNumCycleB * 64;
             B_ptr_offset += NumCycleB * 64;
@@ -182,6 +182,7 @@ __global__ void __launch_bounds__(256) tk_local_continuousc_reusea_n(
 
 #pragma unroll
     for (int t = 0; t < Stages; ++t) {
+        asm("/* Stop compiler reordering (end loop) */");
         if (t == 0) {
             __builtin_mxc_arrive_gvmcnt((SharedArriveCount + 1) * (Stages - 1));
         } else if (t == 1) {

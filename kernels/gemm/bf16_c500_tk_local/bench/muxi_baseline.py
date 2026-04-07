@@ -262,6 +262,23 @@ def run_case(case: Case) -> dict:
     raise ValueError(case.family)
 
 
+def oom_result(case: Case, status: str) -> dict:
+    return {
+        "family": case.family,
+        "dtype": case.dtype,
+        "m": case.m,
+        "n": case.n,
+        "k": case.k,
+        "kernel_ns": "",
+        "kernel_tflops": "",
+        "ref_ns": "",
+        "ref_tflops": "",
+        "speedup": "",
+        "max_error": "",
+        "status": status,
+    }
+
+
 def main() -> int:
     cases = build_cases()
     out_path = Path(OUT_CSV)
@@ -289,6 +306,7 @@ def main() -> int:
                 "ref_tflops",
                 "speedup",
                 "max_error",
+                "status",
             ],
         )
         if write_header:
@@ -298,17 +316,34 @@ def main() -> int:
             if key in existing:
                 print(f"[{idx}/{len(cases)}] skip {case.family} {case.dtype} M={case.m} N={case.n} K={case.k}")
                 continue
-            result = run_case(case)
+            try:
+                result = run_case(case)
+                result["status"] = "ok"
+            except torch.OutOfMemoryError:
+                torch.cuda.empty_cache()
+                result = oom_result(case, "oom")
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower():
+                    torch.cuda.empty_cache()
+                    result = oom_result(case, "oom")
+                else:
+                    raise
             writer.writerow(result)
             f.flush()
-            print(
-                f"[{idx}/{len(cases)}] {case.family} {case.dtype} "
-                f"M={case.m} N={case.n} K={case.k} "
-                f"kernel={result['kernel_tflops']:.3f} TFLOP/s "
-                f"ref={result['ref_tflops']:.3f} TFLOP/s "
-                f"speedup={result['speedup']:.3f} "
-                f"err={result['max_error']:.6f}"
-            )
+            if result["status"] == "ok":
+                print(
+                    f"[{idx}/{len(cases)}] {case.family} {case.dtype} "
+                    f"M={case.m} N={case.n} K={case.k} "
+                    f"kernel={float(result['kernel_tflops']):.3f} TFLOP/s "
+                    f"ref={float(result['ref_tflops']):.3f} TFLOP/s "
+                    f"speedup={float(result['speedup']):.3f} "
+                    f"err={float(result['max_error']):.6f}"
+                )
+            else:
+                print(
+                    f"[{idx}/{len(cases)}] {case.family} {case.dtype} "
+                    f"M={case.m} N={case.n} K={case.k} status={result['status']}"
+                )
     print(f"Wrote {out_path}")
     return 0
 
