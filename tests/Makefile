@@ -2,7 +2,7 @@
 # If you want to run lots of tests without parallel compilation, be prepared
 # to spend a *long* time compiling. (like, HOURS single-threaded.)
 
-# GPU Selection: Set to A100, RTX4080, H100, B200, or B300
+# GPU Selection: Set to A100, RTX4080, H100, B200, B300, or C500
 GPU_TARGET ?= RTX4080
 COMP_LEVEL ?= fast
 NUM_GPUS ?= 1
@@ -10,18 +10,20 @@ NUM_GPUS ?= 1
 # Compiler
 NVCC?=nvcc
 NVCCFLAGS=-std=c++20 --expt-relaxed-constexpr -Itesting_commons -I../include --extended-lambda
+TEST_INTENSITY ?= 2
+TEST_MACROS ?= -DTEST_ALL -DNUM_GPUS=$(NUM_GPUS)
 
 # At what level to run tests?
 # Level 1 takes 15 seconds to compile 1,000 tests.
 # (Default) Level 2 takes a minute to compile 3,000 tests.
 # Level 3 takes 5 minutes to compile 10,000 tests.
 # Level 4 takes 15 while to compile 25,000 tests
-NVCCFLAGS+= -DTEST_INTENSITY=2
+NVCCFLAGS+= -DTEST_INTENSITY=$(TEST_INTENSITY)
 # Which tests to run?
 # -DTEST_ALL means run all tests.
 # You can also specify subsections, e.g. -DTEST_WARP_MEMORY
 # Or individual tests, like -DTEST_WARP_MEMORY_VEC_DSMEM. Useful for debugging!
-NVCCFLAGS+= -DTEST_ALL -DNUM_GPUS=$(NUM_GPUS)
+NVCCFLAGS+= $(TEST_MACROS)
 ifneq ($(NUM_GPUS),1)
 NVCCFLAGS+= -DTEST_ALL_MULTI_GPU
 endif
@@ -35,6 +37,11 @@ else ifeq ($(COMP_LEVEL),profile)
 NVCCFLAGS+= -O3 --threads=0 -diag-suppress 20054 --dlto
 endif
 
+ifeq ($(GPU_TARGET),C500)
+NVCC:=cucc
+NVCCFLAGS := $(filter-out --threads=0 -diag-suppress 20054 --dlto,$(NVCCFLAGS))
+endif
+
 # Compiler flags based on GPU target
 ifeq ($(GPU_TARGET),A100)
 NVCCFLAGS+= -gencode arch=compute_80,code=sm_80 -DKITTENS_AMPERE -lcuda -lcudart
@@ -46,8 +53,10 @@ else ifeq ($(GPU_TARGET),B200)
 NVCCFLAGS+= -gencode arch=compute_100a,code=sm_100a -DKITTENS_BLACKWELL -lcuda -lcudart
 else ifeq ($(GPU_TARGET),B300)
 NVCCFLAGS+= -gencode arch=compute_103a,code=sm_103a -DKITTENS_BLACKWELL -lcuda -lcudart
+else ifeq ($(GPU_TARGET),C500)
+NVCCFLAGS+= -gencode arch=compute_80,code=sm_80 -DKITTENS_C500 -lcuda -lcudart
 else
-$(error Unsupported GPU_TARGET: $(GPU_TARGET). Please set GPU_TARGET to A100, RTX4080, H100, B200, or B300.)
+$(error Unsupported GPU_TARGET: $(GPU_TARGET). Please set GPU_TARGET to A100, RTX4080, H100, B200, B300, or C500.)
 endif
 
 # Target binary name
@@ -55,7 +64,7 @@ TARGET=unit_tests
 BUILD_DIR=build
 
 # Test source files
-TESTS_SRC=$(shell find . -name '*.cu')
+TESTS_SRC ?= $(shell find . -name '*.cu')
 
 # Object files
 OBJS=$(patsubst %.cu,$(BUILD_DIR)/%.o,$(TESTS_SRC))

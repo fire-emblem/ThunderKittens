@@ -30,6 +30,7 @@ endif
 
 # Compiler configuration
 NVCC ?= nvcc
+EXTRA_NVCCFLAGS ?=
 
 # ThunderKittens configuration
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
@@ -49,6 +50,7 @@ NVCCFLAGS += -I${THUNDERKITTENS_ROOT}/include -I${THUNDERKITTENS_ROOT}/prototype
 NVCCFLAGS += -DNDEBUG # disable debug blocks
 NVCCFLAGS += -lineinfo # show line number with compute-sanitizer (does not affect perf, but binary gets larger)
 NVCCFLAGS += -ftemplate-backtrace-limit=0 # show full template trace
+NVCCFLAGS += $(EXTRA_NVCCFLAGS)
 
 # Python configuration (i.e., run with Python + PyTorch, but C++-side does not use the PyTorch API)
 ifeq ($(CONFIG),python)
@@ -106,7 +108,7 @@ else ifeq ($(GPU),C500)
 C500_GENCODE ?= -gencode arch=compute_80,code=sm_80
 NVCC := cucc
 NVCCFLAGS := $(filter-out -Xnvlink=--verbose -Xptxas=--verbose -Xptxas=--warn-on-spills,$(NVCCFLAGS))
-NVCCFLAGS += -DKITTENS_C500 -DKITTENS_AMPERE $(C500_GENCODE)
+NVCCFLAGS += -DKITTENS_C500 $(C500_GENCODE)
 else
 $(error Unsupported GPU: $(GPU). Please set GPU to H100, RTX4080, A100, C500, B200, or B300.)
 endif
