@@ -4,7 +4,6 @@
 
 #include "testing_commons.cuh"
 #include "../../../kernels/gemm/common.cuh"
-#include "arch/c500/gemm/bf16_contracts.cuh"
 #include "arch/c500/gemm/families/bf16_balanced_128x128x128_stage4.cuh"
 
 namespace c500::mma::balanced_family_smoke {

@@ -4,7 +4,6 @@
 
 #include "testing_commons.cuh"
 #include "../../../kernels/gemm/common.cuh"
-#include "arch/c500/gemm/bf16_contracts.cuh"
 #include "arch/c500/gemm/bf16_mainloop.cuh"
 
 namespace c500::mma::gemm_layouta_native_smoke {
@@ -14,7 +13,7 @@ namespace {
 constexpr int kM = 128;
 constexpr int kN = 128;
 
-using contracts = kittens::arch::c500::gemm::bf16_contracts;
+using contracts = kittens::arch::c500::gemm::bf16_mainloop_family::contracts;
 using shared_tileA = kittens::arch::c500::gemm::bf16_shared_tile_a;
 using shared_tileC = kittens::arch::c500::gemm::bf16_shared_tile_c;
 
