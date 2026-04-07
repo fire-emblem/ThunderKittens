@@ -116,6 +116,9 @@ int run_case() {
 
     const dim3 grid = family::grid(M, N);
     auto launch = [&]() {
+        if constexpr (family::requires_zero_init) {
+            host::fill<local_t, host::FillMode::CONSTANT>(d_c, size_c, 0.0f);
+        }
         family::template launch<local_t, local_t, float, true, false>(
             grid, d_a_native, d_b_native, d_c, M, N, K, K, K, M, alpha, beta,
             nullptr);
@@ -288,6 +291,9 @@ int run_runtime_case(const char *case_name, int M, int N, int K,
 
     const dim3 grid = family::grid(M, N);
     auto launch = [&]() {
+        if constexpr (family::requires_zero_init) {
+            host::fill<LocalT, host::FillMode::CONSTANT>(d_c, size_c, 0.0f);
+        }
         family::template launch<LocalT, LocalT, float, true, false>(
             grid, d_a_native, d_b_native, d_c, M, N, K, K, K, M, alpha, beta,
             nullptr);
