@@ -6,14 +6,6 @@
 #include "../common.cuh"
 #include "kittens.cuh"
 
-#ifdef KITTENS_C500
-#include "arch/c500/gemm/bf16_contracts.cuh"
-#include "arch/c500/gemm/dispatch/bf16_dispatch.cuh"
-#ifndef __grid_constant__
-#define __grid_constant__
-#endif
-#endif
-
 using namespace kittens;
 
 namespace bf16_ampere {
@@ -46,16 +38,9 @@ constexpr int PIPE_STAGES = 2;
 constexpr int LOAD_GROUPS = 2;
 constexpr int BLOCK_SIZE = NUM_WORKERS * kittens::WARP_THREADS;
 
-#ifdef KITTENS_C500
-using c500_dispatch = kittens::arch::c500::gemm::dispatch::bf16_default_family;
-using shared_tileA = c500_dispatch::shared_tile_a;
-using shared_tileB = c500_dispatch::shared_tile_b;
-using shared_tileC = c500_dispatch::shared_tile_c;
-#else
 using shared_tileA = st_bf<MMA_M, MMA_K>;
 using shared_tileB = st_bf<MMA_K, MMA_N>;
 using shared_tileC = st_bf<MMA_M, MMA_N>;
-#endif
 
 using reg_tileA = rt_bf<MMA_M, MMA_K>;
 using reg_tileB = rt_bf<MMA_K, MMA_N, ducks::rt_layout::col>;
@@ -84,15 +69,8 @@ __host__ gemm_globals<M, N, K> gemm_init(bf16 *d_A, bf16 *d_B, bf16 *d_C) {
 }
 
 template <int M, int N, int K>
-#ifdef KITTENS_C500
-__global__ __launch_bounds__(BLOCK_SIZE) void gemm_kernel(
-#else
 __global__ __launch_bounds__(BLOCK_SIZE, 1) void gemm_kernel(
-#endif
     const __grid_constant__ gemm_globals<M, N, K> g) {
-#ifdef KITTENS_C500
-    kittens::arch::c500::gemm::dispatch::run_bf16<M, N, K>(g);
-#else
     using load_group = kittens::group<(NUM_WORKERS / LOAD_GROUPS)>;
     constexpr int k_pipe_stages = PIPE_STAGES;
 
@@ -139,7 +117,6 @@ __global__ __launch_bounds__(BLOCK_SIZE, 1) void gemm_kernel(
     }
 
     kittens::warp::store(g.c, cr_fl, {0, 0, warp_row + row_worker, warp_col + col_worker});
-#endif
 }
 
 template <int M, int N, int K>
