@@ -4,6 +4,9 @@
 
 namespace kittens::arch::c500 {
 
+// Transitional note for new GEMM code:
+// use arch/c500/primitives/*.cuh as the stable backend entry layer.
+
 template<typename Atom>
 struct fragment_a;
 
