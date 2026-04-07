@@ -4,6 +4,7 @@
 #include "../bf16_epilogue.cuh"
 #include "../bf16_operand_stage.cuh"
 #include "../bf16_stage_primitives.cuh"
+#include "../../primitives/pipeline.cuh"
 
 namespace kittens::arch::c500::gemm::families {
 
@@ -80,23 +81,39 @@ struct bf16_balanced_128x128x128_stage4 {
     }
 
     __device__ static inline void wait_stage_window(int outstanding_stages) {
-        switch (outstanding_stages) {
-            case 0:
-                kittens::arch::c500::wait_until<0>();
-                break;
-            case 1:
-                kittens::arch::c500::wait_until<kAsyncTransactionsPerStage>();
-                break;
-            case 2:
-                kittens::arch::c500::wait_until<2 * kAsyncTransactionsPerStage>();
-                break;
-            case 3:
-                kittens::arch::c500::wait_until<3 * kAsyncTransactionsPerStage>();
-                break;
-            default:
-                kittens::arch::c500::wait_until<0>();
-                break;
-        }
+        primitives::wait_stage_window<kAsyncTransactionsPerStage>(outstanding_stages);
+    }
+
+    template<int RemainingOutstanding = 0>
+    __device__ static inline void wait_operand_stage_window() {
+        primitives::wait_until<RemainingOutstanding>();
+    }
+
+    template<typename Globals>
+    __device__ static inline async_token<kAsyncTransactionsPerStage>
+    issue_stage_async(bf16_stage_ring &ring,
+                      const Globals &g,
+                      int load_id,
+                      int warp_row,
+                      int warp_col,
+                      int stage_slot,
+                      int k_stage) {
+        return kittens::arch::c500::gemm::issue_ab_stage_async(ring,
+                                                               g.a,
+                                                               g.b,
+                                                               stage_slot,
+                                                               load_id,
+                                                               warp_row,
+                                                               warp_col,
+                                                               k_stage);
+    }
+
+    __device__ static inline void consume_stage(const bf16_stage_ring &ring,
+                                                int stage_slot,
+                                                int row_worker,
+                                                int col_worker,
+                                                frag_c (&acc)[kAtomsM][kAtomsN]) {
+        mma_raw_stage_aligned_tile_bridge(ring, stage_slot, row_worker, col_worker, acc);
     }
 
     template<int Stages, typename GlobalA, typename GlobalBLayoutA>
@@ -117,6 +134,15 @@ struct bf16_balanced_128x128x128_stage4 {
                                               int stage) {
         return combine(kittens::arch::c500::gemm::issue_a_operand_stage_async_aligned(ring, a, stage),
                        kittens::arch::c500::gemm::issue_b_operand_stage_async_layouta_aligned(ring, b, stage));
+    }
+
+    template<int Stages>
+    __device__ static inline void consume_operand_stage(frag_c (&acc)[kAtomsM][kAtomsN],
+                                                        const bf16_operand_cta_stage_ring<Stages> &ring,
+                                                        int stage_slot,
+                                                        int row_group,
+                                                        int col_group) {
+        mma_operand_stage(acc, ring, stage_slot, row_group, col_group);
     }
 
     template<int Stages>
@@ -194,7 +220,7 @@ struct bf16_balanced_128x128x128_stage4 {
 
 #pragma unroll
         for (int prefetch = 0; prefetch < kPrefetchStages; ++prefetch) {
-            issue_ab_stage_async(ring, g.a, g.b, prefetch, load_id, warp_row, warp_col, prefetch);
+            issue_stage_async(ring, g, load_id, warp_row, warp_col, prefetch, prefetch);
         }
         wait_stage_window(kPrefetchStages - 1);
         __syncthreads();
@@ -204,10 +230,10 @@ struct bf16_balanced_128x128x128_stage4 {
             const int next_stage = k_stage + kPrefetchStages;
             const bool has_next = next_stage < num_k_stages;
 
-            mma_raw_stage_aligned_tile_bridge(ring, stage_slot, row_worker, col_worker, acc);
+            consume_stage(ring, stage_slot, row_worker, col_worker, acc);
 
             if (has_next) {
-                issue_ab_stage_async(ring, g.a, g.b, stage_slot, load_id, warp_row, warp_col, next_stage);
+                issue_stage_async(ring, g, load_id, warp_row, warp_col, stage_slot, next_stage);
             }
 
             const int remaining_after_current = num_k_stages - (k_stage + 1);
@@ -246,9 +272,10 @@ struct bf16_balanced_128x128x128_stage4 {
             b_tile.raw_ptr = &g.b.raw_ptr[(blockIdx.x * contracts::kBlockN) * g.b.template stride<2>() +
                                           k_stage * contracts::kStageK];
             auto tok = issue_operand_stage_async_layouta_aligned(ring, a_tile, b_tile, 0);
-            kittens::arch::c500::wait(tok);
+            (void)tok;
+            wait_operand_stage_window<>();
             __syncthreads();
-            mma_operand_stage(acc, ring, 0, row_group, col_group);
+            consume_operand_stage(acc, ring, 0, row_group, col_group);
             __syncthreads();
         }
 
