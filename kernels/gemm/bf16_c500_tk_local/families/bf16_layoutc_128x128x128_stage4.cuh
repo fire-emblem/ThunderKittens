@@ -2,13 +2,19 @@
 
 #include <cuda_runtime.h>
 
+#include "../contracts/layout_contract.cuh"
+#include "../contracts/stage_contract.cuh"
+#include "../contracts/tile_contract.cuh"
+#include "../host/layout_traits.cuh"
 #include "../kernel/layoutc_mainloop.cuh"
-#include "tile_contract.cuh"
 
-namespace bf16_c500_tk_local::contracts {
+namespace bf16_c500_tk_local::families {
 
-struct launch_contract {
-    using tile = tile_contract;
+struct bf16_layoutc_128x128x128_stage4 {
+    using tile = contracts::tile_contract;
+    using stage = contracts::stage_contract;
+    using layout = contracts::layout_contract;
+    using host_layout = host::layoutc_host_traits;
 
     static constexpr const char *family_name = "tk_local_bf16_layoutc_128x128x128_stage4";
     static constexpr float alpha = 1.0f;
@@ -27,4 +33,4 @@ struct launch_contract {
     }
 };
 
-} // namespace bf16_c500_tk_local::contracts
+} // namespace bf16_c500_tk_local::families

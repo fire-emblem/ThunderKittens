@@ -1,7 +1,7 @@
 GPU ?= C500
-SRC := bf16_c500_tk_local_gemm.cu
-OUT := bf16_c500_tk_local_gemm.out
-CMD := ./bf16_c500_tk_local_gemm.out
+SRC ?= bf16_c500_tk_local_gemm.cu
+OUT ?= bf16_c500_tk_local_gemm.out
+CMD ?= ./$(OUT)
 CONFIG := standalone
 include ../../common.mk
 

@@ -40,4 +40,28 @@ __forceinline__ __device__ FLOAT4 mma_16x16x16b16(uint a0, uint a1, uint b0,
     return ::bf16_c500_tk_local::primitives::mma_16x16x16_b16<T, SwapAB>(a0, a1, b0, b1, C);
 }
 
+template <typename T, typename BFragType, typename AFragType>
+__forceinline__ __device__ FLOAT4 accumulate_layoutc_kgroup(
+    const BFragType (&b_frag)[4],
+    const AFragType (&a_frag)[4],
+    FLOAT4 c) {
+    c = mma_16x16x16b16<T, true>(b_frag[0][0], b_frag[0][1], a_frag[0][0],
+                                 a_frag[0][1], c);
+    c = mma_16x16x16b16<T, true>(b_frag[0][2], b_frag[0][3], a_frag[0][2],
+                                 a_frag[0][3], c);
+    c = mma_16x16x16b16<T, true>(b_frag[1][0], b_frag[1][1], a_frag[1][0],
+                                 a_frag[1][1], c);
+    c = mma_16x16x16b16<T, true>(b_frag[1][2], b_frag[1][3], a_frag[1][2],
+                                 a_frag[1][3], c);
+    c = mma_16x16x16b16<T, true>(b_frag[2][0], b_frag[2][1], a_frag[2][0],
+                                 a_frag[2][1], c);
+    c = mma_16x16x16b16<T, true>(b_frag[2][2], b_frag[2][3], a_frag[2][2],
+                                 a_frag[2][3], c);
+    c = mma_16x16x16b16<T, true>(b_frag[3][0], b_frag[3][1], a_frag[3][0],
+                                 a_frag[3][1], c);
+    c = mma_16x16x16b16<T, true>(b_frag[3][2], b_frag[3][3], a_frag[3][2],
+                                 a_frag[3][3], c);
+    return c;
+}
+
 } // namespace bf16_c500_tk_local::kernel
