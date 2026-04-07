@@ -8,7 +8,6 @@
 
 #include "../common.cuh"
 #include "kittens.cuh"
-#include "arch/c500/gemm/bf16_contracts.cuh"
 #include "arch/c500/gemm/dispatch/bf16_dispatch.cuh"
 
 #ifdef KITTENS_C500
@@ -39,8 +38,8 @@ namespace bf16_c500 {
 #ifndef BF16_C500_USE_LAYOUTA_NATIVE
 #define BF16_C500_USE_LAYOUTA_NATIVE 0
 #endif
-using contracts = kittens::arch::c500::gemm::bf16_contracts;
 using dispatch = kittens::arch::c500::gemm::dispatch::bf16_default_family;
+using contracts = dispatch::contracts;
 using shared_tileA = dispatch::shared_tile_a;
 using shared_tileB = dispatch::shared_tile_b;
 using shared_tileC = dispatch::shared_tile_c;
