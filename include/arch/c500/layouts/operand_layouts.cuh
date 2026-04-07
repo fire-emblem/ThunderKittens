@@ -30,6 +30,14 @@ struct bf16_128x128x128_stage_layout {
     __host__ __device__ static constexpr int b_stage_offset(int stage) {
         return stage_offset(stage) + kBStageOffset;
     }
+
+    __host__ __device__ static constexpr int a_group_offset(int stage, int group) {
+        return a_stage_offset(stage) + group * 0x1000;
+    }
+
+    __host__ __device__ static constexpr int b_group_offset(int stage, int group) {
+        return b_stage_offset(stage) + group * 0x1000;
+    }
 };
 
 } // namespace kittens::arch::c500::gemm
