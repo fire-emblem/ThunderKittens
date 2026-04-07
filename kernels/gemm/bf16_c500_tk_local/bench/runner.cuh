@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -25,6 +26,13 @@ inline void require(cudaError_t status, const char *what) {
         std::cerr << what << ": " << cudaGetErrorString(status) << std::endl;
         std::exit(1);
     }
+}
+
+inline bool use_muxi_timing_mode() {
+    if (const char *value = std::getenv("TK_LOCAL_TIMING_MODE")) {
+        return std::string_view(value) == "muxi";
+    }
+    return false;
 }
 
 template <typename T>
@@ -124,45 +132,70 @@ int run_case() {
             nullptr);
     };
 
-    int l2_cache_size = 0;
-    require(cudaDeviceGetAttribute(&l2_cache_size, cudaDevAttrL2CacheSize, 0),
-            "cudaDeviceGetAttribute(L2)");
-    const size_t l2_clear_elems =
-        std::max<size_t>(1, (static_cast<size_t>(l2_cache_size) * 3) /
-                                sizeof(int));
+    const bool muxi_timing = use_muxi_timing_mode();
     int *l2_clear = nullptr;
-    require(cudaMalloc(&l2_clear, l2_clear_elems * sizeof(int)),
-            "cudaMalloc(l2_clear)");
+    size_t l2_clear_elems = 0;
+    if (!muxi_timing) {
+        int l2_cache_size = 0;
+        require(cudaDeviceGetAttribute(&l2_cache_size, cudaDevAttrL2CacheSize, 0),
+                "cudaDeviceGetAttribute(L2)");
+        l2_clear_elems =
+            std::max<size_t>(1, (static_cast<size_t>(l2_cache_size) * 3) /
+                                    sizeof(int));
+        require(cudaMalloc(&l2_clear, l2_clear_elems * sizeof(int)),
+                "cudaMalloc(l2_clear)");
+    }
 
     for (int i = 0; i < warmup_iters; ++i) {
-        cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
+        if (!muxi_timing) {
+            cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
+        }
         launch();
     }
     require(cudaDeviceSynchronize(), "warmup sync");
 
-    std::vector<cudaEvent_t> starts(profile_iters), stops(profile_iters);
-    std::vector<float> milliseconds(profile_iters, 0.0f);
-    for (int i = 0; i < profile_iters; ++i) {
-        cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
-        require(cudaEventCreate(&starts[i]), "cudaEventCreate(start)");
-        require(cudaEventCreate(&stops[i]), "cudaEventCreate(stop)");
-        require(cudaEventRecord(starts[i]), "cudaEventRecord(start)");
-        launch();
-        require(cudaGetLastError(), "kernel launch");
-        require(cudaEventRecord(stops[i]), "cudaEventRecord(stop)");
-        require(cudaEventSynchronize(stops[i]), "cudaEventSynchronize(stop)");
-    }
-
-    double total_ms = 0.0;
-    for (int i = 0; i < profile_iters; ++i) {
-        require(cudaEventElapsedTime(&milliseconds[i], starts[i], stops[i]),
+    double runtime_ms = 0.0;
+    if (muxi_timing) {
+        cudaEvent_t start, stop;
+        require(cudaEventCreate(&start), "cudaEventCreate(start)");
+        require(cudaEventCreate(&stop), "cudaEventCreate(stop)");
+        require(cudaEventRecord(start), "cudaEventRecord(start)");
+        for (int i = 0; i < profile_iters; ++i) {
+            launch();
+            require(cudaGetLastError(), "kernel launch");
+        }
+        require(cudaEventRecord(stop), "cudaEventRecord(stop)");
+        require(cudaEventSynchronize(stop), "cudaEventSynchronize(stop)");
+        float milliseconds = 0.0f;
+        require(cudaEventElapsedTime(&milliseconds, start, stop),
                 "cudaEventElapsedTime");
-        total_ms += milliseconds[i];
-        cudaEventDestroy(starts[i]);
-        cudaEventDestroy(stops[i]);
-    }
+        runtime_ms = static_cast<double>(milliseconds) / profile_iters;
+        cudaEventDestroy(start);
+        cudaEventDestroy(stop);
+    } else {
+        std::vector<cudaEvent_t> starts(profile_iters), stops(profile_iters);
+        std::vector<float> milliseconds(profile_iters, 0.0f);
+        for (int i = 0; i < profile_iters; ++i) {
+            cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
+            require(cudaEventCreate(&starts[i]), "cudaEventCreate(start)");
+            require(cudaEventCreate(&stops[i]), "cudaEventCreate(stop)");
+            require(cudaEventRecord(starts[i]), "cudaEventRecord(start)");
+            launch();
+            require(cudaGetLastError(), "kernel launch");
+            require(cudaEventRecord(stops[i]), "cudaEventRecord(stop)");
+            require(cudaEventSynchronize(stops[i]), "cudaEventSynchronize(stop)");
+        }
 
-    const double runtime_ms = total_ms / profile_iters;
+        double total_ms = 0.0;
+        for (int i = 0; i < profile_iters; ++i) {
+            require(cudaEventElapsedTime(&milliseconds[i], starts[i], stops[i]),
+                    "cudaEventElapsedTime");
+            total_ms += milliseconds[i];
+            cudaEventDestroy(starts[i]);
+            cudaEventDestroy(stops[i]);
+        }
+        runtime_ms = total_ms / profile_iters;
+    }
     const double runtime_s = runtime_ms / 1000.0;
     const double flops = 2.0 * static_cast<double>(M) * N * K;
     const double tflops = (flops / 1e12) / runtime_s;
@@ -214,7 +247,9 @@ int run_case() {
     cudaFree(d_b_native);
     cudaFree(d_c);
     cudaFree(d_ref);
-    cudaFree(l2_clear);
+    if (l2_clear != nullptr) {
+        cudaFree(l2_clear);
+    }
     return 0;
 }
 
@@ -299,45 +334,70 @@ int run_runtime_case(const char *case_name, int M, int N, int K,
             nullptr);
     };
 
-    int l2_cache_size = 0;
-    require(cudaDeviceGetAttribute(&l2_cache_size, cudaDevAttrL2CacheSize, 0),
-            "cudaDeviceGetAttribute(L2)");
-    const size_t l2_clear_elems =
-        std::max<size_t>(1, (static_cast<size_t>(l2_cache_size) * 3) /
-                                sizeof(int));
+    const bool muxi_timing = use_muxi_timing_mode();
     int *l2_clear = nullptr;
-    require(cudaMalloc(&l2_clear, l2_clear_elems * sizeof(int)),
-            "cudaMalloc(l2_clear)");
+    size_t l2_clear_elems = 0;
+    if (!muxi_timing) {
+        int l2_cache_size = 0;
+        require(cudaDeviceGetAttribute(&l2_cache_size, cudaDevAttrL2CacheSize, 0),
+                "cudaDeviceGetAttribute(L2)");
+        l2_clear_elems =
+            std::max<size_t>(1, (static_cast<size_t>(l2_cache_size) * 3) /
+                                    sizeof(int));
+        require(cudaMalloc(&l2_clear, l2_clear_elems * sizeof(int)),
+                "cudaMalloc(l2_clear)");
+    }
 
     for (int i = 0; i < warmup_iters; ++i) {
-        cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
+        if (!muxi_timing) {
+            cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
+        }
         launch();
     }
     require(cudaDeviceSynchronize(), "warmup sync");
 
-    std::vector<cudaEvent_t> starts(profile_iters), stops(profile_iters);
-    std::vector<float> milliseconds(profile_iters, 0.0f);
-    for (int i = 0; i < profile_iters; ++i) {
-        cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
-        require(cudaEventCreate(&starts[i]), "cudaEventCreate(start)");
-        require(cudaEventCreate(&stops[i]), "cudaEventCreate(stop)");
-        require(cudaEventRecord(starts[i]), "cudaEventRecord(start)");
-        launch();
-        require(cudaGetLastError(), "kernel launch");
-        require(cudaEventRecord(stops[i]), "cudaEventRecord(stop)");
-        require(cudaEventSynchronize(stops[i]), "cudaEventSynchronize(stop)");
-    }
-
-    double total_ms = 0.0;
-    for (int i = 0; i < profile_iters; ++i) {
-        require(cudaEventElapsedTime(&milliseconds[i], starts[i], stops[i]),
+    double runtime_ms = 0.0;
+    if (muxi_timing) {
+        cudaEvent_t start, stop;
+        require(cudaEventCreate(&start), "cudaEventCreate(start)");
+        require(cudaEventCreate(&stop), "cudaEventCreate(stop)");
+        require(cudaEventRecord(start), "cudaEventRecord(start)");
+        for (int i = 0; i < profile_iters; ++i) {
+            launch();
+            require(cudaGetLastError(), "kernel launch");
+        }
+        require(cudaEventRecord(stop), "cudaEventRecord(stop)");
+        require(cudaEventSynchronize(stop), "cudaEventSynchronize(stop)");
+        float milliseconds = 0.0f;
+        require(cudaEventElapsedTime(&milliseconds, start, stop),
                 "cudaEventElapsedTime");
-        total_ms += milliseconds[i];
-        cudaEventDestroy(starts[i]);
-        cudaEventDestroy(stops[i]);
-    }
+        runtime_ms = static_cast<double>(milliseconds) / profile_iters;
+        cudaEventDestroy(start);
+        cudaEventDestroy(stop);
+    } else {
+        std::vector<cudaEvent_t> starts(profile_iters), stops(profile_iters);
+        std::vector<float> milliseconds(profile_iters, 0.0f);
+        for (int i = 0; i < profile_iters; ++i) {
+            cudaMemset(l2_clear, 0, l2_clear_elems * sizeof(int));
+            require(cudaEventCreate(&starts[i]), "cudaEventCreate(start)");
+            require(cudaEventCreate(&stops[i]), "cudaEventCreate(stop)");
+            require(cudaEventRecord(starts[i]), "cudaEventRecord(start)");
+            launch();
+            require(cudaGetLastError(), "kernel launch");
+            require(cudaEventRecord(stops[i]), "cudaEventRecord(stop)");
+            require(cudaEventSynchronize(stops[i]), "cudaEventSynchronize(stop)");
+        }
 
-    const double runtime_ms = total_ms / profile_iters;
+        double total_ms = 0.0;
+        for (int i = 0; i < profile_iters; ++i) {
+            require(cudaEventElapsedTime(&milliseconds[i], starts[i], stops[i]),
+                    "cudaEventElapsedTime");
+            total_ms += milliseconds[i];
+            cudaEventDestroy(starts[i]);
+            cudaEventDestroy(stops[i]);
+        }
+        runtime_ms = total_ms / profile_iters;
+    }
     const double runtime_s = runtime_ms / 1000.0;
     const double flops = 2.0 * static_cast<double>(M) * N * K;
     const double tflops = (flops / 1e12) / runtime_s;
@@ -389,7 +449,9 @@ int run_runtime_case(const char *case_name, int M, int N, int K,
     cudaFree(d_b_native);
     cudaFree(d_c);
     cudaFree(d_ref);
-    cudaFree(l2_clear);
+    if (l2_clear != nullptr) {
+        cudaFree(l2_clear);
+    }
     return 0;
 }
 

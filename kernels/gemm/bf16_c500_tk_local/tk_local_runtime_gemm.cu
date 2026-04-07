@@ -77,6 +77,16 @@ int run() {
         return bench::run_runtime_case<family, __maca_bfloat16, __nv_bfloat16>(
             "runtime_case_bf16_param_121", m, n, k, warmup, profile);
     }
+    if (n == 128 && m == 3584 && k == 3584) {
+        using family = bf16_continuousc_reusea_n_family_t<128, 2, 3, 1>;
+        return bench::run_runtime_case<family, __maca_bfloat16, __nv_bfloat16>(
+            "runtime_case_bf16_param_231", m, n, k, warmup, profile);
+    }
+    if (n == 128 && m == 3584 && k == 18944) {
+        using family = bf16_continuousc_reusea_n_family_t<128, 1, 1, 3>;
+        return bench::run_runtime_case<family, __maca_bfloat16, __nv_bfloat16>(
+            "runtime_case_bf16_param_113", m, n, k, warmup, profile);
+    }
     if (n == 256 && m == 37888 && k == 3584) {
         using family = bf16_continuousc_reusea_n_family_t<256, 2, 2, 1>;
         return bench::run_runtime_case<family, __maca_bfloat16, __nv_bfloat16>(

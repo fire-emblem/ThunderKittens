@@ -77,6 +77,7 @@ def run_local_case(binary: Path, m: int, n: int, k: int) -> dict:
     env["TK_LOCAL_K"] = str(k)
     env["TK_LOCAL_WARMUP"] = str(WARMUP)
     env["TK_LOCAL_PROFILE"] = str(BENCH)
+    env.setdefault("TK_LOCAL_TIMING_MODE", "muxi")
     proc = subprocess.run(
         [str(binary)],
         check=True,
@@ -123,15 +124,17 @@ def main() -> int:
         if muxi_key in muxi_cache:
             cached = muxi_cache[muxi_key]
             muxi = {
-                "kernel_ns": float(cached["kernel_ns"]),
-                "kernel_tflops": float(cached["kernel_tflops"]),
-                "ref_ns": float(cached["ref_ns"]),
-                "ref_tflops": float(cached["ref_tflops"]),
-                "speedup": float(cached["speedup"]),
-                "max_error": float(cached["max_error"]),
+                "kernel_ns": float(cached["kernel_ns"]) if cached["kernel_ns"] else "",
+                "kernel_tflops": float(cached["kernel_tflops"]) if cached["kernel_tflops"] else "",
+                "ref_ns": float(cached["ref_ns"]) if cached["ref_ns"] else "",
+                "ref_tflops": float(cached["ref_tflops"]) if cached["ref_tflops"] else "",
+                "speedup": float(cached["speedup"]) if cached["speedup"] else "",
+                "max_error": float(cached["max_error"]) if cached["max_error"] else "",
+                "status": cached.get("status", "ok"),
             }
         else:
             muxi = run_muxi_case(case)
+            muxi["status"] = "ok"
         row = {
             "family": case.family,
             "dtype": case.dtype,
@@ -144,14 +147,17 @@ def main() -> int:
             "muxi_ref_tflops": muxi["ref_tflops"],
             "muxi_speedup": muxi["speedup"],
             "muxi_err_max": muxi["max_error"],
+            "muxi_status": muxi["status"],
             "local_family": "unavailable",
             "local_runtime_ns": "",
             "local_tflops": "",
             "local_err_max": "",
+            "local_status": "",
             "local_vs_muxi_ratio": "",
             "mcblas_runtime_ns": "",
             "mcblas_tflops": "",
             "mcblas_err_max": "",
+            "mcblas_status": "",
             "local_vs_mcblas_ratio": "",
         }
         mcblas_key = (case.dtype, case.m, case.n, case.k)
@@ -160,24 +166,31 @@ def main() -> int:
             row["mcblas_runtime_ns"] = cached["mcblas_runtime_ns"]
             row["mcblas_tflops"] = cached["mcblas_tflops"]
             row["mcblas_err_max"] = cached["mcblas_err_max"]
+            row["mcblas_status"] = cached.get("status", "ok")
         binary = binaries.get((case.family, case.dtype))
-        if binary is not None and local_shape_supported(case):
+        if muxi["status"] != "ok":
+            row["local_family"] = "skipped_muxi_unavailable"
+            row["local_status"] = "skipped"
+        elif binary is not None and local_shape_supported(case):
             try:
                 local = run_local_case(binary, case.m, case.n, case.k)
                 row.update(local)
+                row["local_status"] = "ok"
                 row["local_vs_muxi_ratio"] = local["local_tflops"] / muxi["kernel_tflops"]
                 if row["mcblas_tflops"] != "":
                     row["local_vs_mcblas_ratio"] = local["local_tflops"] / float(row["mcblas_tflops"])
             except subprocess.CalledProcessError:
                 row["local_family"] = "launch_failed"
+                row["local_status"] = "failed"
         elif binary is not None:
             row["local_family"] = "unsupported_shape"
+            row["local_status"] = "unsupported_shape"
         results.append(row)
         print(
             f"[{idx}/{len(cases)}] {case.family} {case.dtype} "
             f"M={case.m} N={case.n} K={case.k} "
-            f"muxi={row['muxi_tflops']:.3f} "
-            f"local={row['local_tflops'] if row['local_tflops'] != '' else 'NA'}"
+            f"muxi={row['muxi_tflops'] if row['muxi_tflops'] != '' else row['muxi_status']} "
+            f"local={row['local_tflops'] if row['local_tflops'] != '' else row['local_status'] or 'NA'}"
         )
 
     out_path = Path(OUT_COMPARE)
@@ -197,14 +210,17 @@ def main() -> int:
                 "muxi_ref_tflops",
                 "muxi_speedup",
                 "muxi_err_max",
+                "muxi_status",
                 "local_family",
                 "local_runtime_ns",
                 "local_tflops",
                 "local_err_max",
+                "local_status",
                 "local_vs_muxi_ratio",
                 "mcblas_runtime_ns",
                 "mcblas_tflops",
                 "mcblas_err_max",
+                "mcblas_status",
                 "local_vs_mcblas_ratio",
             ],
         )
