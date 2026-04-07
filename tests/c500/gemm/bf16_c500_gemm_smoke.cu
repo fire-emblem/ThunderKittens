@@ -5,7 +5,7 @@
 #include "testing_commons.cuh"
 #include "../../../kernels/gemm/common.cuh"
 #include "arch/c500/gemm/bf16_contracts.cuh"
-#include "arch/c500/gemm/bf16_mainloop.cuh"
+#include "arch/c500/gemm/dispatch/bf16_dispatch.cuh"
 
 namespace c500::mma::gemm_smoke {
 
@@ -13,30 +13,44 @@ namespace {
 
 constexpr int kM = 128;
 constexpr int kN = 128;
+#ifndef BF16_C500_USE_LAYOUTA_NATIVE
+#define BF16_C500_USE_LAYOUTA_NATIVE 0
+#endif
 
 using contracts = kittens::arch::c500::gemm::bf16_contracts;
-using shared_tileA = kittens::arch::c500::gemm::bf16_shared_tile_a;
-using shared_tileB = kittens::arch::c500::gemm::bf16_shared_tile_b;
-using shared_tileC = kittens::arch::c500::gemm::bf16_shared_tile_c;
+using dispatch = kittens::arch::c500::gemm::dispatch::bf16_default_family;
+using shared_tileA = dispatch::shared_tile_a;
+using shared_tileB = dispatch::shared_tile_b;
+using shared_tileC = dispatch::shared_tile_c;
 
 template<int M, int K>
 using a_gl = kittens::gl<kittens::bf16, 1, 1, M, K, shared_tileA>;
 template<int K, int N>
 using b_gl = kittens::gl<kittens::bf16, 1, 1, K, N, shared_tileB>;
+template<int N, int K>
+using b_layouta_gl = kittens::gl<kittens::bf16, 1, 1, N, K>;
 template<int M, int N>
 using c_gl = kittens::gl<kittens::bf16, 1, 1, M, N, shared_tileC>;
 
 template<int K>
 struct gemm_globals {
     a_gl<kM, K> a;
+#if BF16_C500_USE_LAYOUTA_NATIVE
+    b_layouta_gl<kN, K> b;
+#else
     b_gl<K, kN> b;
+#endif
     c_gl<kM, kN> c;
 };
 
 template<int K>
 __global__ __launch_bounds__(contracts::kThreads)
 void gemm_smoke_kernel(const __grid_constant__ gemm_globals<K> g) {
-    kittens::arch::c500::gemm::run_bf16_mainloop<kM, kN, K>(g);
+#if BF16_C500_USE_LAYOUTA_NATIVE
+    kittens::arch::c500::gemm::dispatch::run_bf16_layouta<kM, kN, K>(g);
+#else
+    kittens::arch::c500::gemm::dispatch::run_bf16<kM, kN, K>(g);
+#endif
 }
 
 template<int K>
@@ -45,11 +59,17 @@ bool run_smoke_case(test_data &results, const std::string &label, uint64_t seed_
 
     kittens::bf16 *d_a = nullptr;
     kittens::bf16 *d_b = nullptr;
+#if BF16_C500_USE_LAYOUTA_NATIVE
+    kittens::bf16 *d_b_layouta = nullptr;
+#endif
     kittens::bf16 *d_c = nullptr;
     kittens::bf16 *d_ref = nullptr;
 
     cudaMalloc(&d_a, kM * K * sizeof(kittens::bf16));
     cudaMalloc(&d_b, K * kN * sizeof(kittens::bf16));
+#if BF16_C500_USE_LAYOUTA_NATIVE
+    cudaMalloc(&d_b_layouta, kN * K * sizeof(kittens::bf16));
+#endif
     cudaMalloc(&d_c, kM * kN * sizeof(kittens::bf16));
     cudaMalloc(&d_ref, kM * kN * sizeof(kittens::bf16));
     CudaCheckError();
@@ -60,6 +80,20 @@ bool run_smoke_case(test_data &results, const std::string &label, uint64_t seed_
     fill<__nv_bfloat16, FillMode::CONSTANT>(reinterpret_cast<__nv_bfloat16 *>(d_ref), kM * kN, 0.0f);
     CudaCheckError();
 
+#if BF16_C500_USE_LAYOUTA_NATIVE
+    std::vector<kittens::bf16> h_b_layouta(kN * K);
+    std::vector<kittens::bf16> h_b(K * kN);
+    cudaMemcpy(h_b.data(), d_b, K * kN * sizeof(kittens::bf16), cudaMemcpyDeviceToHost);
+    CudaCheckError();
+    for (int k = 0; k < K; ++k) {
+        for (int n = 0; n < kN; ++n) {
+            h_b_layouta[n * K + k] = h_b[k * kN + n];
+        }
+    }
+    cudaMemcpy(d_b_layouta, h_b_layouta.data(), kN * K * sizeof(kittens::bf16), cudaMemcpyHostToDevice);
+    CudaCheckError();
+#endif
+
     reference_gemm<__nv_bfloat16, __nv_bfloat16, false>(reinterpret_cast<__nv_bfloat16 *>(d_ref),
                                                         reinterpret_cast<__nv_bfloat16 *>(d_a),
                                                         reinterpret_cast<__nv_bfloat16 *>(d_b),
@@ -69,7 +103,11 @@ bool run_smoke_case(test_data &results, const std::string &label, uint64_t seed_
 
     gemm_globals<K> g{
         a_gl<kM, K>{d_a, nullptr, nullptr, nullptr, nullptr},
+#if BF16_C500_USE_LAYOUTA_NATIVE
+        b_layouta_gl<kN, K>{d_b_layouta, nullptr, nullptr, nullptr, nullptr},
+#else
         b_gl<K, kN>{d_b, nullptr, nullptr, nullptr, nullptr},
+#endif
         c_gl<kM, kN>{d_c, nullptr, nullptr, nullptr, nullptr}
     };
 
@@ -92,6 +130,9 @@ bool run_smoke_case(test_data &results, const std::string &label, uint64_t seed_
     info.result = validate(d_a, d_c, empty_input, ref_out, info.label, kN, 0.02f);
     results.push_back(info);
 
+#if BF16_C500_USE_LAYOUTA_NATIVE
+    cudaFree(d_b_layouta);
+#endif
     cudaFree(d_b);
     cudaFree(d_ref);
     CudaCheckError();
