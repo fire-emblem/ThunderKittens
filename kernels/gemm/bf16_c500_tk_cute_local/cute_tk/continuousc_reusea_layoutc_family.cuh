@@ -1,20 +1,27 @@
 #pragma once
 
+#include <cstdlib>
+#include <iostream>
+
 #include <cuda_runtime.h>
 
 #include "../host/layout_traits.cuh"
 #include "continuousc_reusea_skeleton.cuh"
+#include "policies.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
-template <int NTile, int APerWarp, int SplitN, int SplitK>
-struct continuousc_reusea_layoutc_n_params {
+template <typename TileShape, typename StagePolicy, int APerWarp, int SplitN,
+          int SplitK>
+struct continuousc_reusea_layoutc_family {
     using host_layout = ::bf16_c500_tk_local::host::layoutc_host_traits;
     static constexpr const char *family_name =
         "cute_tk_continuousc_reusea_layoutc_n_params";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
     static constexpr bool requires_zero_init = (SplitK > 1);
+    static constexpr int NTile = TileShape::tile_n;
+    static constexpr int StageCount = StagePolicy::stage_count;
 
     static inline dim3 grid(int m, int n) {
         (void)n;
@@ -30,8 +37,17 @@ struct continuousc_reusea_layoutc_n_params {
         (void)lda;
         (void)ldb;
         (void)ldc;
+        using schedule_t =
+            ::bf16_c500_tk_cute_local::cute_tk::continuousc_reusea_schedule<
+                NTile, APerWarp, SplitN, SplitK, StageCount>;
+        if (!schedule_t::valid_k_partition(k)) {
+            std::cerr << "cute_tk continuousc_reusea_layoutc invalid stage configuration: "
+                      << "k=" << k << " stage_count=" << StageCount
+                      << " split_k=" << SplitK << std::endl;
+            std::exit(1);
+        }
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            cute_tk_continuousc_reusea_n<T, Tc, Tscal, NTile, APerWarp,
+            cute_tk_continuousc_reusea_n<T, Tc, Tscal, StageCount, NTile, APerWarp,
                                          SplitN, SplitK, IsBetaZero,
                                          HasOneDimBias, false>
             <<<grid_dim, 256>>>(
@@ -41,5 +57,10 @@ struct continuousc_reusea_layoutc_n_params {
                 reinterpret_cast<Tc *>(const_cast<void *>(bias)));
     }
 };
+
+template <int NTile, int APerWarp, int SplitN, int SplitK>
+using continuousc_reusea_layoutc_n_params =
+    continuousc_reusea_layoutc_family<tile_shape_policy<128, NTile, 128>,
+                                      stage_4, APerWarp, SplitN, SplitK>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::families

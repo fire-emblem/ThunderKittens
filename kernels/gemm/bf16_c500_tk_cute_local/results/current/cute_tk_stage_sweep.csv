@@ -1,0 +1,4 @@
+m,n,k,n_tile,a_per_warp,split_n,split_k,stages,status,runtime_ms,tflops,err_max,message
+4608,128,3584,128,2,2,1,2,ok,0.109995,38.43694,0.0,
+4608,128,3584,128,2,2,1,3,invalid_config,,,,cute_tk continuousc_reusea invalid stage configuration: k=3584 stage_count=3 split_k=1
+4608,128,3584,128,2,2,1,4,ok,0.093781,45.082089,0.0,

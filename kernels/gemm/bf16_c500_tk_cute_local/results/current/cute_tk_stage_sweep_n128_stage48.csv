@@ -1,0 +1,3 @@
+m,n,k,n_tile,a_per_warp,split_n,split_k,stages,status,runtime_ms,tflops,err_max,message
+4608,128,3584,128,2,2,1,4,ok,0.089344,47.321123,0.0,
+4608,128,3584,128,2,2,1,8,ok,0.091904,46.002986,0.0,

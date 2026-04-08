@@ -14,12 +14,13 @@ struct mma_atom {
             a0, a1, b0, b1, c);
     }
 
-    template <typename T, int SharedNumCycleB, int APerWarp, typename FragType>
+    template <typename T, int StageCount, int SharedNumCycleB, int APerWarp,
+              typename FragType>
     __device__ __forceinline__ static void accumulate_reusea_tile(
         float4_t (&c_f32)[SharedNumCycleB][APerWarp],
-        const FragType (&tmpA)[4][APerWarp],
+        FragType const (&tmpA)[StageCount][APerWarp],
         int stage_idx,
-        const FragType (&tmpB)[SharedNumCycleB]) {
+        FragType const (&tmpB)[SharedNumCycleB]) {
         for (int j = 0; j < SharedNumCycleB; ++j) {
             for (int idxA = 0; idxA < APerWarp; ++idxA) {
                 c_f32[j][idxA] = fma_pair<T>(

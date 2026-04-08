@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdlib>
+#include <iostream>
+
 #include <cuda_runtime.h>
 
 #include "../host/layout_traits.cuh"
@@ -20,9 +23,8 @@ struct continuousc_reusea_family {
 
     static_assert(TileShape::tile_k == 128,
                   "cute_tk continuousc_reusea currently assumes tile_k == 128");
-    static_assert(StagePolicy::stage_count == 4,
-                  "cute_tk continuousc_reusea currently supports only stage4");
     static constexpr int NTile = TileShape::tile_n;
+    static constexpr int StageCount = StagePolicy::stage_count;
 
     static inline dim3 grid(int m, int n) {
         (void)n;
@@ -38,8 +40,17 @@ struct continuousc_reusea_family {
         (void)lda;
         (void)ldb;
         (void)ldc;
+        using schedule_t =
+            ::bf16_c500_tk_cute_local::cute_tk::continuousc_reusea_schedule<
+                NTile, APerWarp, SplitN, SplitK, StageCount>;
+        if (!schedule_t::valid_k_partition(k)) {
+            std::cerr << "cute_tk continuousc_reusea invalid stage configuration: "
+                      << "k=" << k << " stage_count=" << StageCount
+                      << " split_k=" << SplitK << std::endl;
+            std::exit(1);
+        }
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            cute_tk_continuousc_reusea_n<T, Tc, Tscal, NTile, APerWarp,
+            cute_tk_continuousc_reusea_n<T, Tc, Tscal, StageCount, NTile, APerWarp,
                                          SplitN, SplitK, IsBetaZero,
                                          HasOneDimBias>
             <<<grid_dim, 256>>>(

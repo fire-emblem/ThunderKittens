@@ -21,6 +21,14 @@ template <int NTile, int APerWarp, int SplitN, int SplitK>
 using continuousc_reusea_family =
     ::bf16_c500_tk_cute_local::cute_tk::families::continuousc_reusea_n_params<
         NTile, APerWarp, SplitN, SplitK>;
+template <int M, int N, int K>
+using continuousc_reusea_perf_family =
+    ::bf16_c500_tk_cute_local::cute_tk::families::continuousc_reusea_family<
+        typename continuousc_reusea_perf_policy<M, N, K>::tile_shape,
+        typename continuousc_reusea_perf_policy<M, N, K>::stage_policy,
+        continuousc_reusea_perf_policy<M, N, K>::a_per_warp,
+        continuousc_reusea_perf_policy<M, N, K>::split_n,
+        continuousc_reusea_perf_policy<M, N, K>::split_k>;
 template <int NTile, int APerWarp, int SplitN, int SplitK>
 using continuousc_reusea_layoutc_family =
     ::bf16_c500_tk_cute_local::cute_tk::families::
