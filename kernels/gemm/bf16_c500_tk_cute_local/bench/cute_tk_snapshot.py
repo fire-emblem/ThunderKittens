@@ -45,6 +45,16 @@ TARGETS = [
         out_name="bf16_c500_tk_cute_reusea_layoutc.out",
         extra_flags="-DTK_CUTE_LOCAL_USE_CONTINUOUSC -DTK_CUTE_LOCAL_USE_REUSEA_LAYOUTC",
     ),
+    Target(
+        name="reusea_continuousc_n256",
+        out_name="bf16_c500_tk_cute_reusea_n256.out",
+        extra_flags=(
+            "-DTK_CUTE_LOCAL_USE_CONTINUOUSC -DTK_CUTE_LOCAL_USE_REUSEA "
+            "-DBF16_C500_TK_CUTE_LOCAL_N=256 -DTK_CUTE_LOCAL_NTILE=256 "
+            "-DTK_CUTE_LOCAL_APERWARP=1 -DTK_CUTE_LOCAL_SPLITN=2 "
+            "-DTK_CUTE_LOCAL_SPLITK=1 -DTK_CUTE_LOCAL_STAGES=2"
+        ),
+    ),
 ]
 
 

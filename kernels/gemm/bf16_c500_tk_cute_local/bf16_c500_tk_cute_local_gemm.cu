@@ -33,6 +33,21 @@ namespace bf16_c500_tk_cute_local {
 #ifndef BF16_C500_TK_CUTE_LOCAL_PROFILE_ITERS
 #define BF16_C500_TK_CUTE_LOCAL_PROFILE_ITERS 3
 #endif
+#ifndef TK_CUTE_LOCAL_NTILE
+#define TK_CUTE_LOCAL_NTILE 128
+#endif
+#ifndef TK_CUTE_LOCAL_APERWARP
+#define TK_CUTE_LOCAL_APERWARP 2
+#endif
+#ifndef TK_CUTE_LOCAL_SPLITN
+#define TK_CUTE_LOCAL_SPLITN 2
+#endif
+#ifndef TK_CUTE_LOCAL_SPLITK
+#define TK_CUTE_LOCAL_SPLITK 1
+#endif
+#ifndef TK_CUTE_LOCAL_STAGES
+#define TK_CUTE_LOCAL_STAGES 4
+#endif
 
 struct layoutc_case {
     static constexpr const char *case_name =
@@ -52,9 +67,18 @@ struct layoutc_case {
     static constexpr int profile_iters = BF16_C500_TK_CUTE_LOCAL_PROFILE_ITERS;
 #ifdef TK_CUTE_LOCAL_USE_CONTINUOUSC
 #ifdef TK_CUTE_LOCAL_USE_REUSEA_LAYOUTC
-    using family = cute_tk::continuousc_reusea_layoutc_family<128, 2, 2, 1>;
+    using family =
+        cute_tk::families::continuousc_reusea_layoutc_family<
+            cute_tk::tile_shape_policy<128, TK_CUTE_LOCAL_NTILE, 128>,
+            cute_tk::stage_count_policy<TK_CUTE_LOCAL_STAGES>,
+            TK_CUTE_LOCAL_APERWARP, TK_CUTE_LOCAL_SPLITN,
+            TK_CUTE_LOCAL_SPLITK>;
 #elif defined(TK_CUTE_LOCAL_USE_REUSEA)
-    using family = cute_tk::continuousc_reusea_family<128, 2, 2, 1>;
+    using family = cute_tk::families::continuousc_reusea_family<
+        cute_tk::tile_shape_policy<128, TK_CUTE_LOCAL_NTILE, 128>,
+        cute_tk::stage_count_policy<TK_CUTE_LOCAL_STAGES>,
+        TK_CUTE_LOCAL_APERWARP, TK_CUTE_LOCAL_SPLITN,
+        TK_CUTE_LOCAL_SPLITK>;
 #else
     using family = cute_tk::default_continuousc_family;
 #endif

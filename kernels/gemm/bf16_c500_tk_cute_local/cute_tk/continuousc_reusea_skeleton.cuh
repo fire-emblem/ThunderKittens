@@ -17,16 +17,16 @@ namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
 using FLOAT4 = ::bf16_c500_tk_cute_local::cute_tk::mma_atom::float4_t;
 
-template <typename T, typename Tc, typename Taccum, int NTile, int APerWarp,
-          int SplitN, int SplitK, bool IsBetaZero, bool HasOneDimBias,
-          bool OutputContinuous = true>
+template <typename T, typename Tc, typename Taccum, int StageCount, int NTile,
+          int APerWarp, int SplitN, int SplitK, bool IsBetaZero,
+          bool HasOneDimBias, bool OutputContinuous = true>
 __global__ void __launch_bounds__(256) cute_tk_continuousc_reusea_n(
     T *A, T *B, Tc *C, int m, int n, int k, Taccum alpha, Taccum beta,
     Tc *bias) {
     static_assert(IsBetaZero, "tk local benchmark path assumes beta == 0");
     static_assert(!HasOneDimBias, "tk local benchmark path does not support bias yet");
 
-    constexpr int Stages = 4;
+    constexpr int Stages = StageCount;
     constexpr int ElementsPerAccess = 8;
     constexpr int RowThreadsPerMma = 16;
     constexpr int ColThreadsPerMma = 4;
@@ -123,8 +123,9 @@ __global__ void __launch_bounds__(256) cute_tk_continuousc_reusea_n(
 
             mainloop_atom::template load_b_fragments<SharedNumCycleB>(
                 sharedTmpB[t], laneId, tmpB);
-            mainloop_atom::template compute_stage<T, SharedNumCycleB, APerWarp>(
-                C_f32, tmpA, t, tmpB);
+            mainloop_atom::template compute_stage<T, Stages, SharedNumCycleB,
+                                                  APerWarp>(C_f32, tmpA, t,
+                                                            tmpB);
             sync_atom::barrier();
 
             for (int idxA = 0; idxA < APerWarp; ++idxA) {
@@ -153,8 +154,8 @@ __global__ void __launch_bounds__(256) cute_tk_continuousc_reusea_n(
 
         mainloop_atom::template load_b_fragments<SharedNumCycleB>(sharedTmpB[t],
                                                                   laneId, tmpB);
-        mainloop_atom::template compute_stage<T, SharedNumCycleB, APerWarp>(
-            C_f32, tmpA, t, tmpB);
+        mainloop_atom::template compute_stage<T, Stages, SharedNumCycleB,
+                                              APerWarp>(C_f32, tmpA, t, tmpB);
     }
 
     if (end == 0) return;

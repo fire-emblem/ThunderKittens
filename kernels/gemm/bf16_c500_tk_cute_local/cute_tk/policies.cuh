@@ -17,6 +17,49 @@ struct stage_count_policy {
 using tile_128x128x128 = tile_shape_policy<128, 128, 128>;
 using stage_4 = stage_count_policy<4>;
 
+template <typename TileShape, typename StagePolicy, int APerWarp_, int SplitN_,
+          int SplitK_>
+struct continuousc_reusea_family_policy {
+    using tile_shape = TileShape;
+    using stage_policy = StagePolicy;
+    static constexpr int a_per_warp = APerWarp_;
+    static constexpr int split_n = SplitN_;
+    static constexpr int split_k = SplitK_;
+};
+
+template <int M, int N, int K>
+struct continuousc_reusea_perf_policy;
+
+template <>
+struct continuousc_reusea_perf_policy<4608, 128, 3584>
+    : continuousc_reusea_family_policy<tile_shape_policy<128, 128, 128>,
+                                       stage_4, 2, 2, 1> {};
+
+template <>
+struct continuousc_reusea_perf_policy<4608, 256, 3584>
+    : continuousc_reusea_family_policy<tile_shape_policy<128, 256, 128>,
+                                       stage_count_policy<2>, 1, 2, 1> {};
+
+template <>
+struct continuousc_reusea_perf_policy<3584, 128, 3584>
+    : continuousc_reusea_family_policy<tile_shape_policy<128, 128, 128>,
+                                       stage_4, 2, 3, 1> {};
+
+template <>
+struct continuousc_reusea_perf_policy<3584, 128, 18944>
+    : continuousc_reusea_family_policy<tile_shape_policy<128, 128, 128>,
+                                       stage_4, 1, 1, 3> {};
+
+template <>
+struct continuousc_reusea_perf_policy<3584, 256, 18944>
+    : continuousc_reusea_family_policy<tile_shape_policy<128, 256, 128>,
+                                       stage_4, 2, 2, 3> {};
+
+template <>
+struct continuousc_reusea_perf_policy<37888, 256, 3584>
+    : continuousc_reusea_family_policy<tile_shape_policy<128, 256, 128>,
+                                       stage_count_policy<2>, 2, 2, 1> {};
+
 template <int NTile, int APerWarp, int SplitN, int SplitK, int Stages_>
 struct continuousc_reusea_schedule {
     static constexpr int kWaveSize = 64;
@@ -124,6 +167,12 @@ struct continuousc_reusea_schedule {
 
     __device__ __forceinline__ static int advance_c_offset(int c_offset, int m) {
         return c_offset + kRowThreadsPerMma * (m / kElementsPerThreadPerMma);
+    }
+
+    __host__ __device__ __forceinline__ static bool valid_k_partition(int k) {
+        const int num_cycle_a = k / (kColThreadsPerMma * kElementsPerAccess);
+        return (k % (kColThreadsPerMma * kElementsPerAccess)) == 0 &&
+               (num_cycle_a % kStages) == 0;
     }
 };
 

@@ -1,5 +1,6 @@
 #include <maca_bfloat16.h>
 
+#include "continuousc_reusea_family.cuh"
 #include "mainloop_atom.cuh"
 #include "continuousc_reusea_skeleton.cuh"
 
@@ -10,6 +11,12 @@ static_assert(schedule::kWaveSize == 64);
 static_assert(schedule::kRowThreadsPerMma == 16);
 
 using mainloop = bf16_c500_tk_cute_local::cute_tk::mainloop_atom;
+using stage3_family =
+    bf16_c500_tk_cute_local::cute_tk::families::continuousc_reusea_family<
+        bf16_c500_tk_cute_local::cute_tk::tile_shape_policy<128, 128, 128>,
+        bf16_c500_tk_cute_local::cute_tk::stage_count_policy<3>, 2, 2, 1>;
+
+static_assert(!stage3_family::requires_zero_init);
 
 __global__ void probe_store(__maca_bfloat16 *c) {
     using float4_t = bf16_c500_tk_cute_local::cute_tk::mma_atom::float4_t;
