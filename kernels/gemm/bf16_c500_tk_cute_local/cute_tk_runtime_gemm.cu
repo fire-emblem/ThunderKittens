@@ -24,6 +24,11 @@ int run_family(const char *case_name, int m, int n, int k, int warmup,
 
 template <typename LocalT, typename RefT>
 int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
+    if (env_flag("TK_CUTE_USE_TN_EXAMPLE")) {
+        using family = cute_tk::tn_example_bf16_stage4_family;
+        return run_family<LocalT, RefT, family>(
+            "cute_runtime_case_tn_example", m, n, k, warmup, profile);
+    }
     if (env_flag("TK_CUTE_USE_SQUARE_TT256")) {
         if (m == 256 && n == 256 && k == 64) {
             using family = cute_tk::square_tt_256x256x64_stage4_family;
@@ -43,6 +48,11 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
                 "cute_runtime_case_4096cube_square_tt256", m, n, k, warmup,
                 profile);
         }
+    }
+    if (m == 1664 && n == 1024 && k == 16384) {
+        using family = cute_tk::default_layoutc_family;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_1664x1024x16384_layoutc",
+                                                m, n, k, warmup, profile);
     }
     if (m == 2048 && n == 2048 && k == 2048) {
         using family = cute_tk::layoutc_perf_family<2048, 2048, 2048>;

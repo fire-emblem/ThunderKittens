@@ -17,6 +17,7 @@ OUT_CSV = Path(
     )
 )
 RUNS = int(os.environ.get("CUTE_TK_VS_TK_LOCAL_RUNS", "3"))
+TARGET_FILTER = tuple(filter(None, os.environ.get("CUTE_TK_TARGET_FILTER", "").split(",")))
 
 PERF_RE = re.compile(r"Performance:\s+([0-9.]+)\s+TFLOP/s")
 RUNTIME_RE = re.compile(r"Average runtime:\s+([0-9.]+)\s+ms")
@@ -36,6 +37,50 @@ class Target:
 
 
 TARGETS = [
+    Target(
+        name="cute_tn_example_1664x1024x16384_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_1664x1024x16384_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "1664",
+            "TK_CUTE_N": "1024",
+            "TK_CUTE_K": "16384",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="cute_layoutc_1664x1024x16384_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_layoutc_1664x1024x16384_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_M": "1664",
+            "TK_CUTE_N": "1024",
+            "TK_CUTE_K": "16384",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="cute_tn_example_2048cube_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_2048cube_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "2048",
+            "TK_CUTE_N": "2048",
+            "TK_CUTE_K": "2048",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
     Target(
         name="cute_layoutc_2048cube_bf16",
         dtype="bf16",
@@ -62,6 +107,21 @@ TARGETS = [
             "-DBF16_C500_MUXI_NATIVE_WARMUP_ITERS=1 "
             "-DBF16_C500_MUXI_NATIVE_PROFILE_ITERS=3"
         ),
+    ),
+    Target(
+        name="cute_tn_example_4096cube_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_4096cube_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "4096",
+            "TK_CUTE_N": "4096",
+            "TK_CUTE_K": "4096",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
     ),
     Target(
         name="cute_layoutc_4096cube_bf16",
@@ -105,6 +165,21 @@ TARGETS = [
         },
     ),
     Target(
+        name="cute_tn_example_4608x128x3584_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_4608x128x3584_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "4608",
+            "TK_CUTE_N": "128",
+            "TK_CUTE_K": "3584",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
         name="tk_local_n128",
         dtype="bf16",
         src="tk_local_runtime_gemm.cu",
@@ -127,6 +202,21 @@ TARGETS = [
         env={
             "TK_CUTE_M": "4608",
             "TK_CUTE_N": "256",
+            "TK_CUTE_K": "3584",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="cute_tn_example_3584x128x3584_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_3584x128x3584_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "3584",
+            "TK_CUTE_N": "128",
             "TK_CUTE_K": "3584",
             "TK_CUTE_WARMUP": "1",
             "TK_CUTE_PROFILE": "3",
@@ -161,6 +251,21 @@ TARGETS = [
         },
     ),
     Target(
+        name="cute_tn_example_4608x256x3584_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_4608x256x3584_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "4608",
+            "TK_CUTE_N": "256",
+            "TK_CUTE_K": "3584",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
         name="tk_local_n256",
         dtype="bf16",
         src="tk_local_runtime_gemm.cu",
@@ -172,6 +277,21 @@ TARGETS = [
             "TK_LOCAL_K": "3584",
             "TK_LOCAL_WARMUP": "1",
             "TK_LOCAL_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="cute_tn_example_37888x256x3584_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_37888x256x3584_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "37888",
+            "TK_CUTE_N": "256",
+            "TK_CUTE_K": "3584",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
         },
     ),
     Target(
@@ -203,6 +323,21 @@ TARGETS = [
         },
     ),
     Target(
+        name="cute_tn_example_3584x128x18944_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_3584x128x18944_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "3584",
+            "TK_CUTE_N": "128",
+            "TK_CUTE_K": "18944",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
         name="tk_local_3584x128x18944",
         dtype="bf16",
         src="tk_local_runtime_gemm.cu",
@@ -226,6 +361,21 @@ TARGETS = [
             "TK_CUTE_M": "3584",
             "TK_CUTE_N": "128",
             "TK_CUTE_K": "18944",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="cute_tn_example_37888x128x3584_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_37888x128x3584_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "37888",
+            "TK_CUTE_N": "128",
+            "TK_CUTE_K": "3584",
             "TK_CUTE_WARMUP": "1",
             "TK_CUTE_PROFILE": "3",
         },
@@ -289,6 +439,18 @@ TARGETS = [
 ]
 
 MCBLAS_DIRECT_TARGETS = {
+    ("bf16", 1664, 1024, 16384): {
+        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
+        "out_name": "mcblas_1664x1024x16384_bf16_cmp.out",
+        "extra_flags": (
+            "-lmcblas "
+            "-DBF16_MCBLAS_PROBLEM_M=1664 "
+            "-DBF16_MCBLAS_PROBLEM_N=1024 "
+            "-DBF16_MCBLAS_PROBLEM_K=16384 "
+            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
+            "-DBF16_MCBLAS_PROFILE_ITERS=20"
+        ),
+    },
     ("bf16", 2048, 2048, 2048): {
         "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
         "out_name": "mcblas_2048cube_bf16_cmp.out",
@@ -412,9 +574,65 @@ def main() -> int:
 
     mcblas_direct_cache: dict[tuple[str, int, int, int], float] = {}
     rows: list[dict[str, str | float | int]] = []
-    for target in TARGETS:
-        binary = build_binary(target)
-        first, runtimes_ms, tflops = sample_target(target, binary)
+    targets = [t for t in TARGETS if not TARGET_FILTER or any(f in t.name for f in TARGET_FILTER)]
+    for target in targets:
+        env = os.environ.copy()
+        if target.env is not None:
+            env.update(target.env)
+        target_m = int(env.get("TK_CUTE_M", env.get("TK_LOCAL_M", "0")))
+        target_n = int(env.get("TK_CUTE_N", env.get("TK_LOCAL_N", "0")))
+        target_k = int(env.get("TK_CUTE_K", env.get("TK_LOCAL_K", "0")))
+        try:
+            binary = build_binary(target)
+        except subprocess.CalledProcessError:
+            rows.append(
+                {
+                    "target": target.name,
+                    "dtype": target.dtype,
+                    "status": "build_failed",
+                    "family": "build_failed",
+                    "m": target_m,
+                    "n": target_n,
+                    "k": target_k,
+                    "runs": RUNS,
+                    "runtime_ms_min": "",
+                    "runtime_ms_avg": "",
+                    "runtime_ms_max": "",
+                    "tflops_min": "",
+                    "tflops_avg": "",
+                    "tflops_max": "",
+                    "err_max": "",
+                    "mcblas_tflops": "",
+                    "vs_mcblas_ratio": "",
+                }
+            )
+            continue
+        try:
+            first, runtimes_ms, tflops = sample_target(target, binary)
+            status = "ok"
+        except subprocess.CalledProcessError:
+            rows.append(
+                {
+                    "target": target.name,
+                    "dtype": target.dtype,
+                    "status": "runtime_failed",
+                    "family": "runtime_failed",
+                    "m": target_m,
+                    "n": target_n,
+                    "k": target_k,
+                    "runs": RUNS,
+                    "runtime_ms_min": "",
+                    "runtime_ms_avg": "",
+                    "runtime_ms_max": "",
+                    "tflops_min": "",
+                    "tflops_avg": "",
+                    "tflops_max": "",
+                    "err_max": "",
+                    "mcblas_tflops": "",
+                    "vs_mcblas_ratio": "",
+                }
+            )
+            continue
         mcblas_row = mcblas.get((target.dtype, int(first["m"]), int(first["n"]), int(first["k"])))
         mcblas_tflops = (
             float(mcblas_row["mcblas_tflops"])
@@ -432,6 +650,7 @@ def main() -> int:
             {
                 "target": target.name,
                 "dtype": target.dtype,
+                "status": status,
                 "family": first["family"],
                 "m": first["m"],
                 "n": first["n"],
@@ -460,6 +679,7 @@ def main() -> int:
             fieldnames=[
                 "target",
                 "dtype",
+                "status",
                 "family",
                 "m",
                 "n",
@@ -482,8 +702,11 @@ def main() -> int:
     print(f"Wrote {OUT_CSV}")
     for row in rows:
         print(
-            f"{row['target']}: "
-            f"{row['tflops_min']:.3f}/{row['tflops_avg']:.3f}/{row['tflops_max']:.3f} TFLOP/s"
+            (
+                f"{row['target']}: status={row['status']}"
+                if row['status'] != 'ok' else
+                f"{row['target']}: {row['tflops_min']:.3f}/{row['tflops_avg']:.3f}/{row['tflops_max']:.3f} TFLOP/s"
+            )
         )
     return 0
 

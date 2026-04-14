@@ -31,7 +31,12 @@ struct layoutc_family {
     static constexpr bool requires_zero_init = false;
 
     static inline dim3 grid(int m, int n) {
-        return dim3(m / tile::tile_m, n / tile::tile_n);
+        return dim3((m + tile::tile_m - 1) / tile::tile_m,
+                    (n + tile::tile_n - 1) / tile::tile_n);
+    }
+
+    static inline bool supports_runtime_shape(int m, int n, int k) {
+        return m > 0 && n > 0 && (k % tile::tile_k) == 0;
     }
 
     template <typename T, typename Tc, typename Tscal, bool IsBetaZero,

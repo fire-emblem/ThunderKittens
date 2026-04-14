@@ -12,6 +12,7 @@
 #include "mainloop_atom.cuh"
 #include "mma_atom.cuh"
 #include "square_tt_256x256x64_family.cuh"
+#include "tn_example_family.cuh"
 #include "sync_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {

@@ -35,6 +35,14 @@ inline bool use_muxi_timing_mode() {
     return false;
 }
 
+template <typename Family>
+inline bool runtime_shape_supported(int m, int n, int k) {
+    if constexpr (requires { Family::supports_runtime_shape(m, n, k); }) {
+        return Family::supports_runtime_shape(m, n, k);
+    }
+    return (m % 128) == 0 && (n % 128) == 0 && (k % 128) == 0;
+}
+
 template <typename T>
 inline T host_from_float(float value) {
     if constexpr (std::is_same_v<T, __nv_bfloat16>) {
@@ -261,9 +269,9 @@ int run_runtime_case(const char *case_name, int M, int N, int K,
     constexpr float alpha = family::alpha;
     constexpr float beta = family::beta;
 
-    if ((M % 128) != 0 || (N % 128) != 0 || (K % 128) != 0) {
-        std::cerr << "runtime shape must satisfy M/N/K multiples of 128"
-                  << std::endl;
+    if (!runtime_shape_supported<family>(M, N, K)) {
+        std::cerr << "runtime shape unsupported by family: M=" << M
+                  << " N=" << N << " K=" << K << std::endl;
         return 1;
     }
 
