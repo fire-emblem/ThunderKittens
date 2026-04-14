@@ -67,6 +67,19 @@ std::vector<NativeT> make_a_native_runtime(int m, int k,
     return native;
 }
 
+template <typename NativeT, typename RowT>
+std::vector<NativeT> make_a_rowmajor_runtime(int m, int k,
+                                             const std::vector<RowT> &row_major_a) {
+    std::vector<NativeT> native(static_cast<size_t>(m) * k);
+    for (int row = 0; row < m; ++row) {
+        for (int col = 0; col < k; ++col) {
+            native[static_cast<size_t>(row) * k + col] =
+                cast_row_to_native<NativeT>(row_major_a[static_cast<size_t>(row) * k + col]);
+        }
+    }
+    return native;
+}
+
 template<int K, int N, typename NativeT, typename RowT>
 std::vector<NativeT> make_b_native(const std::vector<RowT> &row_major_b) {
     static_assert(N % 16 == 0 && K % 32 == 0);
@@ -97,6 +110,19 @@ std::vector<NativeT> make_b_native_runtime(int k, int n,
                  (row_k % 8));
             native[dst] = cast_row_to_native<NativeT>(
                 row_major_b[static_cast<size_t>(col_n) * k + row_k]);
+        }
+    }
+    return native;
+}
+
+template <typename NativeT, typename RowT>
+std::vector<NativeT> make_b_colmajor_runtime(int k, int n,
+                                             const std::vector<RowT> &row_major_b) {
+    std::vector<NativeT> native(static_cast<size_t>(k) * n);
+    for (int col_n = 0; col_n < n; ++col_n) {
+        for (int row_k = 0; row_k < k; ++row_k) {
+            native[static_cast<size_t>(col_n) + static_cast<size_t>(row_k) * n] =
+                cast_row_to_native<NativeT>(row_major_b[static_cast<size_t>(col_n) * k + row_k]);
         }
     }
     return native;

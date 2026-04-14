@@ -13,11 +13,48 @@ inline int env_int(const char *name, int fallback) {
     return fallback;
 }
 
+inline bool env_flag(const char *name) { return env_int(name, 0) != 0; }
+
 template <typename LocalT, typename RefT, typename Family>
 int run_family(const char *case_name, int m, int n, int k, int warmup,
                int profile) {
     return ::bf16_c500_tk_local::bench::run_runtime_case<Family, LocalT, RefT>(
         case_name, m, n, k, warmup, profile);
+}
+
+template <typename LocalT, typename RefT>
+int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
+    if (env_flag("TK_CUTE_USE_SQUARE_TT256")) {
+        if (m == 256 && n == 256 && k == 64) {
+            using family = cute_tk::square_tt_256x256x64_stage4_family;
+            return run_family<LocalT, RefT, family>(
+                "cute_runtime_case_256tile_square_tt256", m, n, k, warmup,
+                profile);
+        }
+        if (m == 2048 && n == 2048 && k == 2048) {
+            using family = cute_tk::square_tt_256x256x64_stage4_family;
+            return run_family<LocalT, RefT, family>(
+                "cute_runtime_case_2048cube_square_tt256", m, n, k, warmup,
+                profile);
+        }
+        if (m == 4096 && n == 4096 && k == 4096) {
+            using family = cute_tk::square_tt_256x256x64_stage4_family;
+            return run_family<LocalT, RefT, family>(
+                "cute_runtime_case_4096cube_square_tt256", m, n, k, warmup,
+                profile);
+        }
+    }
+    if (m == 2048 && n == 2048 && k == 2048) {
+        using family = cute_tk::layoutc_perf_family<2048, 2048, 2048>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_2048cube_layoutc",
+                                                m, n, k, warmup, profile);
+    }
+    if (m == 4096 && n == 4096 && k == 4096) {
+        using family = cute_tk::layoutc_perf_family<4096, 4096, 4096>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_4096cube_layoutc",
+                                                m, n, k, warmup, profile);
+    }
+    return -1;
 }
 
 template <typename LocalT, typename RefT>
@@ -66,8 +103,17 @@ int run() {
     const int profile = env_int("TK_CUTE_PROFILE", 3);
 
 #ifdef TK_CUTE_USE_FP16
+    if (int rc = run_layoutc_dispatch<__half, __half>(m, n, k, warmup, profile);
+        rc >= 0) {
+        return rc;
+    }
     return run_continuousc_dispatch<__half, __half>(m, n, k, warmup, profile);
 #else
+    if (int rc = run_layoutc_dispatch<__maca_bfloat16, __nv_bfloat16>(
+            m, n, k, warmup, profile);
+        rc >= 0) {
+        return rc;
+    }
     return run_continuousc_dispatch<__maca_bfloat16, __nv_bfloat16>(
         m, n, k, warmup, profile);
 #endif

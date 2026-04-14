@@ -22,8 +22,46 @@ __device__ inline static void load(RV &dst, const SV &src) {
         
         int laneid = ::kittens::laneid();
         uint32_t src_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(&src.data[0]));
-        
+
         __syncwarp();
+#ifdef KITTENS_C500
+        if constexpr (std::is_same_v<typename RV::layout, align_l>) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                const int base = i*16 + (laneid >> 4);
+                U v0, v1, v2, v3;
+                move<U>::lds(v0, src_ptr + sizeof(typename SV::dtype)*(base +  0));
+                move<U>::lds(v1, src_ptr + sizeof(typename SV::dtype)*(base +  4));
+                move<U>::lds(v2, src_ptr + sizeof(typename SV::dtype)*(base +  8));
+                move<U>::lds(v3, src_ptr + sizeof(typename SV::dtype)*(base + 12));
+                dst[i][0].x = base_types::convertor<T, U>::convert(v0);
+                dst[i][0].y = base_types::convertor<T, U>::convert(v1);
+                dst[i][1].x = base_types::convertor<T, U>::convert(v2);
+                dst[i][1].y = base_types::convertor<T, U>::convert(v3);
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, ortho_l>) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                U v;
+                move<U>::lds(v, src_ptr + sizeof(typename SV::dtype)*(i*16 + (laneid & 0xf)));
+                const T x = base_types::convertor<T, U>::convert(v);
+                dst[i][0].x = x;
+                dst[i][0].y = x;
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, naive_l>) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                const int logical_idx = i*32 + (laneid & 0x1f);
+                if(logical_idx < RV::length) {
+                    U v;
+                    move<U>::lds(v, src_ptr + sizeof(typename SV::dtype)*logical_idx);
+                    dst[i][0] = base_types::convertor<T, U>::convert(v);
+                }
+            }
+        }
+#else
         if constexpr (std::is_same_v<typename RV::layout, align_l>) {
             #pragma unroll
             for(auto w = 0; w < (RV::outer_dim+3)/4; w++) {
@@ -80,6 +118,7 @@ __device__ inline static void load(RV &dst, const SV &src) {
                 }
             }
         }
+#endif
     }
     else {
         static_assert(SV::length == RV::length*GROUP_WARPS);// confirm size correct
@@ -111,6 +150,39 @@ __device__ inline static void store(SV &dst, const RV &src) {
         uint32_t dst_ptr = static_cast<uint32_t>(__cvta_generic_to_shared(&dst.data[0]));
 
         __syncwarp();
+#ifdef KITTENS_C500
+        if constexpr (std::is_same_v<typename RV::layout, align_l>) {
+            if((laneid & 0xf) == 0) {
+                #pragma unroll
+                for(int i = 0; i < RV::outer_dim; i++) {
+                    const int base = i*16 + (laneid >> 4);
+                    move<U>::sts(dst_ptr + sizeof(typename SV::dtype)*(base +  0), base_types::convertor<U, T>::convert(src[i][0].x));
+                    move<U>::sts(dst_ptr + sizeof(typename SV::dtype)*(base +  4), base_types::convertor<U, T>::convert(src[i][0].y));
+                    move<U>::sts(dst_ptr + sizeof(typename SV::dtype)*(base +  8), base_types::convertor<U, T>::convert(src[i][1].x));
+                    move<U>::sts(dst_ptr + sizeof(typename SV::dtype)*(base + 12), base_types::convertor<U, T>::convert(src[i][1].y));
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, ortho_l>) {
+            if(laneid < 16) {
+                #pragma unroll
+                for(int i = 0; i < RV::outer_dim; i++) {
+                    move<U>::sts(dst_ptr + sizeof(typename SV::dtype)*(i*16 + laneid), base_types::convertor<U, T>::convert(src[i][0].x));
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, naive_l>) {
+            if((laneid & 0x1f) == laneid) {
+                #pragma unroll
+                for(int i = 0; i < RV::outer_dim; i++) {
+                    const int logical_idx = i*32 + laneid;
+                    if(logical_idx < RV::length) {
+                        move<U>::sts(dst_ptr + sizeof(typename SV::dtype)*logical_idx, base_types::convertor<U, T>::convert(src[i][0]));
+                    }
+                }
+            }
+        }
+#else
         if constexpr (std::is_same_v<typename RV::layout, align_l>) {
             #pragma unroll
             for(auto w = 0; w < (RV::outer_dim+3)/4; w++) {
@@ -149,6 +221,7 @@ __device__ inline static void store(SV &dst, const RV &src) {
                 }
             }
         }
+#endif
     }
     else {
         static_assert(SV::length == RV::length*GROUP_WARPS);// confirm size correct

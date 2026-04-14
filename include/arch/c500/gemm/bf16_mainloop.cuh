@@ -2,6 +2,7 @@
 
 #include "bf16_contracts.cuh"
 #include "families/bf16_balanced_128x128x128_stage4.cuh"
+#include "families/bf16_muxi_128x128x128_stage4.cuh"
 
 namespace kittens::arch::c500::gemm {
 
@@ -49,7 +50,7 @@ __device__ inline void run_bf16_mainloop(const Globals &g) {
 
 template<int M, int N, int K, typename Globals>
 __device__ inline void run_bf16_mainloop_layouta(const Globals &g) {
-    families::run_bf16_balanced_128x128x128_stage4_layouta<M, N, K>(g);
+    families::run_bf16_muxi_128x128x128_stage4_layouta<M, N, K>(g);
 }
 
 } // namespace kittens::arch::c500::gemm

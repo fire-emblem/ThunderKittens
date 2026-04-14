@@ -31,14 +31,28 @@ __device__ static inline int warpid() { return laneid() / kittens::WARP_THREADS;
 __device__ static inline int groupid() { return threadIdx.x / GROUP_THREADS; }
 
 __device__ static inline void sync(int id) {
+#ifdef KITTENS_C500
+    (void)id;
+    __syncthreads();
+#else
     asm volatile("bar.sync %0, %1;\n" :: "r"(id), "n"(GROUP_THREADS));
+#endif
 }
 template<uint32_t MASK=0xFFFFFFFF> __device__ static inline void sync() {
     static_assert(GROUP_WARPS==1, "barrier-less sync() can only be called by a single warp!");
+#ifdef KITTENS_C500
+    (void)MASK;
+    __syncwarp();
+#else
     asm volatile("bar.warp.sync %0;\n" :: "n"(MASK));
+#endif
 }
 __device__ static inline void arrive(int id) {
+#ifdef KITTENS_C500
+    (void)id;
+#else
     asm volatile("bar.arrive %0, %1;\n" :: "r"(id), "n"(GROUP_THREADS));
+#endif
 }
 
 #include "memory/memory.cuh"
@@ -84,7 +98,12 @@ namespace everyone {
 
 // Block-level synchronization
 __device__ static inline void sync(int id) {
+#ifdef KITTENS_C500
+    (void)id;
+    __syncthreads();
+#else
     asm volatile("bar.sync %0;\n" :: "r"(id));
+#endif
 }
 
 // Cluster-level synchronization functions

@@ -82,30 +82,44 @@ __device__ static inline void apply(RV &dst, const RV &src, Lambda &&lambda) {
     if constexpr(GROUP_WARPS > 1) {
         group_offset = warpid()*RV::length;
     }
-    static_assert(sizeof(RV::T) != 1, "Cannot apply lambda to 8-bit types");
+    static_assert(sizeof(typename RV::T) != 1, "Cannot apply lambda to 8-bit types");
     if constexpr (ducks::rv::ortho_layout<RV>) {
         #pragma unroll
         for(int i = 0; i < RV::outer_dim; i++) {
+            #ifdef KITTENS_C500
+            int logical_idx = group_offset + i*16 + (::kittens::laneid() & 0xf);
+            dst[i][0].x = lambda(logical_idx, src[i][0].x);
+            dst[i][0].y = lambda(logical_idx, src[i][0].y);
+            #else
             int base_idx = group_offset + i*16 + ::kittens::laneid()/4;
             dst[i][0].x = lambda(base_idx+0, src[i][0].x);
             dst[i][0].y = lambda(base_idx+8, src[i][0].y);
+            #endif
         }
     }
     else if constexpr (ducks::rv::align_layout<RV>) {
         #pragma unroll
         for(int i = 0; i < RV::outer_dim; i++) {
+            #ifdef KITTENS_C500
+            int base_idx = group_offset + i*16 + (::kittens::laneid() >> 4);
+            dst[i][0].x = lambda(base_idx+0,  src[i][0].x);
+            dst[i][0].y = lambda(base_idx+4,  src[i][0].y);
+            dst[i][1].x = lambda(base_idx+8,  src[i][1].x);
+            dst[i][1].y = lambda(base_idx+12, src[i][1].y);
+            #else
             int base_idx = group_offset + i*16 + 2*(::kittens::laneid()%4);
             dst[i][0].x = lambda(base_idx+0, src[i][0].x);
             dst[i][0].y = lambda(base_idx+1, src[i][0].y);
             dst[i][1].x = lambda(base_idx+8, src[i][1].x);
             dst[i][1].y = lambda(base_idx+9, src[i][1].y);
+            #endif
         }
     }
     else {
         #pragma unroll
         for(int i = 0; i < RV::outer_dim; i++) {
-            int base_idx = group_offset + i*32 + ::kittens::laneid();
-            if (i < RV::outer_dim-1 || RV::length%32 == 0 || ::kittens::laneid()<16) {
+            int base_idx = group_offset + i*32 + (::kittens::laneid() & 0x1f);
+            if (base_idx < group_offset + RV::length) {
                 dst[i][0] = lambda(base_idx, src[i][0]);
             }
         }

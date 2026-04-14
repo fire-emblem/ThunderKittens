@@ -2,7 +2,6 @@
  * @file
  * @brief Group (collaborative warp) ops for loading shared tiles from and storing to global memory. 
  */
- 
 
 /**
  * @brief Loads data from global memory into a shared memory tile.
@@ -117,6 +116,9 @@ __device__ static inline void store(const GL &dst, const ST &src, const COORD &i
  */
 template<int axis, bool assume_aligned, ducks::st::all ST, ducks::gl::all GL, ducks::coord::tile COORD=coord<ST>>
 __device__ static inline void load_async(ST &dst, const GL &src, const COORD &idx) {
+#ifdef KITTENS_C500
+    load<axis, assume_aligned, ST, GL, COORD>(dst, src, idx);
+#else
     using T = typename ST::dtype;
     const int row_stride = src.template stride<axis>();
     // we can handle this many rows each time we run a memcpy_async
@@ -180,6 +182,7 @@ __device__ static inline void load_async(ST &dst, const GL &src, const COORD &id
     }
 #ifndef KITTENS_C500
     asm volatile("cp.async.commit_group;\n" ::: "memory");
+#endif
 #endif
 }
 template<ducks::st::all ST, ducks::gl::all GL, ducks::coord::tile COORD=coord<ST>>

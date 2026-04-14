@@ -114,4 +114,42 @@ struct continuousc_host_traits {
     }
 };
 
+struct square_tt_host_traits {
+    template <typename NativeT, typename RowT, int M, int K>
+    static std::vector<NativeT> pack_a_typed(
+        const std::vector<RowT> &row_major_a) {
+        return make_a_rowmajor_runtime<NativeT>(M, K, row_major_a);
+    }
+
+    template <typename NativeT, typename RowT, int K, int N>
+    static std::vector<NativeT> pack_b_typed(
+        const std::vector<RowT> &row_major_b) {
+        return make_b_colmajor_runtime<NativeT>(K, N, row_major_b);
+    }
+
+    template <typename NativeT, int M, int N>
+    static float load_c_typed(const std::vector<NativeT> &raw_c, int row_n,
+                              int col_m) {
+        return load_contiguous_logical<M, N>(raw_c, row_n, col_m);
+    }
+
+    template <typename NativeT, typename RowT>
+    static std::vector<NativeT> pack_a_runtime(
+        int m, int k, const std::vector<RowT> &row_major_a) {
+        return make_a_rowmajor_runtime<NativeT>(m, k, row_major_a);
+    }
+
+    template <typename NativeT, typename RowT>
+    static std::vector<NativeT> pack_b_runtime(
+        int k, int n, const std::vector<RowT> &row_major_b) {
+        return make_b_colmajor_runtime<NativeT>(k, n, row_major_b);
+    }
+
+    template <typename NativeT>
+    static float load_c_runtime(const std::vector<NativeT> &raw_c, int m, int n,
+                                int row_n, int col_m) {
+        return load_contiguous_logical_runtime(raw_c, m, row_n, col_m);
+    }
+};
+
 } // namespace bf16_c500_tk_local::host

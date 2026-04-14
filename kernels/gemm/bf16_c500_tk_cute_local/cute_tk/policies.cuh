@@ -15,7 +15,24 @@ struct stage_count_policy {
 };
 
 using tile_128x128x128 = tile_shape_policy<128, 128, 128>;
+using tile_256x256x64 = tile_shape_policy<256, 256, 64>;
+using tile_128x256x64 = tile_shape_policy<128, 256, 64>;
 using stage_4 = stage_count_policy<4>;
+
+template <int M, int N, int K>
+struct layoutc_perf_policy;
+
+template <>
+struct layoutc_perf_policy<2048, 2048, 2048> {
+    using tile_shape = tile_128x128x128;
+    using stage_policy = stage_4;
+};
+
+template <>
+struct layoutc_perf_policy<4096, 4096, 4096> {
+    using tile_shape = tile_128x128x128;
+    using stage_policy = stage_4;
+};
 
 template <typename TileShape, typename StagePolicy, int APerWarp_, int SplitN_,
           int SplitK_>

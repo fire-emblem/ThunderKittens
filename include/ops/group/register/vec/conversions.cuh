@@ -20,6 +20,43 @@ __device__ static inline int canonical_src_lane_dim1(int row) {
     return (row*4)%32;
 }
 
+#ifdef KITTENS_C500
+template<typename RV>
+__device__ static inline typename base_types::packing<typename RV::dtype>::unpacked_type get(const RV &src, int logical_idx) {
+    using scalar = typename base_types::packing<typename RV::dtype>::unpacked_type;
+    constexpr uint64_t full_mask = 0xffffffffffffffffull;
+    if constexpr (std::is_same_v<typename RV::layout, ortho_l>) {
+        const int src_outer = logical_idx / 16;
+        const int src_lane = logical_idx & 0xf;
+        return base_types::convertor<scalar, typename RV::dtype>::convert(
+            __shfl_sync(full_mask, src[src_outer][0].x, src_lane, WARP_THREADS)
+        );
+    }
+    else if constexpr (std::is_same_v<typename RV::layout, align_l>) {
+        const int src_outer = logical_idx / 16;
+        const int src_inner = logical_idx & 0xf;
+        const int src_lane = (src_inner & 0x3) << 4;
+        switch(src_inner >> 2) {
+            case 0:
+                return base_types::convertor<scalar, typename RV::dtype>::convert(__shfl_sync(full_mask, src[src_outer][0].x, src_lane, WARP_THREADS));
+            case 1:
+                return base_types::convertor<scalar, typename RV::dtype>::convert(__shfl_sync(full_mask, src[src_outer][0].y, src_lane, WARP_THREADS));
+            case 2:
+                return base_types::convertor<scalar, typename RV::dtype>::convert(__shfl_sync(full_mask, src[src_outer][1].x, src_lane, WARP_THREADS));
+            default:
+                return base_types::convertor<scalar, typename RV::dtype>::convert(__shfl_sync(full_mask, src[src_outer][1].y, src_lane, WARP_THREADS));
+        }
+    }
+    else {
+        const int src_outer = logical_idx / 32;
+        const int src_lane = logical_idx & 0x1f;
+        return base_types::convertor<scalar, typename RV::dtype>::convert(
+            __shfl_sync(full_mask, src[src_outer][0], src_lane, WARP_THREADS)
+        );
+    }
+}
+#endif
+
 };
 
 /**
@@ -36,6 +73,41 @@ __device__ static inline void copy(RV1 &dst, const RV2 &src) {
     static_assert(RV1::length == RV2::length, "Register vectors must be the same length.");
     using D1 = RV1::dtype;
     using D2 = RV2::dtype;
+#ifdef KITTENS_C500
+    using T1 = typename base_types::packing<D1>::unpacked_type;
+    const int laneid = ::kittens::laneid();
+    if constexpr (std::is_same_v<typename RV1::layout, ortho_l>) {
+        #pragma unroll
+        for(int i = 0; i < RV1::outer_dim; i++) {
+            const T1 v = base_types::convertor<T1, typename RV2::T>::convert(
+                vec_conversion_detail::get(src, i*16 + (laneid & 0xf))
+            );
+            dst[i][0].x = v;
+            dst[i][0].y = v;
+        }
+    }
+    else if constexpr (std::is_same_v<typename RV1::layout, align_l>) {
+        #pragma unroll
+        for(int i = 0; i < RV1::outer_dim; i++) {
+            const int base = i*16 + (laneid >> 4);
+            dst[i][0].x = base_types::convertor<T1, typename RV2::T>::convert(vec_conversion_detail::get(src, base +  0));
+            dst[i][0].y = base_types::convertor<T1, typename RV2::T>::convert(vec_conversion_detail::get(src, base +  4));
+            dst[i][1].x = base_types::convertor<T1, typename RV2::T>::convert(vec_conversion_detail::get(src, base +  8));
+            dst[i][1].y = base_types::convertor<T1, typename RV2::T>::convert(vec_conversion_detail::get(src, base + 12));
+        }
+    }
+    else {
+        #pragma unroll
+        for(int i = 0; i < RV1::outer_dim; i++) {
+            const int logical_idx = i*32 + (laneid & 0x1f);
+            if(logical_idx < RV1::length) {
+                dst[i][0] = base_types::convertor<D1, typename RV2::T>::convert(
+                    vec_conversion_detail::get(src, logical_idx)
+                );
+            }
+        }
+    }
+#else
     if constexpr (std::is_same_v<typename RV1::layout, typename RV2::layout>) { // just a simple copy / typecast
         #pragma unroll
         for(int i = 0; i < RV1::outer_dim; i++) {
@@ -150,4 +222,5 @@ __device__ static inline void copy(RV1 &dst, const RV2 &src) {
             }
         }
     }
+#endif
 }

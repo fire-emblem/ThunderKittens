@@ -27,6 +27,72 @@ __device__ static inline void reduce(
     KITTENS_CHECK_WARP
     using T = base_types::packing<typename RV::dtype>::unpacked_type;
     int laneid = kittens::laneid();
+#ifdef KITTENS_C500
+    constexpr uint64_t full_mask = 0xffffffffffffffffull;
+    if constexpr (std::is_same_v<typename RV::layout, ortho_l>) {
+        T accum = base_types::constants<T>::zero();
+        if((laneid & 0x30) == 0) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                accum = (i == 0) ? src[i][0].x : op::template op<T>(accum, src[i][0].x);
+            }
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 8, 16));
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 4, 16));
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 2, 16));
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 1, 16));
+            accum = __shfl_sync(full_mask, accum, 0, 16);
+        }
+        if constexpr (!reset) {
+            accum = op::template op<T>(accum, src_accum);
+        }
+        dst_accum = __shfl_sync(full_mask, accum, 0, WARP_THREADS);
+        return;
+    }
+    else if constexpr (std::is_same_v<typename RV::layout, align_l>) {
+        T accum = base_types::constants<T>::zero();
+        if((laneid & 0xf) == 0) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                const T part = op::template op<T>(
+                    op::template op<T>(src[i][0].x, src[i][0].y),
+                    op::template op<T>(src[i][1].x, src[i][1].y)
+                );
+                accum = (i == 0) ? part : op::template op<T>(accum, part);
+            }
+            accum = op::template op<T>(accum, __shfl_sync(full_mask, accum, 16, WARP_THREADS));
+            accum = op::template op<T>(accum, __shfl_sync(full_mask, accum, 32, WARP_THREADS));
+            accum = op::template op<T>(accum, __shfl_sync(full_mask, accum, 48, WARP_THREADS));
+        }
+        if constexpr (!reset) {
+            accum = op::template op<T>(accum, src_accum);
+        }
+        dst_accum = __shfl_sync(full_mask, accum, 0, WARP_THREADS);
+        return;
+    }
+    else if constexpr (std::is_same_v<typename RV::layout, naive_l>) {
+        T accum = base_types::constants<T>::zero();
+        if(laneid < 32) {
+            accum = src[0][0];
+            #pragma unroll
+            for(int i = 1; i < RV::outer_dim; i++) {
+                if(i*32 + laneid < RV::length) {
+                    accum = op::template op<T>(accum, src[i][0]);
+                }
+            }
+            if(RV::length > 16) accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 16, 32));
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 8, 32));
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 4, 32));
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 2, 32));
+            accum = op::template op<T>(accum, __shfl_down_sync(full_mask, accum, 1, 32));
+            accum = __shfl_sync(full_mask, accum, 0, 32);
+        }
+        if constexpr (!reset) {
+            accum = op::template op<T>(accum, src_accum);
+        }
+        dst_accum = __shfl_sync(full_mask, accum, 0, WARP_THREADS);
+        return;
+    }
+#endif
     if constexpr (std::is_same_v<typename RV::layout, ortho_l>) {
         T accum = op::template op<T>(src[0][0].x, src[0][0].y);
         #pragma unroll

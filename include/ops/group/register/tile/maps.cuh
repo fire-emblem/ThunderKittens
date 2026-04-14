@@ -92,7 +92,7 @@ __device__ static inline void apply(RT &dst, const RT &src, Lambda &&lambda) {
     if constexpr(GROUP_WARPS > 1) {
         row_offset = warpid()*RT::height;
     }
-    static_assert(sizeof(RT::T) != 1, "Cannot apply lambda to 8-bit types");
+    static_assert(sizeof(typename RT::T) != 1, "Cannot apply lambda to 8-bit types");
     if constexpr (ducks::rt::row_layout<RT>) {
         #pragma unroll
         for(int i = 0; i < RT::height; i++) {
@@ -100,10 +100,18 @@ __device__ static inline void apply(RT &dst, const RT &src, Lambda &&lambda) {
             for(int j = 0; j < RT::width; j++) {
                 #pragma unroll
                 for(int k = 0; k < RT::packed_per_tile; k++) {
+#ifdef KITTENS_C500
+                    const int lane = ::kittens::laneid();
+                    const int row = row_offset + i*TILE_ROW_DIM<typename RT::T> + (lane & 0xf);
+                    const int col = j*TILE_COL_DIM<typename RT::T> + (lane >> 4) + 8*k;
+                    dst.tiles[i][j].data[k].x = lambda(row, col + 0, src.tiles[i][j].data[k].x);
+                    dst.tiles[i][j].data[k].y = lambda(row, col + 4, src.tiles[i][j].data[k].y);
+#else
                     int row = row_offset + i*TILE_ROW_DIM<typename RT::T> + (k%2) * (TILE_ROW_DIM<typename RT::T>/2) + ::kittens::laneid()/4;
                     int col = j*TILE_COL_DIM<typename RT::T> + (k/2) * (TILE_COL_DIM<typename RT::T>/2) + (::kittens::laneid()%4)*2;
                     dst.tiles[i][j].data[k].x = lambda(row, col+0, src.tiles[i][j].data[k].x);
                     dst.tiles[i][j].data[k].y = lambda(row, col+1, src.tiles[i][j].data[k].y);
+#endif
                 }
             }
         }
@@ -115,10 +123,18 @@ __device__ static inline void apply(RT &dst, const RT &src, Lambda &&lambda) {
             for(int j = 0; j < RT::width; j++) {
                 #pragma unroll
                 for(int k = 0; k < RT::packed_per_tile; k++) {
+#ifdef KITTENS_C500
+                    const int lane = ::kittens::laneid();
+                    const int row = row_offset + i*TILE_ROW_DIM<typename RT::T> + (lane >> 4) + 8*k;
+                    const int col = j*TILE_COL_DIM<typename RT::T> + (lane & 0xf);
+                    dst.tiles[i][j].data[k].x = lambda(row + 0, col, src.tiles[i][j].data[k].x);
+                    dst.tiles[i][j].data[k].y = lambda(row + 4, col, src.tiles[i][j].data[k].y);
+#else
                     int row = row_offset + i*TILE_ROW_DIM<typename RT::T> + (k/2) * (TILE_ROW_DIM<typename RT::T>/2) + (::kittens::laneid()%4)*2;
                     int col = j*TILE_COL_DIM<typename RT::T> + (k%2) * (TILE_COL_DIM<typename RT::T>/2) + ::kittens::laneid()/4;
                     dst.tiles[i][j].data[k].x = lambda(row+0, col, src.tiles[i][j].data[k].x);
                     dst.tiles[i][j].data[k].y = lambda(row+1, col, src.tiles[i][j].data[k].y);
+#endif
                 }
             }
         }
@@ -189,11 +205,16 @@ __device__ static inline void row_map(T &dst, const T &src, const V &row_values)
     for(int i = 0; i < T::height; i++) {
         #pragma unroll
         for(int j = 0; j < T::width; j++) {
+#ifdef KITTENS_C500
+            dst.tiles[i][j].data[0] = op::template op<dtype>(src.tiles[i][j].data[0], row_values[i][0]);
+            dst.tiles[i][j].data[1] = op::template op<dtype>(src.tiles[i][j].data[1], row_values[i][1]);
+#else
             #pragma unroll
             for(int k = 0; k < T::packed_per_tile/2; k++) {
                 dst.tiles[i][j].data[k+0] = op::template op<dtype>(src.tiles[i][j].data[k+0], row_values[i][0]);
                 dst.tiles[i][j].data[k+2] = op::template op<dtype>(src.tiles[i][j].data[k+2], row_values[i][1]);
             }
+#endif
         }
     }
 }
@@ -259,11 +280,16 @@ __device__ static inline void row_map(T &dst, const T &a, const T &b, const V &r
     for(int i = 0; i < T::height; i++) {
         #pragma unroll
         for(int j = 0; j < T::width; j++) {
+#ifdef KITTENS_C500
+            dst.tiles[i][j].data[0] = op::template op<dtype>(a.tiles[i][j].data[0], b.tiles[i][j].data[0], row_values[i][0]);
+            dst.tiles[i][j].data[1] = op::template op<dtype>(a.tiles[i][j].data[1], b.tiles[i][j].data[1], row_values[i][1]);
+#else
             #pragma unroll
             for(int k = 0; k < T::packed_per_tile/2; k++) {
                 dst.tiles[i][j].data[k+0] = op::template op<dtype>(a.tiles[i][j].data[k+0], b.tiles[i][j].data[k+0], row_values[i][0]);
                 dst.tiles[i][j].data[k+2] = op::template op<dtype>(a.tiles[i][j].data[k+2], b.tiles[i][j].data[k+2], row_values[i][1]);
             }
+#endif
         }
     }
 }
@@ -294,11 +320,16 @@ __device__ static inline void col_map(T &dst, const T &src, const V &col_values)
     for(int j = 0; j < T::width; j++) {
         #pragma unroll
         for(int i = 0; i < T::height; i++) {
+#ifdef KITTENS_C500
+            dst.tiles[i][j].data[0] = op::template op<dtype>(src.tiles[i][j].data[0], col_values[j][0]);
+            dst.tiles[i][j].data[1] = op::template op<dtype>(src.tiles[i][j].data[1], col_values[j][1]);
+#else
             #pragma unroll
             for(int k = 0; k < T::packed_per_tile/2; k++) {
                 dst.tiles[i][j].data[k+0] = op::template op<dtype>(src.tiles[i][j].data[k+0], col_values[j][0]);
                 dst.tiles[i][j].data[k+2] = op::template op<dtype>(src.tiles[i][j].data[k+2], col_values[j][1]);
             }
+#endif
         }
     }
 }
@@ -363,11 +394,16 @@ __device__ static inline void col_map(T &dst, const T &a, const T &b, const V &c
     for(int j = 0; j < T::width; j++) {
         #pragma unroll
         for(int i = 0; i < T::height; i++) {
+#ifdef KITTENS_C500
+            dst.tiles[i][j].data[0] = op::template op<dtype>(a.tiles[i][j].data[0], b.tiles[i][j].data[0], col_values[j][0]);
+            dst.tiles[i][j].data[1] = op::template op<dtype>(a.tiles[i][j].data[1], b.tiles[i][j].data[1], col_values[j][1]);
+#else
             #pragma unroll
             for(int k = 0; k < T::packed_per_tile/2; k++) {
                 dst.tiles[i][j].data[k+0] = op::template op<dtype>(a.tiles[i][j].data[k+0], b.tiles[i][j].data[k+0], col_values[j][0]);
                 dst.tiles[i][j].data[k+2] = op::template op<dtype>(a.tiles[i][j].data[k+2], b.tiles[i][j].data[k+2], col_values[j][1]);
             }
+#endif
         }
     }
 }

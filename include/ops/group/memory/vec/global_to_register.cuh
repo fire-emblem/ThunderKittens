@@ -22,6 +22,35 @@ __device__ inline static void load(RV &dst, const GL &src, const coord<rv<typena
         U *src_ptr = (U*)&src[(idx.template unit_coord<-1, 3>())];
         int laneid = ::kittens::laneid();
         
+#ifdef KITTENS_C500
+        if constexpr (std::is_same_v<typename RV::layout, align_l>) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                const int base = i*16 + (laneid >> 4);
+                dst[i][0].x = base_types::convertor<T, U>::convert(src_ptr[base +  0]);
+                dst[i][0].y = base_types::convertor<T, U>::convert(src_ptr[base +  4]);
+                dst[i][1].x = base_types::convertor<T, U>::convert(src_ptr[base +  8]);
+                dst[i][1].y = base_types::convertor<T, U>::convert(src_ptr[base + 12]);
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, ortho_l>) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                const T v = base_types::convertor<T, U>::convert(src_ptr[i*16 + (laneid & 0xf)]);
+                dst[i][0].x = v;
+                dst[i][0].y = v;
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, naive_l>) {
+            #pragma unroll
+            for(int i = 0; i < RV::outer_dim; i++) {
+                const int logical_idx = i*32 + (laneid & 0x1f);
+                if(logical_idx < RV::length) {
+                    dst[i][0] = base_types::convertor<T, U>::convert(src_ptr[logical_idx]);
+                }
+            }
+        }
+#else
         if constexpr (std::is_same_v<typename RV::layout, align_l>) {
             #pragma unroll
             for(auto w = 0; w < (RV::outer_dim+3)/4; w++) {
@@ -70,6 +99,7 @@ __device__ inline static void load(RV &dst, const GL &src, const coord<rv<typena
                 }
             }
         }
+#endif
     }
     else {
         // Call warp level load
@@ -94,7 +124,40 @@ __device__ inline static void store(GL &dst, const RV &src, const coord<rv<typen
         
         U *dst_ptr = (U*)&dst[(idx.template unit_coord<-1, 3>())];
         int laneid = ::kittens::laneid();
-        
+
+#ifdef KITTENS_C500
+        if constexpr (std::is_same_v<typename RV::layout, align_l>) {
+            if((laneid & 0xf) == 0) {
+                #pragma unroll
+                for(int i = 0; i < RV::outer_dim; i++) {
+                    const int base = i*16 + (laneid >> 4);
+                    dst_ptr[base +  0] = base_types::convertor<U, T>::convert(src[i][0].x);
+                    dst_ptr[base +  4] = base_types::convertor<U, T>::convert(src[i][0].y);
+                    dst_ptr[base +  8] = base_types::convertor<U, T>::convert(src[i][1].x);
+                    dst_ptr[base + 12] = base_types::convertor<U, T>::convert(src[i][1].y);
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, ortho_l>) {
+            if(laneid < 16) {
+                #pragma unroll
+                for(int i = 0; i < RV::outer_dim; i++) {
+                    dst_ptr[i*16 + laneid] = base_types::convertor<U, T>::convert(src[i][0].x);
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<typename RV::layout, naive_l>) {
+            if((laneid & 0x1f) == laneid) {
+                #pragma unroll
+                for(int i = 0; i < RV::outer_dim; i++) {
+                    const int logical_idx = i*32 + laneid;
+                    if(logical_idx < RV::length) {
+                        dst_ptr[logical_idx] = base_types::convertor<U, T>::convert(src[i][0]);
+                    }
+                }
+            }
+        }
+#else
         if constexpr (std::is_same_v<typename RV::layout, align_l>) {
             #pragma unroll
             for(auto w = 0; w < (RV::outer_dim+3)/4; w++) {
@@ -130,6 +193,7 @@ __device__ inline static void store(GL &dst, const RV &src, const coord<rv<typen
                 }
             }
         }
+#endif
     }
     else {
         // Call warp level store

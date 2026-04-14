@@ -70,10 +70,21 @@ template<typename _T, ducks::rt_layout::all _layout> struct rt_base {
     static constexpr int rows                 = tile_size_row; ///< Number of rows.
     static constexpr int cols                 = tile_size_col; ///< Number of cols.
     static constexpr int num_elements         = rows*cols; // 256 (64 for fp8e4m3)
-    static constexpr int elements_per_thread  = num_elements / 32; // 8 (2 for fp8e4m3)
+    static constexpr int logical_fragment_lanes = kittens::WARP_THREADS;
+    static constexpr int elements_per_thread  = num_elements / logical_fragment_lanes;
+    static constexpr int native_fragment_lanes  = kittens::WAVE_THREADS;
 
     static constexpr int packed_per_thread    = (elements_per_thread / base_types::packing<dtype>::num()) ; // 4
     static constexpr int registers_per_thread = packed_per_thread * sizeof(dtype) / 4; // 4 or 8, registers are 32-bit words
+
+#ifdef KITTENS_C500
+    static constexpr int c500_native_elements_per_lane = num_elements / native_fragment_lanes;
+    static constexpr int c500_native_packed_per_lane =
+        c500_native_elements_per_lane / base_types::packing<dtype>::num();
+    static constexpr int c500_native_rows_per_lane = tile_size_row;
+    static constexpr int c500_native_col_groups = native_fragment_lanes / tile_size_row;
+    static constexpr int c500_native_cols_per_lane = tile_size_col / c500_native_col_groups;
+#endif
 
     using row_vec_layout = std::conditional_t<std::is_same_v<layout, ducks::rt_layout::row>, ducks::rv_layout::align, ducks::rv_layout::ortho>; // for holding column reductions
     using col_vec_layout = std::conditional_t<std::is_same_v<layout, ducks::rt_layout::row>, ducks::rv_layout::ortho, ducks::rv_layout::align>; // for holding row reductions
