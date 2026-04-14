@@ -74,7 +74,11 @@ __device__ static inline void arrive(semaphore& sem) {
     );
 }
 template<int num_warps> __device__ static inline void arrive(barrier<num_warps> bar) {
+#ifdef KITTENS_C500
+    (void)bar;
+#else
     asm volatile("bar.arrive %0, %1;\n" :: "r"(bar.barrier_id), "n"(num_warps*WARP_THREADS) : "memory");
+#endif
 }
 
 #if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
@@ -226,7 +230,12 @@ __device__ static inline void arrive_and_wait(semaphore& sem, int kPhaseBit) {
     wait(sem, kPhaseBit);
 }
 template<int num_warps> __device__ static inline void arrive_and_wait(barrier<num_warps> bar) {
+#ifdef KITTENS_C500
+    (void)bar;
+    __syncthreads();
+#else
     asm volatile("bar.sync %0, %1;\n" :: "r"(bar.barrier_id), "n"(num_warps*WARP_THREADS) : "memory");
+#endif
 }
 
 template<int N=0> __device__ static inline void load_async_wait() { // for completing (non-TMA) async loads

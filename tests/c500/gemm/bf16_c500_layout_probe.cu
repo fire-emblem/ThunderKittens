@@ -4,6 +4,7 @@
 
 #include "arch/c500/layouts/accumulator_export.cuh"
 #include "arch/c500/layouts/lds_offsets.cuh"
+#include "arch/c500/layouts/native_stage_layout.cuh"
 #include "arch/c500/layouts/operand_layouts.cuh"
 #include "testing_commons.cuh"
 
@@ -12,6 +13,7 @@ namespace c500::mma::layout_probe {
 namespace {
 
 using layout = kittens::arch::c500::gemm::bf16_128x128x128_stage_layout;
+using native_layout = kittens::arch::c500::gemm::bf16_native_stage_layout;
 using export_map = kittens::arch::c500::gemm::accumulator_tile_map;
 
 static_assert(layout::kStages == 4);
@@ -28,6 +30,21 @@ static_assert(layout::a_stage_offset(2) == 0x8000);
 static_assert(layout::b_stage_offset(1) == 0x6000);
 static_assert(export_map::kWaveM == 2);
 static_assert(export_map::kWaveN == 2);
+static_assert(native_layout::kWaveSize == 64);
+static_assert(native_layout::kLdsNumPerThread == 8);
+static_assert(native_layout::kKGroups == 4);
+static_assert(native_layout::kMAtoms == 4);
+static_assert(native_layout::kNAtoms == 4);
+static_assert(native_layout::kLdsRowStride == 32);
+static_assert(native_layout::kLdsColStride == 32);
+static_assert(native_layout::lds_k(0, 0) == 0);
+static_assert(native_layout::lds_k(0, 1) == 32);
+static_assert(native_layout::lds_k(0, 2) == 64);
+static_assert(native_layout::lds_k(0, 3) == 96);
+static_assert(native_layout::lds_m_base(0, 0) == 0);
+static_assert(native_layout::lds_m_base(2, 0) == 16);
+static_assert(native_layout::lds_n_base(0, 0) == 0);
+static_assert(native_layout::lds_n_base(1, 0) == 16);
 
 bool run_stage_layout_contract(test_data &results) {
     test_info info{"c500_gemm_bf16_layout_stage_contract", test_result::FAILED};
@@ -82,12 +99,47 @@ bool run_lds_offset_contract(test_data &results) {
     return good;
 }
 
+bool run_native_operand_layout_contract(test_data &results) {
+    test_info info{"c500_gemm_bf16_native_operand_layout", test_result::FAILED};
+
+    const bool good =
+        native_layout::lds_k(0, 0) == 0 &&
+        native_layout::lds_k(0, 1) == 32 &&
+        native_layout::lds_k(0, 2) == 64 &&
+        native_layout::lds_k(0, 3) == 96 &&
+        native_layout::lds_k(1, 0) == 8 &&
+        native_layout::lds_k(17, 0) == 0 &&
+        native_layout::lds_k(63, 3) == 0 &&
+        native_layout::lds_m_base(0, 0) == 0 &&
+        native_layout::lds_m_base(1, 0) == 0 &&
+        native_layout::lds_m_base(2, 0) == 16 &&
+        native_layout::lds_m_base(3, 0) == 16 &&
+        native_layout::lds_n_base(0, 0) == 0 &&
+        native_layout::lds_n_base(1, 0) == 16 &&
+        native_layout::lds_n_base(2, 0) == 0 &&
+        native_layout::lds_n_base(3, 0) == 16 &&
+        native_layout::lds_m(0, 2, 7) == 71 &&
+        native_layout::lds_n(1, 3, 9) == 121;
+
+    std::cout << "test `" << info.label << "`";
+    if (good) {
+        std::cout << " -- PASSED" << std::endl;
+        info.result = test_result::PASSED;
+    } else {
+        std::cout << " ----- ALERT! FAILED test `" << info.label << "` -----" << std::endl;
+    }
+
+    results.push_back(info);
+    return good;
+}
+
 } // namespace
 
 void tests(test_data &results) {
     std::cout << " ----- Starting ops/c500/mma/layout_probe tests! -----\n" << std::endl;
     run_stage_layout_contract(results);
     run_lds_offset_contract(results);
+    run_native_operand_layout_contract(results);
     std::cout << "INFO: C500 layout coverage now freezes the first 128x128x128 stage layout and native LDS offset contracts.\n" << std::endl;
 }
 

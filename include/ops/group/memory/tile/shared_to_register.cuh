@@ -35,6 +35,34 @@ __device__ inline static void load(RT &dst, const ST &src) {
         for(int j = 0; j < RT::width; j++) {
             if constexpr (sizeof(typename ST::dtype) == 2) {
                 // handle the row-major layout for 16-bit types
+#ifdef KITTENS_C500
+                if constexpr (std::is_same_v<typename RT::layout, ducks::rt_layout::row>) {
+                    U2 tmp0, tmp1;
+                    int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid & 0xf);
+                    int col_group = warp_laneid >> 4;
+                    int col = j*RT::tile_size_col;
+                    move<U>::lds(tmp0.x, src.idx(shared_addr, {row, col + col_group + 0}));
+                    move<U>::lds(tmp0.y, src.idx(shared_addr, {row, col + col_group + 4}));
+                    move<U>::lds(tmp1.x, src.idx(shared_addr, {row, col + col_group + 8}));
+                    move<U>::lds(tmp1.y, src.idx(shared_addr, {row, col + col_group + 12}));
+                    dst.tiles[i][j].data[0] = base_types::convertor<T2, U2>::convert(tmp0);
+                    dst.tiles[i][j].data[1] = base_types::convertor<T2, U2>::convert(tmp1);
+                }
+                else {
+                    U v0, v1, v2, v3;
+                    int base_row = (local_warpid*warp_height + i)*RT::tile_size_row;
+                    int row_group = warp_laneid >> 4;
+                    int col = j*RT::tile_size_col + (warp_laneid & 0xf);
+                    move<U>::lds(v0, src.idx(shared_addr, {base_row + row_group + 0, col}));
+                    move<U>::lds(v1, src.idx(shared_addr, {base_row + row_group + 4, col}));
+                    move<U>::lds(v2, src.idx(shared_addr, {base_row + row_group + 8, col}));
+                    move<U>::lds(v3, src.idx(shared_addr, {base_row + row_group + 12, col}));
+                    dst.tiles[i][j].data[0].x = base_types::convertor<T, U>::convert(v0);
+                    dst.tiles[i][j].data[0].y = base_types::convertor<T, U>::convert(v1);
+                    dst.tiles[i][j].data[1].x = base_types::convertor<T, U>::convert(v2);
+                    dst.tiles[i][j].data[1].y = base_types::convertor<T, U>::convert(v3);
+                }
+#else
                 U2 tmp[4];
                 int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid % 16);
                 int col = j*RT::tile_size_col + (warp_laneid / 16) * 8;
@@ -48,6 +76,7 @@ __device__ inline static void load(RT &dst, const ST &src) {
                 dst.tiles[i][j].data[1] = base_types::convertor<T2, U2>::convert(tmp[1]);
                 dst.tiles[i][j].data[2] = base_types::convertor<T2, U2>::convert(tmp[2]);
                 dst.tiles[i][j].data[3] = base_types::convertor<T2, U2>::convert(tmp[3]);
+#endif
             }
             else if constexpr (std::is_same_v<typename RT::layout, ducks::rt_layout::row> && sizeof(typename ST::dtype) == 1) {
                 // handle the row-major layout for 8-bit types
@@ -70,6 +99,18 @@ __device__ inline static void load(RT &dst, const ST &src) {
             }
             else if constexpr (std::is_same_v<typename RT::layout, ducks::rt_layout::row> && sizeof(typename ST::dtype) == 4) {
                 // handle the row-major layout for 32-bit types
+#ifdef KITTENS_C500
+                U2 tmp0, tmp1;
+                int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid & 0xf);
+                int col_group = warp_laneid >> 4;
+                int col = j*RT::tile_size_col;
+                move<U>::lds(tmp0.x, src.idx(shared_addr, {row, col + col_group + 0}));
+                move<U>::lds(tmp0.y, src.idx(shared_addr, {row, col + col_group + 4}));
+                move<U>::lds(tmp1.x, src.idx(shared_addr, {row, col + col_group + 8}));
+                move<U>::lds(tmp1.y, src.idx(shared_addr, {row, col + col_group + 12}));
+                dst.tiles[i][j].data[0] = base_types::convertor<T2, U2>::convert(tmp0);
+                dst.tiles[i][j].data[1] = base_types::convertor<T2, U2>::convert(tmp1);
+#else
                 int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid / 4);
                 int col = j*RT::tile_size_col + 2*(warp_laneid % 4);
                 if constexpr (ST::rows != ST::underlying_rows || ST::cols != ST::underlying_cols) { // subtile case
@@ -103,9 +144,19 @@ __device__ inline static void load(RT &dst, const ST &src) {
                         dst.tiles[i][j].data[k] = T2{dst.tiles[i][j].data[k].y, dst.tiles[i][j].data[k].x};
                     }
                 }
+#endif
             }
             else {
                 // handle the column-major layout
+#ifdef KITTENS_C500
+                int base_row = (local_warpid*warp_height + i)*RT::tile_size_row;
+                int row_group = warp_laneid >> 4;
+                int col = j*RT::tile_size_col + (warp_laneid & 0xf);
+                move<U>::lds(dst.tiles[i][j].data[0].x, src.idx(shared_addr, {base_row + row_group + 0, col}));
+                move<U>::lds(dst.tiles[i][j].data[0].y, src.idx(shared_addr, {base_row + row_group + 4, col}));
+                move<U>::lds(dst.tiles[i][j].data[1].x, src.idx(shared_addr, {base_row + row_group + 8, col}));
+                move<U>::lds(dst.tiles[i][j].data[1].y, src.idx(shared_addr, {base_row + row_group + 12, col}));
+#else
                 int row = (local_warpid*warp_height + i)*RT::tile_size_row + 2*(warp_laneid % 4);
                 int col = j*RT::tile_size_col + (warp_laneid / 4);
                 U2 tmp[4];
@@ -121,6 +172,7 @@ __device__ inline static void load(RT &dst, const ST &src) {
                 dst.tiles[i][j].data[1] = base_types::convertor<T2, U2>::convert(tmp[1]);
                 dst.tiles[i][j].data[2] = base_types::convertor<T2, U2>::convert(tmp[2]);
                 dst.tiles[i][j].data[3] = base_types::convertor<T2, U2>::convert(tmp[3]);
+#endif
             }
         }
     }
@@ -159,12 +211,12 @@ __device__ inline static void store(ST &dst, const RT &src) {
         for(int j = 0; j < RT::width; j++) {
             if constexpr (sizeof(typename ST::dtype) == 2) {
                 // handle the row-major layout
+#if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
                 U2 tmp[4];
                 tmp[0] = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[0]);
                 tmp[1] = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[1]);
                 tmp[2] = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[2]);
                 tmp[3] = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[3]);
-#if defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
                 int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid % 16);
                 int col = j*RT::tile_size_col + (warp_laneid / 16) * 8;
                 if constexpr (std::is_same_v<typename RT::layout, ducks::rt_layout::row>) {
@@ -175,24 +227,26 @@ __device__ inline static void store(ST &dst, const RT &src) {
                 }
 #else
                 if constexpr (std::is_same_v<typename RT::layout, ducks::rt_layout::row>) {
-                    int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid / 4);
-                    int col = j*RT::tile_size_col + 2*(warp_laneid % 4);
-                    move<U2>::sts(dst.idx(shared_addr, {row+0, col+0}), tmp[0]);
-                    move<U2>::sts(dst.idx(shared_addr, {row+8, col+0}), tmp[1]);
-                    move<U2>::sts(dst.idx(shared_addr, {row+0, col+8}), tmp[2]);
-                    move<U2>::sts(dst.idx(shared_addr, {row+8, col+8}), tmp[3]);
+                    auto tmp0 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[0]);
+                    auto tmp1 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[1]);
+                    int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid & 0xf);
+                    int col_group = warp_laneid >> 4;
+                    int col = j*RT::tile_size_col;
+                    move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 0}), tmp0.x);
+                    move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 4}), tmp0.y);
+                    move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 8}), tmp1.x);
+                    move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 12}), tmp1.y);
                 }
                 else {
-                    int row = (local_warpid*warp_height + i)*RT::tile_size_row + 2*(warp_laneid % 4);
-                    int col = j*RT::tile_size_col + (warp_laneid / 4);
-                    move<U>::sts(dst.idx(shared_addr, {row+0, col+0}), tmp[0].x);
-                    move<U>::sts(dst.idx(shared_addr, {row+1, col+0}), tmp[0].y);
-                    move<U>::sts(dst.idx(shared_addr, {row+0, col+8}), tmp[1].x);
-                    move<U>::sts(dst.idx(shared_addr, {row+1, col+8}), tmp[1].y);
-                    move<U>::sts(dst.idx(shared_addr, {row+8, col+0}), tmp[2].x);
-                    move<U>::sts(dst.idx(shared_addr, {row+9, col+0}), tmp[2].y);
-                    move<U>::sts(dst.idx(shared_addr, {row+8, col+8}), tmp[3].x);
-                    move<U>::sts(dst.idx(shared_addr, {row+9, col+8}), tmp[3].y);
+                    auto tmp0 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[0]);
+                    auto tmp1 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[1]);
+                    int base_row = (local_warpid*warp_height + i)*RT::tile_size_row;
+                    int row_group = warp_laneid >> 4;
+                    int col = j*RT::tile_size_col + (warp_laneid & 0xf);
+                    move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 0, col}), tmp0.x);
+                    move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 4, col}), tmp0.y);
+                    move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 8, col}), tmp1.x);
+                    move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 12, col}), tmp1.y);
                 }
 #endif
             }
@@ -218,6 +272,17 @@ __device__ inline static void store(ST &dst, const RT &src) {
             }
             else if constexpr (std::is_same_v<typename RT::layout, ducks::rt_layout::row> && sizeof(typename ST::dtype) == 4) {
                 // handle the row-major layout for 32-bit types
+#ifdef KITTENS_C500
+                auto tmp0 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[0]);
+                auto tmp1 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[1]);
+                int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid & 0xf);
+                int col_group = warp_laneid >> 4;
+                int col = j*RT::tile_size_col;
+                move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 0}), tmp0.x);
+                move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 4}), tmp0.y);
+                move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 8}), tmp1.x);
+                move<U>::sts(dst.idx(shared_addr, {row, col + col_group + 12}), tmp1.y);
+#else
                 int row = (local_warpid*warp_height + i)*RT::tile_size_row + (warp_laneid / 4);
                 int col = j*RT::tile_size_col + 2*(warp_laneid % 4);
                 if constexpr (ST::rows != ST::underlying_rows || ST::cols != ST::underlying_cols) { // subtile case
@@ -258,9 +323,21 @@ __device__ inline static void store(ST &dst, const RT &src) {
                 move<U>::sts((addr_2+ 4)^swizzle_2, tmp[1].y);
                 move<U>::sts((addr_2+32)^swizzle_2, tmp[3].x);
                 move<U>::sts((addr_2+36)^swizzle_2, tmp[3].y);
+#endif
             }
             else {
                 // handle the column-major layout
+#ifdef KITTENS_C500
+                auto tmp0 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[0]);
+                auto tmp1 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[1]);
+                int base_row = (local_warpid*warp_height + i)*RT::tile_size_row;
+                int row_group = warp_laneid >> 4;
+                int col = j*RT::tile_size_col + (warp_laneid & 0xf);
+                move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 0, col}), tmp0.x);
+                move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 4, col}), tmp0.y);
+                move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 8, col}), tmp1.x);
+                move<U>::sts(dst.idx(shared_addr, {base_row + row_group + 12, col}), tmp1.y);
+#else
                 int row = (local_warpid*warp_height + i)*RT::tile_size_row + 2*(warp_laneid % 4);
                 int col = j*RT::tile_size_col + (warp_laneid / 4);
                 U2 tmp[4];
@@ -276,6 +353,7 @@ __device__ inline static void store(ST &dst, const RT &src) {
                 move<U>::sts(dst.idx(shared_addr, {row+9, col+0}), tmp[2].y);
                 move<U>::sts(dst.idx(shared_addr, {row+8, col+8}), tmp[3].x);
                 move<U>::sts(dst.idx(shared_addr, {row+9, col+8}), tmp[3].y);
+#endif
             }
         }
     }

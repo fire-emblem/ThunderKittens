@@ -21,7 +21,6 @@ using contracts = dispatch::contracts;
 using shared_tileA = dispatch::shared_tile_a;
 using shared_tileB = dispatch::shared_tile_b;
 using shared_tileC = dispatch::shared_tile_c;
-
 template<int M, int K>
 using a_gl = kittens::gl<kittens::bf16, 1, 1, M, K, shared_tileA>;
 template<int K, int N>

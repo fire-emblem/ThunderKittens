@@ -26,6 +26,43 @@ __device__ static inline void row_reduce(V &row_accum, const T &src, const V &sr
 
     using dtype = V::dtype;
 
+#ifdef KITTENS_C500
+    using scalar = typename base_types::packing<dtype>::unpacked_type;
+    const int warp_laneid = ::kittens::laneid();
+    const int row = warp_laneid & 0xf;
+    constexpr uint64_t full_mask = 0xffffffffffffffffull;
+    #pragma unroll
+    for(int i = 0; i < T::height; i++) {
+        scalar accum_row = op::template op<scalar>(
+            op::template op<scalar>(src.tiles[i][0].data[0].x, src.tiles[i][0].data[0].y),
+            op::template op<scalar>(src.tiles[i][0].data[1].x, src.tiles[i][0].data[1].y)
+        );
+        #pragma unroll
+        for(int j = 1; j < T::width; j++) {
+            accum_row = op::template op<scalar>(accum_row, src.tiles[i][j].data[0].x);
+            accum_row = op::template op<scalar>(accum_row, src.tiles[i][j].data[0].y);
+            accum_row = op::template op<scalar>(accum_row, src.tiles[i][j].data[1].x);
+            accum_row = op::template op<scalar>(accum_row, src.tiles[i][j].data[1].y);
+        }
+
+        scalar accum_row_0 = __shfl_sync(full_mask, accum_row, row +  0, WARP_THREADS);
+        scalar accum_row_1 = __shfl_sync(full_mask, accum_row, row + 16, WARP_THREADS);
+        scalar accum_row_2 = __shfl_sync(full_mask, accum_row, row + 32, WARP_THREADS);
+        scalar accum_row_3 = __shfl_sync(full_mask, accum_row, row + 48, WARP_THREADS);
+        accum_row = op::template op<scalar>(
+            op::template op<scalar>(accum_row_0, accum_row_1),
+            op::template op<scalar>(accum_row_2, accum_row_3)
+        );
+
+        dtype accum_packed = base_types::packing<dtype>::pack(accum_row);
+        if(reset) {
+            row_accum[i][0] = accum_packed;
+        }
+        else {
+            row_accum[i][0] = op::template op<dtype>(src_accum[i][0], accum_packed);
+        }
+    }
+#else
     const int leader = threadIdx.x & 0x1C; // 11100 in binary
     #pragma unroll
     for(int i = 0; i < T::height; i++) {
@@ -57,6 +94,7 @@ __device__ static inline void row_reduce(V &row_accum, const T &src, const V &sr
             row_accum[i][0] = op::template op<dtype>(src_accum[i][0], accum_packed);
         }
     }
+#endif
 }
 /**
  * @brief Perform a row-wise reduction on a matrix in column-major layout.
@@ -81,6 +119,57 @@ __device__ static inline void row_reduce(V &row_accum, const T &src, const V &sr
 
     using dtype = V::dtype;
 
+#ifdef KITTENS_C500
+    using scalar = typename base_types::packing<dtype>::unpacked_type;
+    constexpr uint64_t full_mask = 0xffffffffffffffffull;
+    #pragma unroll
+    for(int i = 0; i < T::height; i++) {
+        scalar accum_r0  = src.tiles[i][0].data[0].x;
+        scalar accum_r4  = src.tiles[i][0].data[0].y;
+        scalar accum_r8  = src.tiles[i][0].data[1].x;
+        scalar accum_r12 = src.tiles[i][0].data[1].y;
+        #pragma unroll
+        for(int j = 1; j < T::width; j++) {
+            accum_r0  = op::template op<scalar>(accum_r0,  src.tiles[i][j].data[0].x);
+            accum_r4  = op::template op<scalar>(accum_r4,  src.tiles[i][j].data[0].y);
+            accum_r8  = op::template op<scalar>(accum_r8,  src.tiles[i][j].data[1].x);
+            accum_r12 = op::template op<scalar>(accum_r12, src.tiles[i][j].data[1].y);
+        }
+
+        accum_r0  = op::template op<scalar>(accum_r0,  __shfl_down_sync(full_mask, accum_r0,  8, 16));
+        accum_r0  = op::template op<scalar>(accum_r0,  __shfl_down_sync(full_mask, accum_r0,  4, 16));
+        accum_r0  = op::template op<scalar>(accum_r0,  __shfl_down_sync(full_mask, accum_r0,  2, 16));
+        accum_r0  = op::template op<scalar>(accum_r0,  __shfl_down_sync(full_mask, accum_r0,  1, 16));
+        accum_r4  = op::template op<scalar>(accum_r4,  __shfl_down_sync(full_mask, accum_r4,  8, 16));
+        accum_r4  = op::template op<scalar>(accum_r4,  __shfl_down_sync(full_mask, accum_r4,  4, 16));
+        accum_r4  = op::template op<scalar>(accum_r4,  __shfl_down_sync(full_mask, accum_r4,  2, 16));
+        accum_r4  = op::template op<scalar>(accum_r4,  __shfl_down_sync(full_mask, accum_r4,  1, 16));
+        accum_r8  = op::template op<scalar>(accum_r8,  __shfl_down_sync(full_mask, accum_r8,  8, 16));
+        accum_r8  = op::template op<scalar>(accum_r8,  __shfl_down_sync(full_mask, accum_r8,  4, 16));
+        accum_r8  = op::template op<scalar>(accum_r8,  __shfl_down_sync(full_mask, accum_r8,  2, 16));
+        accum_r8  = op::template op<scalar>(accum_r8,  __shfl_down_sync(full_mask, accum_r8,  1, 16));
+        accum_r12 = op::template op<scalar>(accum_r12, __shfl_down_sync(full_mask, accum_r12, 8, 16));
+        accum_r12 = op::template op<scalar>(accum_r12, __shfl_down_sync(full_mask, accum_r12, 4, 16));
+        accum_r12 = op::template op<scalar>(accum_r12, __shfl_down_sync(full_mask, accum_r12, 2, 16));
+        accum_r12 = op::template op<scalar>(accum_r12, __shfl_down_sync(full_mask, accum_r12, 1, 16));
+
+        accum_r0  = __shfl_sync(full_mask, accum_r0,  0, 16);
+        accum_r4  = __shfl_sync(full_mask, accum_r4,  0, 16);
+        accum_r8  = __shfl_sync(full_mask, accum_r8,  0, 16);
+        accum_r12 = __shfl_sync(full_mask, accum_r12, 0, 16);
+
+        dtype accum_top_rows{accum_r0, accum_r4};
+        dtype accum_bottom_rows{accum_r8, accum_r12};
+        if(reset) {
+            row_accum[i][0] = accum_top_rows;
+            row_accum[i][1] = accum_bottom_rows;
+        }
+        else {
+            row_accum[i][0] = op::template op<dtype>(src_accum[i][0], accum_top_rows);
+            row_accum[i][1] = op::template op<dtype>(src_accum[i][1], accum_bottom_rows);
+        }
+    }
+#else
     const int leader = threadIdx.x & 0x3; // 00011 in binary
     #pragma unroll
     for(int i = 0; i < T::height; i++) {
@@ -117,6 +206,7 @@ __device__ static inline void row_reduce(V &row_accum, const T &src, const V &sr
             row_accum[i][1] = op::template op<dtype>(src_accum[i][1], accum_bottom_rows);
         }
     }
+#endif
 }
 
 // Col reduction.
@@ -144,6 +234,57 @@ __device__ static inline void col_reduce(V &col_accum, const T &src, const V &sr
 
     using dtype = V::dtype;
 
+#ifdef KITTENS_C500
+    using scalar = typename base_types::packing<dtype>::unpacked_type;
+    constexpr uint64_t full_mask = 0xffffffffffffffffull;
+    #pragma unroll
+    for(int j = 0; j < T::width; j++) {
+        scalar accum_c0  = src.tiles[0][j].data[0].x;
+        scalar accum_c4  = src.tiles[0][j].data[0].y;
+        scalar accum_c8  = src.tiles[0][j].data[1].x;
+        scalar accum_c12 = src.tiles[0][j].data[1].y;
+        #pragma unroll
+        for(int i = 1; i < T::height; i++) {
+            accum_c0  = op::template op<scalar>(accum_c0,  src.tiles[i][j].data[0].x);
+            accum_c4  = op::template op<scalar>(accum_c4,  src.tiles[i][j].data[0].y);
+            accum_c8  = op::template op<scalar>(accum_c8,  src.tiles[i][j].data[1].x);
+            accum_c12 = op::template op<scalar>(accum_c12, src.tiles[i][j].data[1].y);
+        }
+
+        accum_c0  = op::template op<scalar>(accum_c0,  __shfl_down_sync(full_mask, accum_c0,  8, 16));
+        accum_c0  = op::template op<scalar>(accum_c0,  __shfl_down_sync(full_mask, accum_c0,  4, 16));
+        accum_c0  = op::template op<scalar>(accum_c0,  __shfl_down_sync(full_mask, accum_c0,  2, 16));
+        accum_c0  = op::template op<scalar>(accum_c0,  __shfl_down_sync(full_mask, accum_c0,  1, 16));
+        accum_c4  = op::template op<scalar>(accum_c4,  __shfl_down_sync(full_mask, accum_c4,  8, 16));
+        accum_c4  = op::template op<scalar>(accum_c4,  __shfl_down_sync(full_mask, accum_c4,  4, 16));
+        accum_c4  = op::template op<scalar>(accum_c4,  __shfl_down_sync(full_mask, accum_c4,  2, 16));
+        accum_c4  = op::template op<scalar>(accum_c4,  __shfl_down_sync(full_mask, accum_c4,  1, 16));
+        accum_c8  = op::template op<scalar>(accum_c8,  __shfl_down_sync(full_mask, accum_c8,  8, 16));
+        accum_c8  = op::template op<scalar>(accum_c8,  __shfl_down_sync(full_mask, accum_c8,  4, 16));
+        accum_c8  = op::template op<scalar>(accum_c8,  __shfl_down_sync(full_mask, accum_c8,  2, 16));
+        accum_c8  = op::template op<scalar>(accum_c8,  __shfl_down_sync(full_mask, accum_c8,  1, 16));
+        accum_c12 = op::template op<scalar>(accum_c12, __shfl_down_sync(full_mask, accum_c12, 8, 16));
+        accum_c12 = op::template op<scalar>(accum_c12, __shfl_down_sync(full_mask, accum_c12, 4, 16));
+        accum_c12 = op::template op<scalar>(accum_c12, __shfl_down_sync(full_mask, accum_c12, 2, 16));
+        accum_c12 = op::template op<scalar>(accum_c12, __shfl_down_sync(full_mask, accum_c12, 1, 16));
+
+        accum_c0  = __shfl_sync(full_mask, accum_c0,  0, 16);
+        accum_c4  = __shfl_sync(full_mask, accum_c4,  0, 16);
+        accum_c8  = __shfl_sync(full_mask, accum_c8,  0, 16);
+        accum_c12 = __shfl_sync(full_mask, accum_c12, 0, 16);
+
+        dtype accum_left_cols{accum_c0, accum_c4};
+        dtype accum_right_cols{accum_c8, accum_c12};
+        if(reset) {
+            col_accum[j][0] = accum_left_cols;
+            col_accum[j][1] = accum_right_cols;
+        }
+        else {
+            col_accum[j][0] = op::template op<dtype>(src_accum[j][0], accum_left_cols);
+            col_accum[j][1] = op::template op<dtype>(src_accum[j][1], accum_right_cols);
+        }
+    }
+#else
     const int leader = threadIdx.x & 0x3; // 00011 in binary
     #pragma unroll
     for(int j = 0; j < T::width; j++) {
@@ -180,6 +321,7 @@ __device__ static inline void col_reduce(V &col_accum, const T &src, const V &sr
             col_accum[j][1] = op::template op<dtype>(src_accum[j][1], accum_right_cols);
         }
     }
+#endif
 }
 /**
  * @brief Perform a column-wise reduction on a matrix in column-major layout.
@@ -204,6 +346,43 @@ __device__ static inline void col_reduce(V &col_accum, const T &src, const V &sr
     static_assert(V::outer_dim == T::width); // compatible size
 
     using dtype = V::dtype;
+#ifdef KITTENS_C500
+    using scalar = typename base_types::packing<dtype>::unpacked_type;
+    const int warp_laneid = ::kittens::laneid();
+    const int col = warp_laneid & 0xf;
+    constexpr uint64_t full_mask = 0xffffffffffffffffull;
+    #pragma unroll
+    for(int j = 0; j < T::width; j++) { // note now width is the outer loop
+        scalar accum_col = op::template op<scalar>(
+            op::template op<scalar>(src.tiles[0][j].data[0].x, src.tiles[0][j].data[0].y),
+            op::template op<scalar>(src.tiles[0][j].data[1].x, src.tiles[0][j].data[1].y)
+        );
+        #pragma unroll
+        for(int i = 1; i < T::height; i++) { // and height is the inner loop
+            accum_col = op::template op<scalar>(accum_col, src.tiles[i][j].data[0].x);
+            accum_col = op::template op<scalar>(accum_col, src.tiles[i][j].data[0].y);
+            accum_col = op::template op<scalar>(accum_col, src.tiles[i][j].data[1].x);
+            accum_col = op::template op<scalar>(accum_col, src.tiles[i][j].data[1].y);
+        }
+
+        scalar accum_col_0 = __shfl_sync(full_mask, accum_col, col +  0, WARP_THREADS);
+        scalar accum_col_1 = __shfl_sync(full_mask, accum_col, col + 16, WARP_THREADS);
+        scalar accum_col_2 = __shfl_sync(full_mask, accum_col, col + 32, WARP_THREADS);
+        scalar accum_col_3 = __shfl_sync(full_mask, accum_col, col + 48, WARP_THREADS);
+        accum_col = op::template op<scalar>(
+            op::template op<scalar>(accum_col_0, accum_col_1),
+            op::template op<scalar>(accum_col_2, accum_col_3)
+        );
+
+        dtype accum_packed = base_types::packing<dtype>::pack(accum_col);
+        if(reset) {
+            col_accum[j][0] = accum_packed;
+        }
+        else {
+            col_accum[j][0] = op::template op<dtype>(src_accum[j][0], accum_packed);
+        }
+    }
+#else
     const int leader = threadIdx.x & 0x1C; // 11100 in binary
     #pragma unroll
     for(int j = 0; j < T::width; j++) { // note now width is the outer loop
@@ -235,6 +414,7 @@ __device__ static inline void col_reduce(V &col_accum, const T &src, const V &sr
             col_accum[j][0] = op::template op<dtype>(src_accum[j][0], accum_packed);
         }
     }
+#endif
 }
 
 

@@ -10,9 +10,19 @@ using kittens::arch::c500::combine;
 using kittens::arch::c500::wait;
 using kittens::arch::c500::wait_for_async_copies;
 
+__device__ inline void barrier() {
+    __builtin_mxc_barrier_inst();
+}
+
+template<int RemainingOutstanding>
+__device__ inline void arrive_gvmcnt() {
+    __builtin_mxc_arrive_gvmcnt(RemainingOutstanding);
+}
+
 template<int RemainingOutstanding>
 __device__ inline void wait_until() {
-    kittens::arch::c500::wait_for_async_copies<RemainingOutstanding>();
+    arrive_gvmcnt<RemainingOutstanding>();
+    barrier();
 }
 
 template<int TransactionsPerStage>
@@ -34,6 +44,17 @@ __device__ inline void wait_stage_window(int outstanding_stages) {
             wait_until<0>();
             break;
     }
+}
+
+template<int TransactionsPerStage>
+__device__ inline void wait_stage_prefix(int prefetched_stages) {
+    wait_stage_window<TransactionsPerStage>(prefetched_stages - 1);
+}
+
+template<int TransactionsPerStage>
+__device__ inline void wait_stage_steady_state(int stages, int steps_issued) {
+    const int outstanding_stages = max(0, min(stages - 1, steps_issued));
+    wait_stage_window<TransactionsPerStage>(outstanding_stages);
 }
 
 } // namespace kittens::arch::c500::primitives

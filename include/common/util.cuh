@@ -27,11 +27,23 @@ template<typename T> constexpr int TILE_ELEMENTS{TILE_COL_DIM<T>*TILE_ROW_DIM<T>
 /**
  * @brief Constant representing number of threads in a warp.
  */
+#ifdef KITTENS_C500
+constexpr int WARP_THREADS{64};
+#else
 constexpr int WARP_THREADS{32};
+#endif
+/**
+ * @brief Constant representing number of hardware lanes in the native execution wave.
+ */
+#ifdef KITTENS_C500
+constexpr int WAVE_THREADS{64};
+#else
+constexpr int WAVE_THREADS{32};
+#endif
 /**
  * @brief Constant representing number of threads in a warpgroup of four warps.
  */
-constexpr int WARPGROUP_THREADS{128};
+constexpr int WARPGROUP_THREADS{4 * WARP_THREADS};
 /**
 
  * @brief Constant representing number of warps in a warpgroup of four warps.
@@ -42,17 +54,35 @@ constexpr int WARPGROUP_WARPS{4};
  * @brief Get the warp ID of the current thread.
  * @return The warp ID.
  */
-__device__ __forceinline__ int warpid() { return threadIdx.x >> 5; } 
+__device__ __forceinline__ int warpid() {
+#ifdef KITTENS_C500
+    return threadIdx.x >> 6;
+#else
+    return threadIdx.x >> 5;
+#endif
+}
 /**
  * @brief Get the warpgroup ID of the current thread.
  * @return The warpgroup ID.
  */
-__device__ __forceinline__ int warpgroupid() { return threadIdx.x >> 7; } 
+__device__ __forceinline__ int warpgroupid() {
+#ifdef KITTENS_C500
+    return threadIdx.x >> 8;
+#else
+    return threadIdx.x >> 7;
+#endif
+}
 /**
  * @brief Get the lane ID of the current thread within its warp.
  * @return The lane ID.
  */
-__device__ __forceinline__ int laneid() { return threadIdx.x & 0x1f; }
+__device__ __forceinline__ int laneid() {
+#ifdef KITTENS_C500
+    return threadIdx.x & 0x3f;
+#else
+    return threadIdx.x & 0x1f;
+#endif
+}
 /**
  * @brief Get the physical multiprocessor ID (SM index) the current CTA is executing on.
  * @return SM ID in [0, num_sms-1] (pair with host num_sms() for device counts).
@@ -65,6 +95,8 @@ __device__ __forceinline__ int smid() {
 
 #if defined(KITTENS_MAX_SHARED_MEMORY)
 constexpr int MAX_SHARED_MEMORY = KITTENS_MAX_SHARED_MEMORY;
+#elif defined(KITTENS_C500)
+constexpr int MAX_SHARED_MEMORY = 64 * 1024;
 #elif defined(KITTENS_HOPPER) || defined(KITTENS_BLACKWELL)
 constexpr int MAX_SHARED_MEMORY = 227 * 1024;
 #elif defined(KITTENS_AMPERE)

@@ -30,6 +30,21 @@ __device__ inline static void load(RT &dst, const GL &src, const COORD &idx) {
     const int row_offset = RT::rows*local_warpid;
     #pragma unroll
     for(int i = 0; i < RT::height; i++) {
+#ifdef KITTENS_C500
+        int row = row_offset + i*RT::tile_size_row + (warp_laneid & 0xf);
+        int col_group = warp_laneid >> 4;
+        #pragma unroll
+        for(int j = 0; j < RT::width; j++) {
+            U2 tmp0, tmp1;
+            int col = j*RT::tile_size_col;
+            tmp0.x = src_ptr[row*row_stride + (col_group + 0) + col];
+            tmp0.y = src_ptr[row*row_stride + (col_group + 4) + col];
+            tmp1.x = src_ptr[row*row_stride + (col_group + 8) + col];
+            tmp1.y = src_ptr[row*row_stride + (col_group + 12) + col];
+            dst.tiles[i][j].data[0] = base_types::convertor<T2, U2>::convert(tmp0);
+            dst.tiles[i][j].data[1] = base_types::convertor<T2, U2>::convert(tmp1);
+        }
+#else
         int row = row_offset + i*RT::tile_size_row + (warp_laneid / 4);
         #pragma unroll
         for(int j = 0; j < RT::width; j++) {
@@ -43,6 +58,7 @@ __device__ inline static void load(RT &dst, const GL &src, const COORD &idx) {
             dst.tiles[i][j].data[1] = base_types::convertor<T2, U2>::convert(*(U2*)(&src_ptr[(row+8)*row_stride + (col+0)]));
             dst.tiles[i][j].data[3] = base_types::convertor<T2, U2>::convert(*(U2*)(&src_ptr[(row+8)*row_stride + (col+8)]));
         }
+#endif
     }
 }
 /**
@@ -71,6 +87,18 @@ __device__ inline static void load(RT &dst, const GL &src, const COORD &idx) {
     const int row_offset = RT::rows*local_warpid;
     #pragma unroll
     for(int i = 0; i < RT::height; i++) {
+#ifdef KITTENS_C500
+        int base_row = row_offset + i*RT::tile_size_row;
+        int row_group = warp_laneid >> 4;
+        #pragma unroll
+        for(int j = 0; j < RT::width; j++) {
+            int col = j*RT::tile_size_col + (warp_laneid & 0xf);
+            dst.tiles[i][j].data[0].x = base_types::convertor<T, U>::convert(src_ptr[(base_row + row_group + 0)*row_stride + col]);
+            dst.tiles[i][j].data[0].y = base_types::convertor<T, U>::convert(src_ptr[(base_row + row_group + 4)*row_stride + col]);
+            dst.tiles[i][j].data[1].x = base_types::convertor<T, U>::convert(src_ptr[(base_row + row_group + 8)*row_stride + col]);
+            dst.tiles[i][j].data[1].y = base_types::convertor<T, U>::convert(src_ptr[(base_row + row_group + 12)*row_stride + col]);
+        }
+#else
         int row = row_offset + i*RT::tile_size_row + 2*(warp_laneid % 4);
         #pragma unroll
         for(int j = 0; j < RT::width; j++) {
@@ -96,6 +124,7 @@ __device__ inline static void load(RT &dst, const GL &src, const COORD &idx) {
             dst.tiles[i][j].data[2].y = base_types::convertor<T, U>::convert(src_ptr[(row+9)*row_stride + (col+0)]);
             dst.tiles[i][j].data[3].y = base_types::convertor<T, U>::convert(src_ptr[(row+9)*row_stride + (col+8)]);
         }
+#endif
     }
 }
 template<ducks::rt::all RT, ducks::gl::all GL, ducks::coord::tile COORD=coord<rt<typename RT::T, GROUP_WARPS*RT::rows, RT::cols, typename RT::layout>>>
@@ -129,6 +158,20 @@ __device__ inline static void store(const GL &dst, const RT &src, const COORD &i
     const int row_offset = RT::rows*local_warpid;
     #pragma unroll
     for(int i = 0; i < RT::height; i++) {
+#ifdef KITTENS_C500
+        int row = row_offset + i*RT::tile_size_row + (warp_laneid & 0xf);
+        int col_group = warp_laneid >> 4;
+        #pragma unroll
+        for(int j = 0; j < RT::width; j++) {
+            auto tmp0 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[0]);
+            auto tmp1 = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[1]);
+            int col = j*RT::tile_size_col;
+            dst_ptr[row*row_stride + (col_group + 0) + col] = tmp0.x;
+            dst_ptr[row*row_stride + (col_group + 4) + col] = tmp0.y;
+            dst_ptr[row*row_stride + (col_group + 8) + col] = tmp1.x;
+            dst_ptr[row*row_stride + (col_group + 12) + col] = tmp1.y;
+        }
+#else
         int row = row_offset + i*RT::tile_size_row + (warp_laneid / 4);
         #pragma unroll
         for(int j = 0; j < RT::width; j++) {
@@ -142,6 +185,7 @@ __device__ inline static void store(const GL &dst, const RT &src, const COORD &i
             *(U2*)(&dst_ptr[(row+8)*row_stride + (col+0)]) = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[1]);
             *(U2*)(&dst_ptr[(row+8)*row_stride + (col+8)]) = base_types::convertor<U2, T2>::convert(src.tiles[i][j].data[3]);
         }
+#endif
     }
 }
 /**
@@ -170,6 +214,18 @@ __device__ inline static void store(const GL &dst, const RT &src, const COORD &i
     const int row_offset = RT::rows*local_warpid;
     #pragma unroll
     for(int i = 0; i < RT::height; i++) {
+#ifdef KITTENS_C500
+        int base_row = row_offset + i*RT::tile_size_row;
+        int row_group = warp_laneid >> 4;
+        #pragma unroll
+        for(int j = 0; j < RT::width; j++) {
+            int col = j*RT::tile_size_col + (warp_laneid & 0xf);
+            dst_ptr[(base_row + row_group + 0)*row_stride + col] = base_types::convertor<U, T>::convert(src.tiles[i][j].data[0].x);
+            dst_ptr[(base_row + row_group + 4)*row_stride + col] = base_types::convertor<U, T>::convert(src.tiles[i][j].data[0].y);
+            dst_ptr[(base_row + row_group + 8)*row_stride + col] = base_types::convertor<U, T>::convert(src.tiles[i][j].data[1].x);
+            dst_ptr[(base_row + row_group + 12)*row_stride + col] = base_types::convertor<U, T>::convert(src.tiles[i][j].data[1].y);
+        }
+#else
         int row = row_offset + i*RT::tile_size_row + 2*(warp_laneid % 4);
         #pragma unroll
         for(int j = 0; j < RT::width; j++) {
@@ -195,6 +251,7 @@ __device__ inline static void store(const GL &dst, const RT &src, const COORD &i
             dst_ptr[(row+9)*row_stride + (col+0)] = base_types::convertor<U, T>::convert(src.tiles[i][j].data[2].y);
             dst_ptr[(row+9)*row_stride + (col+8)] = base_types::convertor<U, T>::convert(src.tiles[i][j].data[3].y);
         }
+#endif
     }
 }
 template<ducks::rt::all RT, ducks::gl::all GL, ducks::coord::tile COORD=coord<rt<typename RT::T, GROUP_WARPS*RT::rows, RT::cols, typename RT::layout>>>

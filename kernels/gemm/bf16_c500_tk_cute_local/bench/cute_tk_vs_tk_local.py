@@ -37,6 +37,60 @@ class Target:
 
 TARGETS = [
     Target(
+        name="cute_layoutc_2048cube_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tk_runtime_2048cube_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_M": "2048",
+            "TK_CUTE_N": "2048",
+            "TK_CUTE_K": "2048",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="tk_local_layoutc_2048cube_bf16",
+        dtype="bf16",
+        src="bf16_c500_tk_local_gemm.cu",
+        out_name="tk_local_layoutc_2048cube_bf16_cmp.out",
+        extra_flags=(
+            "-DBF16_C500_MUXI_NATIVE_M=2048 "
+            "-DBF16_C500_MUXI_NATIVE_N=2048 "
+            "-DBF16_C500_MUXI_NATIVE_K=2048 "
+            "-DBF16_C500_MUXI_NATIVE_WARMUP_ITERS=1 "
+            "-DBF16_C500_MUXI_NATIVE_PROFILE_ITERS=3"
+        ),
+    ),
+    Target(
+        name="cute_layoutc_4096cube_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tk_runtime_4096cube_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_M": "4096",
+            "TK_CUTE_N": "4096",
+            "TK_CUTE_K": "4096",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="tk_local_layoutc_4096cube_bf16",
+        dtype="bf16",
+        src="bf16_c500_tk_local_gemm.cu",
+        out_name="tk_local_layoutc_4096cube_bf16_cmp.out",
+        extra_flags=(
+            "-DBF16_C500_MUXI_NATIVE_M=4096 "
+            "-DBF16_C500_MUXI_NATIVE_N=4096 "
+            "-DBF16_C500_MUXI_NATIVE_K=4096 "
+            "-DBF16_C500_MUXI_NATIVE_WARMUP_ITERS=1 "
+            "-DBF16_C500_MUXI_NATIVE_PROFILE_ITERS=3"
+        ),
+    ),
+    Target(
         name="cute_reusea_n128",
         dtype="bf16",
         src="cute_tk_runtime_gemm.cu",
@@ -234,6 +288,33 @@ TARGETS = [
     ),
 ]
 
+MCBLAS_DIRECT_TARGETS = {
+    ("bf16", 2048, 2048, 2048): {
+        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
+        "out_name": "mcblas_2048cube_bf16_cmp.out",
+        "extra_flags": (
+            "-lmcblas "
+            "-DBF16_MCBLAS_PROBLEM_M=2048 "
+            "-DBF16_MCBLAS_PROBLEM_N=2048 "
+            "-DBF16_MCBLAS_PROBLEM_K=2048 "
+            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
+            "-DBF16_MCBLAS_PROFILE_ITERS=20"
+        ),
+    },
+    ("bf16", 4096, 4096, 4096): {
+        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
+        "out_name": "mcblas_4096cube_bf16_cmp.out",
+        "extra_flags": (
+            "-lmcblas "
+            "-DBF16_MCBLAS_PROBLEM_M=4096 "
+            "-DBF16_MCBLAS_PROBLEM_N=4096 "
+            "-DBF16_MCBLAS_PROBLEM_K=4096 "
+            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
+            "-DBF16_MCBLAS_PROFILE_ITERS=20"
+        ),
+    },
+}
+
 
 def run_cmd(cmd: list[str], env: dict[str, str] | None = None) -> str:
     proc = subprocess.run(
@@ -263,6 +344,31 @@ def build_binary(target: Target) -> Path:
         ]
     )
     return ROOT / target.out_name
+
+
+def parse_mcblas_tflops(text: str) -> float:
+    return float(PERF_RE.search(text).group(1))
+
+
+def build_and_run_mcblas(dtype: str, m: int, n: int, k: int) -> float | None:
+    config = MCBLAS_DIRECT_TARGETS.get((dtype, m, n, k))
+    if config is None:
+        return None
+    run_cmd(
+        [
+            "make",
+            "-B",
+            "-C",
+            str(ROOT),
+            "GPU=C500",
+            f"SRC={config['src']}",
+            f"OUT={config['out_name']}",
+            f"CMD=./{config['out_name']}",
+            f"EXTRA_NVCCFLAGS={config['extra_flags']}",
+        ]
+    )
+    text = run_cmd([str(ROOT / config["out_name"])])
+    return parse_mcblas_tflops(text)
 
 
 def parse_output(text: str) -> dict[str, str | float | int]:
@@ -304,6 +410,7 @@ def main() -> int:
             key = (row["dtype"], int(row["m"]), int(row["n"]), int(row["k"]))
             mcblas[key] = row
 
+    mcblas_direct_cache: dict[tuple[str, int, int, int], float] = {}
     rows: list[dict[str, str | float | int]] = []
     for target in TARGETS:
         binary = build_binary(target)
@@ -314,6 +421,13 @@ def main() -> int:
             if mcblas_row and mcblas_row.get("mcblas_tflops")
             else None
         )
+        if mcblas_tflops is None:
+            key = (target.dtype, int(first["m"]), int(first["n"]), int(first["k"]))
+            if key not in mcblas_direct_cache:
+                value = build_and_run_mcblas(*key)
+                if value is not None:
+                    mcblas_direct_cache[key] = value
+            mcblas_tflops = mcblas_direct_cache.get(key)
         rows.append(
             {
                 "target": target.name,
