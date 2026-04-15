@@ -7,10 +7,10 @@
 
 #include <cmath>
 
-#include "../primitives/async_copy.cuh"
-#include "../primitives/mma.cuh"
-#include "../primitives/mxc_builtins.cuh"
-#include "../primitives/sync.cuh"
+#include "../cute_tk/primitives/async_copy.cuh"
+#include "../cute_tk/primitives/mma.cuh"
+#include "../cute_tk/primitives/mxc_builtins.cuh"
+#include "../cute_tk/primitives/sync.cuh"
 
 namespace bf16_c500_tk_local::kernel {
 
