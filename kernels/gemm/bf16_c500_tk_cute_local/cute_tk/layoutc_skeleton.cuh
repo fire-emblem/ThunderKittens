@@ -149,9 +149,9 @@ layoutc_stage4_device(
                 WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 0);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][0][0], b[1][0][1], a[0][0][0], a[0][0][1], C_f32[0][1]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(0, 0), BPtr + BLdgOffset[0][0], 0, true,
-                true, false, true, startCol + 0, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(0, 0), BPtr + BLdgOffset[0][0],
+                startCol + 0, N, MACA_ICMP_SLT);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][0][2], b[1][0][3], a[0][0][2], a[0][0][3], C_f32[0][1]);
             a[2][1] = reload_atom::load_fragment<ALdsType>(
@@ -177,9 +177,9 @@ layoutc_stage4_device(
 
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][0][0], b[1][0][1], a[1][0][0], a[1][0][1], C_f32[1][1]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(0, 1), BPtr + BLdgOffset[1][0], 0, true,
-                true, false, true, startCol + 64, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(0, 1), BPtr + BLdgOffset[1][0],
+                startCol + 64, N, MACA_ICMP_SLT);
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][0][2], b[1][0][3], a[1][0][2], a[1][0][3], C_f32[1][1]);
             b[2][1] = reload_atom::load_fragment<BLdsType>(
@@ -248,9 +248,9 @@ layoutc_stage4_device(
 
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][0][0], b[2][0][1], a[0][0][0], a[0][0][1], C_f32[0][2]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(1, 0), BPtr + BLdgOffset[0][1], 0, true,
-                true, false, true, startCol + 16, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(1, 0), BPtr + BLdgOffset[0][1],
+                startCol + 16, N, MACA_ICMP_SLT);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][0][2], b[2][0][3], a[0][0][2], a[0][0][3], C_f32[0][2]);
             a[3][3] = reload_atom::load_fragment<ALdsType>(
@@ -276,9 +276,9 @@ layoutc_stage4_device(
 
             C_f32[1][2] = mma_16x16x16b16<T, true>(
                 b[2][0][0], b[2][0][1], a[1][0][0], a[1][0][1], C_f32[1][2]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(1, 1), BPtr + BLdgOffset[1][1], 0, true,
-                true, false, true, startCol + 80, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(1, 1), BPtr + BLdgOffset[1][1],
+                startCol + 80, N, MACA_ICMP_SLT);
             C_f32[1][2] = mma_16x16x16b16<T, true>(
                 b[2][0][2], b[2][0][3], a[1][0][2], a[1][0][3], C_f32[1][2]);
             b[3][3] = reload_atom::load_fragment<BLdsType>(
@@ -337,9 +337,9 @@ layoutc_stage4_device(
 
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][0][0], b[3][0][1], a[0][0][0], a[0][0][1], C_f32[0][3]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(2, 0), BPtr + BLdgOffset[0][2], 0, true,
-                true, false, true, startCol + 32, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(2, 0), BPtr + BLdgOffset[0][2],
+                startCol + 32, N, MACA_ICMP_SLT);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][0][2], b[3][0][3], a[0][0][2], a[0][0][3], C_f32[0][3]);
             b[0][0] = reload_atom::load_fragment<BLdsType>(
@@ -365,9 +365,9 @@ layoutc_stage4_device(
 
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][0][0], b[1][0][1], a[3][0][0], a[3][0][1], C_f32[3][1]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(2, 1), BPtr + BLdgOffset[1][2], 0, true,
-                true, false, true, startCol + 96, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(2, 1), BPtr + BLdgOffset[1][2],
+                startCol + 96, N, MACA_ICMP_SLT);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][0][2], b[1][0][3], a[3][0][2], a[3][0][3], C_f32[3][1]);
             a[0][0] = reload_atom::load_fragment<ALdsType>(
@@ -436,9 +436,9 @@ layoutc_stage4_device(
 
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][0][0], b[3][0][1], a[2][0][0], a[2][0][1], C_f32[2][3]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(3, 0), BPtr + BLdgOffset[0][3], 0, true,
-                true, false, true, startCol + 48, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(3, 0), BPtr + BLdgOffset[0][3],
+                startCol + 48, N, MACA_ICMP_SLT);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][0][2], b[3][0][3], a[2][0][2], a[2][0][3], C_f32[2][3]);
             a[1][2] = reload_atom::load_fragment<ALdsType>(
@@ -464,9 +464,9 @@ layoutc_stage4_device(
 
             C_f32[3][3] = mma_16x16x16b16<T, true>(
                 b[3][0][0], b[3][0][1], a[3][0][0], a[3][0][1], C_f32[3][3]);
-            __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + stage_layout::b_stage_offset(3, 1), BPtr + BLdgOffset[1][3], 0, true,
-                true, false, true, startCol + 112, N, MACA_ICMP_SLT);
+            LDG_B128_BSM_WITH_PREDICATOR(
+                WSM_Ldg + stage_layout::b_stage_offset(3, 1), BPtr + BLdgOffset[1][3],
+                startCol + 112, N, MACA_ICMP_SLT);
             C_f32[3][3] = mma_16x16x16b16<T, true>(
                 b[3][0][2], b[3][0][3], a[3][0][2], a[3][0][3], C_f32[3][3]);
             b[1][2] = reload_atom::load_fragment<BLdsType>(

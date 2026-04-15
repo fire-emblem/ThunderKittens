@@ -8,8 +8,7 @@ struct copy_atom {
     template <typename PtrType>
     __device__ __forceinline__ static void issue_b128_bsm_no_pred(
         uint8_t *saddr, PtrType *gaddr) {
-        __builtin_mxc_ldg_b128_bsm_predicator(saddr, gaddr, 0, true, true,
-                                              false, true, 1, 1, MACA_ICMP_EQ);
+        LDG_B128_BSM_NO_PREDICATOR(saddr, gaddr);
     }
 
     template <typename VecType>

@@ -50,22 +50,20 @@ __device__ __forceinline__ void run_layoutc_tail_iteration(
     arrive_gvmcnt(4 * (Stage - 2));
     __builtin_mxc_barrier_inst();
 
-    __builtin_mxc_ldg_b128_bsm_predicator(
-        wsm_ldg + 0x4000 * stage_i + 0x0000, a_ptr + a_ldg_offset[0][stage_i],
-        0, true, true, false, true, 0,
-        k_remaining / (sizeof(ALdgType) / sizeof(T)), MACA_ICMP_SLT);
-    __builtin_mxc_ldg_b128_bsm_predicator(
-        wsm_ldg + 0x4000 * stage_i + 0x1000, a_ptr + a_ldg_offset[1][stage_i],
-        0, true, true, false, true, 0,
-        k_remaining / (sizeof(ALdgType) / sizeof(T)), MACA_ICMP_SLT);
-    __builtin_mxc_ldg_b128_bsm_predicator(
-        wsm_ldg + 0x4000 * stage_i + 0x2000, b_ptr + b_ldg_offset[0][stage_i],
-        0, true, true, false, true, start_col + stage_i * 16, n,
-        MACA_ICMP_SLT);
-    __builtin_mxc_ldg_b128_bsm_predicator(
+    LDG_B128_BSM_WITH_PREDICATOR(wsm_ldg + 0x4000 * stage_i + 0x0000,
+                                 a_ptr + a_ldg_offset[0][stage_i], 0,
+                                 k_remaining / (sizeof(ALdgType) / sizeof(T)),
+                                 MACA_ICMP_SLT);
+    LDG_B128_BSM_WITH_PREDICATOR(wsm_ldg + 0x4000 * stage_i + 0x1000,
+                                 a_ptr + a_ldg_offset[1][stage_i], 0,
+                                 k_remaining / (sizeof(ALdgType) / sizeof(T)),
+                                 MACA_ICMP_SLT);
+    LDG_B128_BSM_WITH_PREDICATOR(wsm_ldg + 0x4000 * stage_i + 0x2000,
+                                 b_ptr + b_ldg_offset[0][stage_i],
+                                 start_col + stage_i * 16, n, MACA_ICMP_SLT);
+    LDG_B128_BSM_WITH_PREDICATOR(
         wsm_ldg + 0x4000 * stage_i + 0x3000, b_ptr + b_ldg_offset[1][stage_i],
-        0, true, true, false, true, start_col + stage_i * 16 + 64, n,
-        MACA_ICMP_SLT);
+        start_col + stage_i * 16 + 64, n, MACA_ICMP_SLT);
 
     reload_layoutc_stage_from_shared(a, b, lds_idx, wsm_lds2, a_lds_offset,
                                      b_lds_offset);
