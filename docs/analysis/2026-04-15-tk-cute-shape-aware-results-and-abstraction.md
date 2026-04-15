@@ -340,6 +340,35 @@ unification. It gives the codebase a single abstract mode of describing family
 composition without pretending that all mainloops are already interchangeable.
 
 
+## Pattern-at-skeleton boundary status
+
+The next integration step is now in place for the two most advanced lanes:
+
+- `tn_example`
+- `layoutc`
+
+Their kernel entrypoints no longer consume independent template axes directly
+from the family shell. Instead, they accept a single `family_pattern` type and
+derive:
+
+- geometry provider / atom
+- schedule policy
+- tile shape
+- stage-layout atom
+
+from that pattern inside the skeleton boundary.
+
+That matters because it pushes the unified abstraction mode one layer deeper:
+
+- before: family shells shared a vocabulary, but skeletons still accepted
+  separate composition axes directly
+- now: the same pattern object crosses the shell-to-kernel boundary for the
+  leading lanes
+
+This is still not a universal kernel body, but it is the first step toward a
+single implementation-facing composition protocol.
+
+
 ## Tile-shape seam status
 
 The imported TN example family now also accepts an explicit tile-shape policy

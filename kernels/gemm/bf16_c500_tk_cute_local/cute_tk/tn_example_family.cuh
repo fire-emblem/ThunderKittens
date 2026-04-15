@@ -24,7 +24,6 @@ struct tn_example_family
             TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom>;
     using geometry_atom = typename pattern::geometry_atom;
     using host_layout = typename pattern::host_layout;
-    using geometry_provider = typename geometry_atom::provider;
     using schedule_policy = typename pattern::schedule_policy;
     using tile_shape = typename pattern::tile_shape;
     using stage_layout_atom = typename pattern::stage_layout_atom;
@@ -52,9 +51,7 @@ struct tn_example_family
         static_assert(!HasOneDimBias,
                       "tn_example family does not support one-dim bias");
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            hgemm_tn_128x128x128_4m1n8k_256t<T, Tc, Tscal, IsBetaZero,
-                                            geometry_provider, schedule_policy,
-                                            tile_shape, stage_layout_atom>
+            hgemm_tn_128x128x128_4m1n8k_256t<T, Tc, Tscal, IsBetaZero, pattern>
             <<<grid_dim, 256>>>(a, b, c, m, n, k, lda, ldb, ldc, alpha_value,
                                 beta_value);
     }

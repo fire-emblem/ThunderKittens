@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <type_traits>
+#include "family_pattern.cuh"
 #include "policies.cuh"
 #include "stage_layout_atom.cuh"
 #include "tn_example_utils.cuh"
@@ -10,10 +11,12 @@
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          typename GeometryPolicy = tn_example_swizzled_geometry,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
-          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
+          typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+              ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+              ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
+              ::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
+              ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
+              ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
 __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const void *A,
                                                                         const void *B,
                                                                         void *C,
@@ -27,12 +30,15 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
                                                                         Tscal beta,
                                                                         int bidx,
                                                                         int bidy) {
-    constexpr int TileM = TileShape::tile_m;
-    constexpr int TileN = TileShape::tile_n;
-    constexpr int Stage = SchedulePolicy::stage_count;
-    using stage_layout = StageLayoutAtom;
-    static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
-                      TileShape::tile_k == 128,
+    using tile_shape = typename Pattern::tile_shape;
+    using geometry_policy = typename Pattern::geometry_provider;
+    using schedule_policy = typename Pattern::schedule_policy;
+    using stage_layout = typename Pattern::stage_layout_atom;
+    constexpr int TileM = tile_shape::tile_m;
+    constexpr int TileN = tile_shape::tile_n;
+    constexpr int Stage = schedule_policy::stage_count;
+    static_assert(tile_shape::tile_m == 128 && tile_shape::tile_n == 128 &&
+                      tile_shape::tile_k == 128,
                   "tn_example tile-shape abstraction is in place, but only 128x128x128 is implemented today");
     static_assert(Stage == 4,
                   "tn_example schedule abstraction is in place, but only stage4 is implemented today");
@@ -75,7 +81,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     const int slot = __builtin_mxc_readfirstlane(tid / 64);
     const int lane = tid & 63;
 
-    const auto geometry = GeometryPolicy::template make<ALdgType, BLdgType, ALdsType, BLdsType>(
+    const auto geometry = geometry_policy::template make<ALdgType, BLdgType, ALdsType, BLdsType>(
         tid, lane, slot, lda, ldb, M_A, N_B);
     const auto &ALdgOffset = geometry.a_ldg_offset;
     const auto &BLdgOffset = geometry.b_ldg_offset;
@@ -105,7 +111,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
         __builtin_mxc_ldg_b128_bsm_predicator(
             WSM_Ldg + stage_layout::b_stage_offset(stage_i, 1), BPtr + BLdgOffset[1][stage_i], 0, true, true,
             false, true, B_row, K / (sizeof(BLdgType) / sizeof(T)), MACA_ICMP_SLT);
-        if constexpr (SchedulePolicy::sync_each_stage_issue) {
+        if constexpr (schedule_policy::sync_each_stage_issue) {
             __builtin_mxc_barrier_inst();
         }
     }
@@ -477,7 +483,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
         // BPtr += 256;
     }
 
-    if constexpr (SchedulePolicy::sync_before_tail_drain) {
+    if constexpr (schedule_policy::sync_before_tail_drain) {
         __builtin_mxc_barrier_inst();
     }
 
@@ -697,10 +703,12 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 }
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          typename GeometryPolicy = tn_example_swizzled_geometry,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
-          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
+          typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+              ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+              ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
+              ::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
+              ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
+              ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
 __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  const void *B,
                                                  void *C,
@@ -712,9 +720,7 @@ __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  int ldc,
                                                  Tscal alpha,
                                                  Tscal beta) {
-    hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero,
-                                           GeometryPolicy, SchedulePolicy, TileShape,
-                                           StageLayoutAtom>(
+    hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero, Pattern>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, blockIdx.x, blockIdx.y);
 }
 

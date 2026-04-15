@@ -63,9 +63,8 @@ struct layoutc_family
                               const void *bias = nullptr) {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
             cute_tk_bf16_layoutc_128x128x128_stage4<
-                T, Tc, Tscal, IsBetaZero,
-                HasOneDimBias, geometry_atom, schedule_policy,
-                stage_layout_atom><<<grid_dim, tile::threads>>>(
+                T, Tc, Tscal, IsBetaZero, HasOneDimBias,
+                pattern><<<grid_dim, tile::threads>>>(
                 a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
     }
 };

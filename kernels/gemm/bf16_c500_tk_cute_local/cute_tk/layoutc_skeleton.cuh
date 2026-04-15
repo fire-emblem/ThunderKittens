@@ -11,6 +11,7 @@
 #include "../kernel/layoutc_tail.cuh"
 #include "copy_atom.cuh"
 #include "epilogue_atom.cuh"
+#include "family_pattern.cuh"
 #include "layout_atom.cuh"
 #include "mma_atom.cuh"
 #include "stage_layout_atom.cuh"
@@ -24,22 +25,31 @@ using ::bf16_c500_tk_local::kernel::run_layoutc_tail_iteration;
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           bool HasOneDimBias, bool OutputContinuousC = false,
-          typename LayoutAtom = layoutc_layout_atom,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
-          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
+          typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+              ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag,
+              ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
+              ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
+              ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
+              ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
 __forceinline__ __device__ void
 layoutc_stage4_device(
     const void *A, const void *B, void *C, int M, int N, int K, int lda,
     int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias, int bidx,
     int bidy) {
-    constexpr int TileM = 128;
-    constexpr int TileN = 128;
-    constexpr int Stage = SchedulePolicy::stage_count;
-    using stage_layout = StageLayoutAtom;
+    using tile_shape = typename Pattern::tile_shape;
+    using layout_atom = typename Pattern::geometry_atom;
+    using schedule_policy = typename Pattern::schedule_policy;
+    using stage_layout = typename Pattern::stage_layout_atom;
+    constexpr int TileM = tile_shape::tile_m;
+    constexpr int TileN = tile_shape::tile_n;
+    constexpr int Stage = schedule_policy::stage_count;
     static_assert(Stage == 4,
                   "layoutc schedule abstraction is in place, but only stage4 is implemented today");
     static_assert(stage_layout::stage_count == Stage,
                   "layoutc stage layout must agree with schedule stage count");
+    static_assert(tile_shape::tile_m == 128 && tile_shape::tile_n == 128 &&
+                      tile_shape::tile_k == 128,
+                  "layoutc tile-shape abstraction is in place, but only 128x128x128 is implemented today");
     const int src_N = N;
     using ALdgType = __NATIVE_VECTOR__(4, uint);
     using BLdgType = __NATIVE_VECTOR__(4, uint);
@@ -68,8 +78,8 @@ layoutc_stage4_device(
     const int lane = tid & 63;
 
     const auto geometry =
-        LayoutAtom::template make_stage_geometry<ALdgType, BLdgType,
-                                                 ALdsType, BLdsType, T>(
+        layout_atom::template make_stage_geometry<ALdgType, BLdgType,
+                                                  ALdsType, BLdsType, T>(
             tid, lane, slot, lda, N);
     const auto &ALdgOffset = geometry.a_ldg_offset;
     const auto &BLdgOffset = geometry.b_ldg_offset;
@@ -520,14 +530,18 @@ layoutc_stage4_device(
 }
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          bool HasOneDimBias, typename LayoutAtom = layoutc_layout_atom,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
-          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
+          bool HasOneDimBias,
+          typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+              ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag,
+              ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
+              ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
+              ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
+              ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
 __global__ void cute_tk_bf16_layoutc_128x128x128_stage4(
     const void *A, const void *B, void *C, int M, int N, int K, int lda,
     int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias = nullptr) {
     layoutc_stage4_device<T, Tc, Tscal, IsBetaZero, HasOneDimBias, false,
-                          LayoutAtom, SchedulePolicy, StageLayoutAtom>(
+                          Pattern>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, bias, blockIdx.x,
         blockIdx.y);
 }
