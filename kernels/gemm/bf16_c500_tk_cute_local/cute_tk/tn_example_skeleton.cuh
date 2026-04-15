@@ -9,7 +9,8 @@
 #include "primitives/pipeline/reload_atom.cuh"
 #include "primitives/pipeline/schedule_atom.cuh"
 #include "primitives/structure/stage_layout_atom.cuh"
-#include "tn_example_utils.cuh"
+#include "primitives/pipeline/copy_atom.cuh"
+#include "primitives/compute/mma_atom.cuh"
 #include "tn_example_geometry.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
@@ -130,328 +131,328 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     for (; K >= 128; K -= 128) {
         {
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[0][0][0], a[0][0][1], C_f32[0][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(0, 0), APtr + ALdgOffset[0][0])
+                mma_atom::template fma_pair<T>(b[0][0][0], b[0][0][1], a[0][0][0], a[0][0][1], C_f32[0][0]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(0, 0), APtr + ALdgOffset[0][0]);
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[0][0][2], a[0][0][3], C_f32[0][0]);
+                mma_atom::template fma_pair<T>(b[0][0][2], b[0][0][3], a[0][0][2], a[0][0][3], C_f32[0][0]);
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][1][0], b[0][1][1], a[0][1][0], a[0][1][1], C_f32[0][0]);
+                mma_atom::template fma_pair<T>(b[0][1][0], b[0][1][1], a[0][1][0], a[0][1][1], C_f32[0][0]);
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][1][2], b[0][1][3], a[0][1][2], a[0][1][3], C_f32[0][0]);
+                mma_atom::template fma_pair<T>(b[0][1][2], b[0][1][3], a[0][1][2], a[0][1][3], C_f32[0][0]);
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][2][0], b[0][2][1], a[0][2][0], a[0][2][1], C_f32[0][0]);
+                mma_atom::template fma_pair<T>(b[0][2][0], b[0][2][1], a[0][2][0], a[0][2][1], C_f32[0][0]);
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][2][2], b[0][2][3], a[0][2][2], a[0][2][3], C_f32[0][0]);
+                mma_atom::template fma_pair<T>(b[0][2][2], b[0][2][3], a[0][2][2], a[0][2][3], C_f32[0][0]);
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][3][0], b[0][3][1], a[0][3][0], a[0][3][1], C_f32[0][0]);
+                mma_atom::template fma_pair<T>(b[0][3][0], b[0][3][1], a[0][3][0], a[0][3][1], C_f32[0][0]);
             C_f32[0][0] =
-                mma_16x16x16b16<T>(b[0][3][2], b[0][3][3], a[0][3][2], a[0][3][3], C_f32[0][0]);
+                mma_atom::template fma_pair<T>(b[0][3][2], b[0][3][3], a[0][3][2], a[0][3][3], C_f32[0][0]);
 
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[1][0][0], a[1][0][1], C_f32[1][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(0, 1), APtr + ALdgOffset[1][0])
+                mma_atom::template fma_pair<T>(b[0][0][0], b[0][0][1], a[1][0][0], a[1][0][1], C_f32[1][0]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(0, 1), APtr + ALdgOffset[1][0]);
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[1][0][2], a[1][0][3], C_f32[1][0]);
+                mma_atom::template fma_pair<T>(b[0][0][2], b[0][0][3], a[1][0][2], a[1][0][3], C_f32[1][0]);
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][1][0], b[0][1][1], a[1][1][0], a[1][1][1], C_f32[1][0]);
+                mma_atom::template fma_pair<T>(b[0][1][0], b[0][1][1], a[1][1][0], a[1][1][1], C_f32[1][0]);
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][1][2], b[0][1][3], a[1][1][2], a[1][1][3], C_f32[1][0]);
+                mma_atom::template fma_pair<T>(b[0][1][2], b[0][1][3], a[1][1][2], a[1][1][3], C_f32[1][0]);
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][2][0], b[0][2][1], a[1][2][0], a[1][2][1], C_f32[1][0]);
+                mma_atom::template fma_pair<T>(b[0][2][0], b[0][2][1], a[1][2][0], a[1][2][1], C_f32[1][0]);
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][2][2], b[0][2][3], a[1][2][2], a[1][2][3], C_f32[1][0]);
+                mma_atom::template fma_pair<T>(b[0][2][2], b[0][2][3], a[1][2][2], a[1][2][3], C_f32[1][0]);
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][3][0], b[0][3][1], a[1][3][0], a[1][3][1], C_f32[1][0]);
+                mma_atom::template fma_pair<T>(b[0][3][0], b[0][3][1], a[1][3][0], a[1][3][1], C_f32[1][0]);
             schedule_atom::template wait_steady_window<Stage>();
 
             C_f32[1][0] =
-                mma_16x16x16b16<T>(b[0][3][2], b[0][3][3], a[1][3][2], a[1][3][3], C_f32[1][0]);
+                mma_atom::template fma_pair<T>(b[0][3][2], b[0][3][3], a[1][3][2], a[1][3][3], C_f32[1][0]);
             a[2][0] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 0);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[0][0][0], a[0][0][1], C_f32[0][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(0, 0), BPtr + BLdgOffset[0][0])
+                mma_atom::template fma_pair<T>(b[1][0][0], b[1][0][1], a[0][0][0], a[0][0][1], C_f32[0][1]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(0, 0), BPtr + BLdgOffset[0][0]);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[0][0][2], a[0][0][3], C_f32[0][1]);
+                mma_atom::template fma_pair<T>(b[1][0][2], b[1][0][3], a[0][0][2], a[0][0][3], C_f32[0][1]);
             a[2][1] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 1);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][1][0], b[1][1][1], a[0][1][0], a[0][1][1], C_f32[0][1]);
+                mma_atom::template fma_pair<T>(b[1][1][0], b[1][1][1], a[0][1][0], a[0][1][1], C_f32[0][1]);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][1][2], b[1][1][3], a[0][1][2], a[0][1][3], C_f32[0][1]);
+                mma_atom::template fma_pair<T>(b[1][1][2], b[1][1][3], a[0][1][2], a[0][1][3], C_f32[0][1]);
             a[2][2] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 2);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][2][0], b[1][2][1], a[0][2][0], a[0][2][1], C_f32[0][1]);
+                mma_atom::template fma_pair<T>(b[1][2][0], b[1][2][1], a[0][2][0], a[0][2][1], C_f32[0][1]);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][2][2], b[1][2][3], a[0][2][2], a[0][2][3], C_f32[0][1]);
+                mma_atom::template fma_pair<T>(b[1][2][2], b[1][2][3], a[0][2][2], a[0][2][3], C_f32[0][1]);
             a[2][3] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 3);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][3][0], b[1][3][1], a[0][3][0], a[0][3][1], C_f32[0][1]);
+                mma_atom::template fma_pair<T>(b[1][3][0], b[1][3][1], a[0][3][0], a[0][3][1], C_f32[0][1]);
             C_f32[0][1] =
-                mma_16x16x16b16<T>(b[1][3][2], b[1][3][3], a[0][3][2], a[0][3][3], C_f32[0][1]);
+                mma_atom::template fma_pair<T>(b[1][3][2], b[1][3][3], a[0][3][2], a[0][3][3], C_f32[0][1]);
             b[2][0] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 0);
 
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[1][0][0], a[1][0][1], C_f32[1][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(0, 1), BPtr + BLdgOffset[1][0])
+                mma_atom::template fma_pair<T>(b[1][0][0], b[1][0][1], a[1][0][0], a[1][0][1], C_f32[1][1]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(0, 1), BPtr + BLdgOffset[1][0]);
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[1][0][2], a[1][0][3], C_f32[1][1]);
+                mma_atom::template fma_pair<T>(b[1][0][2], b[1][0][3], a[1][0][2], a[1][0][3], C_f32[1][1]);
             b[2][1] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 1);
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][1][0], b[1][1][1], a[1][1][0], a[1][1][1], C_f32[1][1]);
+                mma_atom::template fma_pair<T>(b[1][1][0], b[1][1][1], a[1][1][0], a[1][1][1], C_f32[1][1]);
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][1][2], b[1][1][3], a[1][1][2], a[1][1][3], C_f32[1][1]);
+                mma_atom::template fma_pair<T>(b[1][1][2], b[1][1][3], a[1][1][2], a[1][1][3], C_f32[1][1]);
             b[2][2] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 2);
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][2][0], b[1][2][1], a[1][2][0], a[1][2][1], C_f32[1][1]);
+                mma_atom::template fma_pair<T>(b[1][2][0], b[1][2][1], a[1][2][0], a[1][2][1], C_f32[1][1]);
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][2][2], b[1][2][3], a[1][2][2], a[1][2][3], C_f32[1][1]);
+                mma_atom::template fma_pair<T>(b[1][2][2], b[1][2][3], a[1][2][2], a[1][2][3], C_f32[1][1]);
             b[2][3] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 3);
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][3][0], b[1][3][1], a[1][3][0], a[1][3][1], C_f32[1][1]);
+                mma_atom::template fma_pair<T>(b[1][3][0], b[1][3][1], a[1][3][0], a[1][3][1], C_f32[1][1]);
             C_f32[1][1] =
-                mma_16x16x16b16<T>(b[1][3][2], b[1][3][3], a[1][3][2], a[1][3][3], C_f32[1][1]);
+                mma_atom::template fma_pair<T>(b[1][3][2], b[1][3][3], a[1][3][2], a[1][3][3], C_f32[1][1]);
 
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[2][0][0], a[2][0][1], C_f32[2][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(1, 0), APtr + ALdgOffset[0][1])
+                mma_atom::template fma_pair<T>(b[0][0][0], b[0][0][1], a[2][0][0], a[2][0][1], C_f32[2][0]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(1, 0), APtr + ALdgOffset[0][1]);
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[2][0][2], a[2][0][3], C_f32[2][0]);
+                mma_atom::template fma_pair<T>(b[0][0][2], b[0][0][3], a[2][0][2], a[2][0][3], C_f32[2][0]);
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][1][0], b[0][1][1], a[2][1][0], a[2][1][1], C_f32[2][0]);
+                mma_atom::template fma_pair<T>(b[0][1][0], b[0][1][1], a[2][1][0], a[2][1][1], C_f32[2][0]);
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][1][2], b[0][1][3], a[2][1][2], a[2][1][3], C_f32[2][0]);
+                mma_atom::template fma_pair<T>(b[0][1][2], b[0][1][3], a[2][1][2], a[2][1][3], C_f32[2][0]);
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][2][0], b[0][2][1], a[2][2][0], a[2][2][1], C_f32[2][0]);
+                mma_atom::template fma_pair<T>(b[0][2][0], b[0][2][1], a[2][2][0], a[2][2][1], C_f32[2][0]);
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][2][2], b[0][2][3], a[2][2][2], a[2][2][3], C_f32[2][0]);
+                mma_atom::template fma_pair<T>(b[0][2][2], b[0][2][3], a[2][2][2], a[2][2][3], C_f32[2][0]);
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][3][0], b[0][3][1], a[2][3][0], a[2][3][1], C_f32[2][0]);
+                mma_atom::template fma_pair<T>(b[0][3][0], b[0][3][1], a[2][3][0], a[2][3][1], C_f32[2][0]);
             C_f32[2][0] =
-                mma_16x16x16b16<T>(b[0][3][2], b[0][3][3], a[2][3][2], a[2][3][3], C_f32[2][0]);
+                mma_atom::template fma_pair<T>(b[0][3][2], b[0][3][3], a[2][3][2], a[2][3][3], C_f32[2][0]);
 
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[2][0][0], a[2][0][1], C_f32[2][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(1, 1), APtr + ALdgOffset[1][1])
+                mma_atom::template fma_pair<T>(b[1][0][0], b[1][0][1], a[2][0][0], a[2][0][1], C_f32[2][1]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(1, 1), APtr + ALdgOffset[1][1]);
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[2][0][2], a[2][0][3], C_f32[2][1]);
+                mma_atom::template fma_pair<T>(b[1][0][2], b[1][0][3], a[2][0][2], a[2][0][3], C_f32[2][1]);
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][1][0], b[1][1][1], a[2][1][0], a[2][1][1], C_f32[2][1]);
+                mma_atom::template fma_pair<T>(b[1][1][0], b[1][1][1], a[2][1][0], a[2][1][1], C_f32[2][1]);
             schedule_atom::template wait_steady_window<Stage>();
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][1][2], b[1][1][3], a[2][1][2], a[2][1][3], C_f32[2][1]);
+                mma_atom::template fma_pair<T>(b[1][1][2], b[1][1][3], a[2][1][2], a[2][1][3], C_f32[2][1]);
             a[3][0] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 0);
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][2][0], b[1][2][1], a[2][2][0], a[2][2][1], C_f32[2][1]);
+                mma_atom::template fma_pair<T>(b[1][2][0], b[1][2][1], a[2][2][0], a[2][2][1], C_f32[2][1]);
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][2][2], b[1][2][3], a[2][2][2], a[2][2][3], C_f32[2][1]);
+                mma_atom::template fma_pair<T>(b[1][2][2], b[1][2][3], a[2][2][2], a[2][2][3], C_f32[2][1]);
             a[3][1] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 1);
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][3][0], b[1][3][1], a[2][3][0], a[2][3][1], C_f32[2][1]);
+                mma_atom::template fma_pair<T>(b[1][3][0], b[1][3][1], a[2][3][0], a[2][3][1], C_f32[2][1]);
             C_f32[2][1] =
-                mma_16x16x16b16<T>(b[1][3][2], b[1][3][3], a[2][3][2], a[2][3][3], C_f32[2][1]);
+                mma_atom::template fma_pair<T>(b[1][3][2], b[1][3][3], a[2][3][2], a[2][3][3], C_f32[2][1]);
             a[3][2] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 2);
 
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[0][0][0], a[0][0][1], C_f32[0][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(1, 0), BPtr + BLdgOffset[0][1])
+                mma_atom::template fma_pair<T>(b[2][0][0], b[2][0][1], a[0][0][0], a[0][0][1], C_f32[0][2]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(1, 0), BPtr + BLdgOffset[0][1]);
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[0][0][2], a[0][0][3], C_f32[0][2]);
+                mma_atom::template fma_pair<T>(b[2][0][2], b[2][0][3], a[0][0][2], a[0][0][3], C_f32[0][2]);
             a[3][3] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 3);
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][1][0], b[2][1][1], a[0][1][0], a[0][1][1], C_f32[0][2]);
+                mma_atom::template fma_pair<T>(b[2][1][0], b[2][1][1], a[0][1][0], a[0][1][1], C_f32[0][2]);
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][1][2], b[2][1][3], a[0][1][2], a[0][1][3], C_f32[0][2]);
+                mma_atom::template fma_pair<T>(b[2][1][2], b[2][1][3], a[0][1][2], a[0][1][3], C_f32[0][2]);
             b[3][0] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 0);
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][2][0], b[2][2][1], a[0][2][0], a[0][2][1], C_f32[0][2]);
+                mma_atom::template fma_pair<T>(b[2][2][0], b[2][2][1], a[0][2][0], a[0][2][1], C_f32[0][2]);
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][2][2], b[2][2][3], a[0][2][2], a[0][2][3], C_f32[0][2]);
+                mma_atom::template fma_pair<T>(b[2][2][2], b[2][2][3], a[0][2][2], a[0][2][3], C_f32[0][2]);
             b[3][1] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 1);
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][3][0], b[2][3][1], a[0][3][0], a[0][3][1], C_f32[0][2]);
+                mma_atom::template fma_pair<T>(b[2][3][0], b[2][3][1], a[0][3][0], a[0][3][1], C_f32[0][2]);
             C_f32[0][2] =
-                mma_16x16x16b16<T>(b[2][3][2], b[2][3][3], a[0][3][2], a[0][3][3], C_f32[0][2]);
+                mma_atom::template fma_pair<T>(b[2][3][2], b[2][3][3], a[0][3][2], a[0][3][3], C_f32[0][2]);
             b[3][2] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 2);
 
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[1][0][0], a[1][0][1], C_f32[1][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(1, 1), BPtr + BLdgOffset[1][1])
+                mma_atom::template fma_pair<T>(b[2][0][0], b[2][0][1], a[1][0][0], a[1][0][1], C_f32[1][2]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(1, 1), BPtr + BLdgOffset[1][1]);
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[1][0][2], a[1][0][3], C_f32[1][2]);
+                mma_atom::template fma_pair<T>(b[2][0][2], b[2][0][3], a[1][0][2], a[1][0][3], C_f32[1][2]);
             b[3][3] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 3);
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][1][0], b[2][1][1], a[1][1][0], a[1][1][1], C_f32[1][2]);
+                mma_atom::template fma_pair<T>(b[2][1][0], b[2][1][1], a[1][1][0], a[1][1][1], C_f32[1][2]);
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][1][2], b[2][1][3], a[1][1][2], a[1][1][3], C_f32[1][2]);
+                mma_atom::template fma_pair<T>(b[2][1][2], b[2][1][3], a[1][1][2], a[1][1][3], C_f32[1][2]);
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][2][0], b[2][2][1], a[1][2][0], a[1][2][1], C_f32[1][2]);
+                mma_atom::template fma_pair<T>(b[2][2][0], b[2][2][1], a[1][2][0], a[1][2][1], C_f32[1][2]);
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][2][2], b[2][2][3], a[1][2][2], a[1][2][3], C_f32[1][2]);
+                mma_atom::template fma_pair<T>(b[2][2][2], b[2][2][3], a[1][2][2], a[1][2][3], C_f32[1][2]);
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][3][0], b[2][3][1], a[1][3][0], a[1][3][1], C_f32[1][2]);
+                mma_atom::template fma_pair<T>(b[2][3][0], b[2][3][1], a[1][3][0], a[1][3][1], C_f32[1][2]);
             C_f32[1][2] =
-                mma_16x16x16b16<T>(b[2][3][2], b[2][3][3], a[1][3][2], a[1][3][3], C_f32[1][2]);
+                mma_atom::template fma_pair<T>(b[2][3][2], b[2][3][3], a[1][3][2], a[1][3][3], C_f32[1][2]);
 
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[2][0][0], a[2][0][1], C_f32[2][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(2, 0), APtr + ALdgOffset[0][2])
+                mma_atom::template fma_pair<T>(b[2][0][0], b[2][0][1], a[2][0][0], a[2][0][1], C_f32[2][2]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(2, 0), APtr + ALdgOffset[0][2]);
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[2][0][2], a[2][0][3], C_f32[2][2]);
+                mma_atom::template fma_pair<T>(b[2][0][2], b[2][0][3], a[2][0][2], a[2][0][3], C_f32[2][2]);
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][1][0], b[2][1][1], a[2][1][0], a[2][1][1], C_f32[2][2]);
+                mma_atom::template fma_pair<T>(b[2][1][0], b[2][1][1], a[2][1][0], a[2][1][1], C_f32[2][2]);
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][1][2], b[2][1][3], a[2][1][2], a[2][1][3], C_f32[2][2]);
+                mma_atom::template fma_pair<T>(b[2][1][2], b[2][1][3], a[2][1][2], a[2][1][3], C_f32[2][2]);
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][2][0], b[2][2][1], a[2][2][0], a[2][2][1], C_f32[2][2]);
+                mma_atom::template fma_pair<T>(b[2][2][0], b[2][2][1], a[2][2][0], a[2][2][1], C_f32[2][2]);
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][2][2], b[2][2][3], a[2][2][2], a[2][2][3], C_f32[2][2]);
+                mma_atom::template fma_pair<T>(b[2][2][2], b[2][2][3], a[2][2][2], a[2][2][3], C_f32[2][2]);
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][3][0], b[2][3][1], a[2][3][0], a[2][3][1], C_f32[2][2]);
+                mma_atom::template fma_pair<T>(b[2][3][0], b[2][3][1], a[2][3][0], a[2][3][1], C_f32[2][2]);
             C_f32[2][2] =
-                mma_16x16x16b16<T>(b[2][3][2], b[2][3][3], a[2][3][2], a[2][3][3], C_f32[2][2]);
+                mma_atom::template fma_pair<T>(b[2][3][2], b[2][3][3], a[2][3][2], a[2][3][3], C_f32[2][2]);
 
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[3][0][0], a[3][0][1], C_f32[3][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(2, 1), APtr + ALdgOffset[1][2])
+                mma_atom::template fma_pair<T>(b[0][0][0], b[0][0][1], a[3][0][0], a[3][0][1], C_f32[3][0]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(2, 1), APtr + ALdgOffset[1][2]);
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[3][0][2], a[3][0][3], C_f32[3][0]);
+                mma_atom::template fma_pair<T>(b[0][0][2], b[0][0][3], a[3][0][2], a[3][0][3], C_f32[3][0]);
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][1][0], b[0][1][1], a[3][1][0], a[3][1][1], C_f32[3][0]);
+                mma_atom::template fma_pair<T>(b[0][1][0], b[0][1][1], a[3][1][0], a[3][1][1], C_f32[3][0]);
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][1][2], b[0][1][3], a[3][1][2], a[3][1][3], C_f32[3][0]);
+                mma_atom::template fma_pair<T>(b[0][1][2], b[0][1][3], a[3][1][2], a[3][1][3], C_f32[3][0]);
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][2][0], b[0][2][1], a[3][2][0], a[3][2][1], C_f32[3][0]);
+                mma_atom::template fma_pair<T>(b[0][2][0], b[0][2][1], a[3][2][0], a[3][2][1], C_f32[3][0]);
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][2][2], b[0][2][3], a[3][2][2], a[3][2][3], C_f32[3][0]);
+                mma_atom::template fma_pair<T>(b[0][2][2], b[0][2][3], a[3][2][2], a[3][2][3], C_f32[3][0]);
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][3][0], b[0][3][1], a[3][3][0], a[3][3][1], C_f32[3][0]);
+                mma_atom::template fma_pair<T>(b[0][3][0], b[0][3][1], a[3][3][0], a[3][3][1], C_f32[3][0]);
             C_f32[3][0] =
-                mma_16x16x16b16<T>(b[0][3][2], b[0][3][3], a[3][3][2], a[3][3][3], C_f32[3][0]);
+                mma_atom::template fma_pair<T>(b[0][3][2], b[0][3][3], a[3][3][2], a[3][3][3], C_f32[3][0]);
             schedule_atom::template wait_steady_window<Stage>();
 
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[0][0][0], a[0][0][1], C_f32[0][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(2, 0), BPtr + BLdgOffset[0][2])
+                mma_atom::template fma_pair<T>(b[3][0][0], b[3][0][1], a[0][0][0], a[0][0][1], C_f32[0][3]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(2, 0), BPtr + BLdgOffset[0][2]);
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[0][0][2], a[0][0][3], C_f32[0][3]);
+                mma_atom::template fma_pair<T>(b[3][0][2], b[3][0][3], a[0][0][2], a[0][0][3], C_f32[0][3]);
             b[0][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + BLdsOffset[0]);
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][1][0], b[3][1][1], a[0][1][0], a[0][1][1], C_f32[0][3]);
+                mma_atom::template fma_pair<T>(b[3][1][0], b[3][1][1], a[0][1][0], a[0][1][1], C_f32[0][3]);
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][1][2], b[3][1][3], a[0][1][2], a[0][1][3], C_f32[0][3]);
+                mma_atom::template fma_pair<T>(b[3][1][2], b[3][1][3], a[0][1][2], a[0][1][3], C_f32[0][3]);
             b[0][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + BLdsOffset[1]);
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][2][0], b[3][2][1], a[0][2][0], a[0][2][1], C_f32[0][3]);
+                mma_atom::template fma_pair<T>(b[3][2][0], b[3][2][1], a[0][2][0], a[0][2][1], C_f32[0][3]);
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][2][2], b[3][2][3], a[0][2][2], a[0][2][3], C_f32[0][3]);
+                mma_atom::template fma_pair<T>(b[3][2][2], b[3][2][3], a[0][2][2], a[0][2][3], C_f32[0][3]);
             b[0][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + BLdsOffset[2]);
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][3][0], b[3][3][1], a[0][3][0], a[0][3][1], C_f32[0][3]);
+                mma_atom::template fma_pair<T>(b[3][3][0], b[3][3][1], a[0][3][0], a[0][3][1], C_f32[0][3]);
             C_f32[0][3] =
-                mma_16x16x16b16<T>(b[3][3][2], b[3][3][3], a[0][3][2], a[0][3][3], C_f32[0][3]);
+                mma_atom::template fma_pair<T>(b[3][3][2], b[3][3][3], a[0][3][2], a[0][3][3], C_f32[0][3]);
             b[0][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + BLdsOffset[3]);
 
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[3][0][0], a[3][0][1], C_f32[3][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(2, 1), BPtr + BLdgOffset[1][2])
+                mma_atom::template fma_pair<T>(b[1][0][0], b[1][0][1], a[3][0][0], a[3][0][1], C_f32[3][1]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(2, 1), BPtr + BLdgOffset[1][2]);
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[3][0][2], a[3][0][3], C_f32[3][1]);
+                mma_atom::template fma_pair<T>(b[1][0][2], b[1][0][3], a[3][0][2], a[3][0][3], C_f32[3][1]);
             a[0][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + ALdsOffset[0]);
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][1][0], b[1][1][1], a[3][1][0], a[3][1][1], C_f32[3][1]);
+                mma_atom::template fma_pair<T>(b[1][1][0], b[1][1][1], a[3][1][0], a[3][1][1], C_f32[3][1]);
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][1][2], b[1][1][3], a[3][1][2], a[3][1][3], C_f32[3][1]);
+                mma_atom::template fma_pair<T>(b[1][1][2], b[1][1][3], a[3][1][2], a[3][1][3], C_f32[3][1]);
             a[0][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + ALdsOffset[1]);
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][2][0], b[1][2][1], a[3][2][0], a[3][2][1], C_f32[3][1]);
+                mma_atom::template fma_pair<T>(b[1][2][0], b[1][2][1], a[3][2][0], a[3][2][1], C_f32[3][1]);
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][2][2], b[1][2][3], a[3][2][2], a[3][2][3], C_f32[3][1]);
+                mma_atom::template fma_pair<T>(b[1][2][2], b[1][2][3], a[3][2][2], a[3][2][3], C_f32[3][1]);
             a[0][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + ALdsOffset[2]);
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][3][0], b[1][3][1], a[3][3][0], a[3][3][1], C_f32[3][1]);
+                mma_atom::template fma_pair<T>(b[1][3][0], b[1][3][1], a[3][3][0], a[3][3][1], C_f32[3][1]);
             C_f32[3][1] =
-                mma_16x16x16b16<T>(b[1][3][2], b[1][3][3], a[3][3][2], a[3][3][3], C_f32[3][1]);
+                mma_atom::template fma_pair<T>(b[1][3][2], b[1][3][3], a[3][3][2], a[3][3][3], C_f32[3][1]);
             a[0][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + ALdsOffset[3]);
 
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[1][0][0], a[1][0][1], C_f32[1][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(3, 0), APtr + ALdgOffset[0][3])
+                mma_atom::template fma_pair<T>(b[3][0][0], b[3][0][1], a[1][0][0], a[1][0][1], C_f32[1][3]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(3, 0), APtr + ALdgOffset[0][3]);
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[1][0][2], a[1][0][3], C_f32[1][3]);
+                mma_atom::template fma_pair<T>(b[3][0][2], b[3][0][3], a[1][0][2], a[1][0][3], C_f32[1][3]);
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][1][0], b[3][1][1], a[1][1][0], a[1][1][1], C_f32[1][3]);
+                mma_atom::template fma_pair<T>(b[3][1][0], b[3][1][1], a[1][1][0], a[1][1][1], C_f32[1][3]);
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][1][2], b[3][1][3], a[1][1][2], a[1][1][3], C_f32[1][3]);
+                mma_atom::template fma_pair<T>(b[3][1][2], b[3][1][3], a[1][1][2], a[1][1][3], C_f32[1][3]);
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][2][0], b[3][2][1], a[1][2][0], a[1][2][1], C_f32[1][3]);
+                mma_atom::template fma_pair<T>(b[3][2][0], b[3][2][1], a[1][2][0], a[1][2][1], C_f32[1][3]);
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][2][2], b[3][2][3], a[1][2][2], a[1][2][3], C_f32[1][3]);
+                mma_atom::template fma_pair<T>(b[3][2][2], b[3][2][3], a[1][2][2], a[1][2][3], C_f32[1][3]);
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][3][0], b[3][3][1], a[1][3][0], a[1][3][1], C_f32[1][3]);
+                mma_atom::template fma_pair<T>(b[3][3][0], b[3][3][1], a[1][3][0], a[1][3][1], C_f32[1][3]);
             C_f32[1][3] =
-                mma_16x16x16b16<T>(b[3][3][2], b[3][3][3], a[1][3][2], a[1][3][3], C_f32[1][3]);
+                mma_atom::template fma_pair<T>(b[3][3][2], b[3][3][3], a[1][3][2], a[1][3][3], C_f32[1][3]);
 
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[3][0][0], a[3][0][1], C_f32[3][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(3, 1), APtr + ALdgOffset[1][3])
+                mma_atom::template fma_pair<T>(b[2][0][0], b[2][0][1], a[3][0][0], a[3][0][1], C_f32[3][2]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::a_stage_offset(3, 1), APtr + ALdgOffset[1][3]);
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[3][0][2], a[3][0][3], C_f32[3][2]);
+                mma_atom::template fma_pair<T>(b[2][0][2], b[2][0][3], a[3][0][2], a[3][0][3], C_f32[3][2]);
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][1][0], b[2][1][1], a[3][1][0], a[3][1][1], C_f32[3][2]);
+                mma_atom::template fma_pair<T>(b[2][1][0], b[2][1][1], a[3][1][0], a[3][1][1], C_f32[3][2]);
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][1][2], b[2][1][3], a[3][1][2], a[3][1][3], C_f32[3][2]);
+                mma_atom::template fma_pair<T>(b[2][1][2], b[2][1][3], a[3][1][2], a[3][1][3], C_f32[3][2]);
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][2][0], b[2][2][1], a[3][2][0], a[3][2][1], C_f32[3][2]);
+                mma_atom::template fma_pair<T>(b[2][2][0], b[2][2][1], a[3][2][0], a[3][2][1], C_f32[3][2]);
             schedule_atom::template wait_steady_window<Stage>();
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][2][2], b[2][2][3], a[3][2][2], a[3][2][3], C_f32[3][2]);
+                mma_atom::template fma_pair<T>(b[2][2][2], b[2][2][3], a[3][2][2], a[3][2][3], C_f32[3][2]);
             a[1][0] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 0);
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][3][0], b[2][3][1], a[3][3][0], a[3][3][1], C_f32[3][2]);
+                mma_atom::template fma_pair<T>(b[2][3][0], b[2][3][1], a[3][3][0], a[3][3][1], C_f32[3][2]);
             C_f32[3][2] =
-                mma_16x16x16b16<T>(b[2][3][2], b[2][3][3], a[3][3][2], a[3][3][3], C_f32[3][2]);
+                mma_atom::template fma_pair<T>(b[2][3][2], b[2][3][3], a[3][3][2], a[3][3][3], C_f32[3][2]);
             a[1][1] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 1);
 
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[2][0][0], a[2][0][1], C_f32[2][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(3, 0), BPtr + BLdgOffset[0][3])
+                mma_atom::template fma_pair<T>(b[3][0][0], b[3][0][1], a[2][0][0], a[2][0][1], C_f32[2][3]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(3, 0), BPtr + BLdgOffset[0][3]);
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[2][0][2], a[2][0][3], C_f32[2][3]);
+                mma_atom::template fma_pair<T>(b[3][0][2], b[3][0][3], a[2][0][2], a[2][0][3], C_f32[2][3]);
             a[1][2] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 2);
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][1][0], b[3][1][1], a[2][1][0], a[2][1][1], C_f32[2][3]);
+                mma_atom::template fma_pair<T>(b[3][1][0], b[3][1][1], a[2][1][0], a[2][1][1], C_f32[2][3]);
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][1][2], b[3][1][3], a[2][1][2], a[2][1][3], C_f32[2][3]);
+                mma_atom::template fma_pair<T>(b[3][1][2], b[3][1][3], a[2][1][2], a[2][1][3], C_f32[2][3]);
             a[1][3] = reload_atom::load_fragment<ALdsType>(WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 3);
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][2][0], b[3][2][1], a[2][2][0], a[2][2][1], C_f32[2][3]);
+                mma_atom::template fma_pair<T>(b[3][2][0], b[3][2][1], a[2][2][0], a[2][2][1], C_f32[2][3]);
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][2][2], b[3][2][3], a[2][2][2], a[2][2][3], C_f32[2][3]);
+                mma_atom::template fma_pair<T>(b[3][2][2], b[3][2][3], a[2][2][2], a[2][2][3], C_f32[2][3]);
             b[1][0] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 0);
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][3][0], b[3][3][1], a[2][3][0], a[2][3][1], C_f32[2][3]);
+                mma_atom::template fma_pair<T>(b[3][3][0], b[3][3][1], a[2][3][0], a[2][3][1], C_f32[2][3]);
             C_f32[2][3] =
-                mma_16x16x16b16<T>(b[3][3][2], b[3][3][3], a[2][3][2], a[2][3][3], C_f32[2][3]);
+                mma_atom::template fma_pair<T>(b[3][3][2], b[3][3][3], a[2][3][2], a[2][3][3], C_f32[2][3]);
             b[1][1] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 1);
 
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[3][0][0], a[3][0][1], C_f32[3][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(3, 1), BPtr + BLdgOffset[1][3])
+                mma_atom::template fma_pair<T>(b[3][0][0], b[3][0][1], a[3][0][0], a[3][0][1], C_f32[3][3]);
+            copy_atom::issue_b128_bsm_no_pred(WSM_Ldg + stage_layout::b_stage_offset(3, 1), BPtr + BLdgOffset[1][3]);
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[3][0][2], a[3][0][3], C_f32[3][3]);
+                mma_atom::template fma_pair<T>(b[3][0][2], b[3][0][3], a[3][0][2], a[3][0][3], C_f32[3][3]);
             b[1][2] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 2);
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][1][0], b[3][1][1], a[3][1][0], a[3][1][1], C_f32[3][3]);
+                mma_atom::template fma_pair<T>(b[3][1][0], b[3][1][1], a[3][1][0], a[3][1][1], C_f32[3][3]);
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][1][2], b[3][1][3], a[3][1][2], a[3][1][3], C_f32[3][3]);
+                mma_atom::template fma_pair<T>(b[3][1][2], b[3][1][3], a[3][1][2], a[3][1][3], C_f32[3][3]);
             b[1][3] = reload_atom::load_fragment<BLdsType>(WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 3);
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][2][0], b[3][2][1], a[3][2][0], a[3][2][1], C_f32[3][3]);
+                mma_atom::template fma_pair<T>(b[3][2][0], b[3][2][1], a[3][2][0], a[3][2][1], C_f32[3][3]);
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][2][2], b[3][2][3], a[3][2][2], a[3][2][3], C_f32[3][3]);
+                mma_atom::template fma_pair<T>(b[3][2][2], b[3][2][3], a[3][2][2], a[3][2][3], C_f32[3][3]);
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][3][0], b[3][3][1], a[3][3][0], a[3][3][1], C_f32[3][3]);
+                mma_atom::template fma_pair<T>(b[3][3][0], b[3][3][1], a[3][3][0], a[3][3][1], C_f32[3][3]);
             C_f32[3][3] =
-                mma_16x16x16b16<T>(b[3][3][2], b[3][3][3], a[3][3][2], a[3][3][3], C_f32[3][3]);
+                mma_atom::template fma_pair<T>(b[3][3][2], b[3][3][3], a[3][3][2], a[3][3][3], C_f32[3][3]);
         }
         APtr += 128 * sizeof(T);
         BPtr += 128 * sizeof(T) * ldb / ldb;
@@ -470,47 +471,47 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
             uint8_t *WSM_lds2 = WSM_lds + stage_layout::stage_base_offset(ldsIdx);
 
             for (int i = 0; i < stage_i; ++i) {
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][0][0], b[i][0][1], a[stage_i][0][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][0][0], b[i][0][1], a[stage_i][0][0],
                                                            a[stage_i][0][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][0][2], b[i][0][3], a[stage_i][0][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][0][2], b[i][0][3], a[stage_i][0][2],
                                                            a[stage_i][0][3], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][1][0], b[i][1][1], a[stage_i][1][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][1][0], b[i][1][1], a[stage_i][1][0],
                                                            a[stage_i][1][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][1][2], b[i][1][3], a[stage_i][1][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][1][2], b[i][1][3], a[stage_i][1][2],
                                                            a[stage_i][1][3], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][2][0], b[i][2][1], a[stage_i][2][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][2][0], b[i][2][1], a[stage_i][2][0],
                                                            a[stage_i][2][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][2][2], b[i][2][3], a[stage_i][2][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][2][2], b[i][2][3], a[stage_i][2][2],
                                                            a[stage_i][2][3], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][3][0], b[i][3][1], a[stage_i][3][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][3][0], b[i][3][1], a[stage_i][3][0],
                                                            a[stage_i][3][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][3][2], b[i][3][3], a[stage_i][3][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][3][2], b[i][3][3], a[stage_i][3][2],
                                                            a[stage_i][3][3], C_f32[stage_i][i + 0]);
             }
             for (int i = 0; i <= stage_i; ++i) {
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][0][0], b[stage_i][0][1], a[i][0][0], a[i][0][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][0][0], b[stage_i][0][1], a[i][0][0], a[i][0][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][0][2], b[stage_i][0][3], a[i][0][2], a[i][0][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][0][2], b[stage_i][0][3], a[i][0][2], a[i][0][3],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][1][0], b[stage_i][1][1], a[i][1][0], a[i][1][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][1][0], b[stage_i][1][1], a[i][1][0], a[i][1][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][1][2], b[stage_i][1][3], a[i][1][2], a[i][1][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][1][2], b[stage_i][1][3], a[i][1][2], a[i][1][3],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][2][0], b[stage_i][2][1], a[i][2][0], a[i][2][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][2][0], b[stage_i][2][1], a[i][2][0], a[i][2][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][2][2], b[stage_i][2][3], a[i][2][2], a[i][2][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][2][2], b[stage_i][2][3], a[i][2][2], a[i][2][3],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][3][0], b[stage_i][3][1], a[i][3][0], a[i][3][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][3][0], b[stage_i][3][1], a[i][3][0], a[i][3][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][3][2], b[stage_i][3][3], a[i][3][2], a[i][3][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][3][2], b[stage_i][3][3], a[i][3][2], a[i][3][3],
                                        C_f32[i][stage_i + 0]);
             }
 
@@ -536,47 +537,47 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
             uint8_t *WSM_lds2 = WSM_lds + stage_layout::stage_base_offset(ldsIdx);
 
             for (int i = 0; i < stage_i; ++i) {
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][0][0], b[i][0][1], a[stage_i][0][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][0][0], b[i][0][1], a[stage_i][0][0],
                                                            a[stage_i][0][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][0][2], b[i][0][3], a[stage_i][0][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][0][2], b[i][0][3], a[stage_i][0][2],
                                                            a[stage_i][0][3], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][1][0], b[i][1][1], a[stage_i][1][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][1][0], b[i][1][1], a[stage_i][1][0],
                                                            a[stage_i][1][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][1][2], b[i][1][3], a[stage_i][1][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][1][2], b[i][1][3], a[stage_i][1][2],
                                                            a[stage_i][1][3], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][2][0], b[i][2][1], a[stage_i][2][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][2][0], b[i][2][1], a[stage_i][2][0],
                                                            a[stage_i][2][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][2][2], b[i][2][3], a[stage_i][2][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][2][2], b[i][2][3], a[stage_i][2][2],
                                                            a[stage_i][2][3], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][3][0], b[i][3][1], a[stage_i][3][0],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][3][0], b[i][3][1], a[stage_i][3][0],
                                                            a[stage_i][3][1], C_f32[stage_i][i + 0]);
-                C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][3][2], b[i][3][3], a[stage_i][3][2],
+                C_f32[stage_i][i + 0] = mma_atom::template fma_pair<T>(b[i][3][2], b[i][3][3], a[stage_i][3][2],
                                                            a[stage_i][3][3], C_f32[stage_i][i + 0]);
             }
             for (int i = 0; i <= stage_i; ++i) {
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][0][0], b[stage_i][0][1], a[i][0][0], a[i][0][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][0][0], b[stage_i][0][1], a[i][0][0], a[i][0][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][0][2], b[stage_i][0][3], a[i][0][2], a[i][0][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][0][2], b[stage_i][0][3], a[i][0][2], a[i][0][3],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][1][0], b[stage_i][1][1], a[i][1][0], a[i][1][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][1][0], b[stage_i][1][1], a[i][1][0], a[i][1][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][1][2], b[stage_i][1][3], a[i][1][2], a[i][1][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][1][2], b[stage_i][1][3], a[i][1][2], a[i][1][3],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][2][0], b[stage_i][2][1], a[i][2][0], a[i][2][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][2][0], b[stage_i][2][1], a[i][2][0], a[i][2][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][2][2], b[stage_i][2][3], a[i][2][2], a[i][2][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][2][2], b[stage_i][2][3], a[i][2][2], a[i][2][3],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][3][0], b[stage_i][3][1], a[i][3][0], a[i][3][1],
+                    mma_atom::template fma_pair<T>(b[stage_i][3][0], b[stage_i][3][1], a[i][3][0], a[i][3][1],
                                        C_f32[i][stage_i + 0]);
                 C_f32[i][stage_i + 0] =
-                    mma_16x16x16b16<T>(b[stage_i][3][2], b[stage_i][3][3], a[i][3][2], a[i][3][3],
+                    mma_atom::template fma_pair<T>(b[stage_i][3][2], b[stage_i][3][3], a[i][3][2], a[i][3][3],
                                        C_f32[i][stage_i + 0]);
             }
 

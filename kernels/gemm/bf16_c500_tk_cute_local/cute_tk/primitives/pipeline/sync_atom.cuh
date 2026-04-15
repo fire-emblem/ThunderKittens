@@ -10,11 +10,6 @@ struct sync_atom {
         ::bf16_c500_tk_local::primitives::arrive_gvmcnt<Num>();
     }
 
-    template <int Num>
-    __device__ __forceinline__ static void wait_bsm_async() {
-        __builtin_mxc_arrive_bsmcnt(Num);
-    }
-
     __device__ __forceinline__ static void barrier() {
         ::bf16_c500_tk_local::primitives::barrier();
     }
