@@ -263,3 +263,31 @@ share the same high-level composition direction:
 
 That is the minimum viable abstraction set required to scale toward more
 shape-specific high-performance kernels without cloning full implementations.
+
+
+## Schedule variant experiment
+
+We also ran a same-geometry / different-schedule comparison on the imported
+TN example path by adding a more conservative stage4 schedule variant.
+
+Shapes tested:
+
+- 1664x1024x16384
+- 2048x2048x2048
+- 4096x4096x4096
+
+Representative averages:
+
+| Shape | conservative schedule | default TN schedule | Winner |
+| --- | ---: | ---: | --- |
+| 1664x1024x16384 | 151.310 | 151.298 | conservative (effectively tied) |
+| 2048x2048x2048 | 99.111 | 100.017 | default TN schedule |
+| 4096x4096x4096 | 148.672 | 149.160 | default TN schedule |
+
+Interpretation:
+
+- exposing schedule as an axis is correct
+- a more conservative synchronization-heavy stage4 variant does not beat the
+  existing imported TN schedule on the tested shapes
+- future schedule work should explore more meaningful issue-order / wait-window
+  variants, not just extra synchronization

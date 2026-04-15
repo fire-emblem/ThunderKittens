@@ -85,6 +85,15 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
         return run_family<LocalT, RefT, family>(
             "cute_runtime_case_tn_example", m, n, k, warmup, profile);
     }
+    if (env_flag("TK_CUTE_USE_TN_CONSERVATIVE")) {
+        using family = cute_tk::tn_example_conservative_bf16_stage4_family;
+        if (family::supports_runtime_shape(m, n, k)) {
+            return run_family<LocalT, RefT, family>(
+                "cute_runtime_case_tn_conservative", m, n, k, warmup,
+                profile);
+        }
+        return -1;
+    }
     if (env_flag("TK_CUTE_USE_TN_LINEAR_GEOMETRY")) {
         using family = cute_tk::tn_example_linear_geom_bf16_stage4_family;
         if (family::supports_runtime_shape(m, n, k)) {

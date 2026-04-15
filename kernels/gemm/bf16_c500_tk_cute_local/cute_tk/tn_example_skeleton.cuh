@@ -96,6 +96,9 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
         __builtin_mxc_ldg_b128_bsm_predicator(
             WSM_Ldg + 0x4000 * stage_i + 0x3000, BPtr + BLdgOffset[1][stage_i], 0, true, true,
             false, true, B_row, K / (sizeof(BLdgType) / sizeof(T)), MACA_ICMP_SLT);
+        if constexpr (SchedulePolicy::sync_each_stage_issue) {
+            __builtin_mxc_barrier_inst();
+        }
     }
     APtr += 128 * sizeof(T);
     BPtr += 128 * sizeof(T);
@@ -463,6 +466,10 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
         BPtr += 128 * sizeof(T) * ldb / ldb;
         // add 256 will cause using private memory in this kernel, optmize in the future
         // BPtr += 256;
+    }
+
+    if constexpr (SchedulePolicy::sync_before_tail_drain) {
+        __builtin_mxc_barrier_inst();
     }
 
     // LDG consider mask of K
