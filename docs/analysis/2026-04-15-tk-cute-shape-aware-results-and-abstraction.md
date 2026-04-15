@@ -424,6 +424,20 @@ means the project no longer duplicates the basic A/B stage-issue builtins in
 those leading lanes.
 
 
+## Reload-atom adoption status
+
+`reload_atom` is now no longer just a helper definition. The imported
+TN-example lane has begun switching repeated eight-load reload blocks over to
+the more meaningful `load_pair_stage(...)` action where the pattern is exact.
+
+That is the right level of abstraction pressure:
+
+- not just wrapping one load instruction
+- not trying to hide the whole mainloop
+- but capturing the repeated semantic action of \"reload one shared stage into
+  the A/B fragment pair\"
+
+
 ## Prologue-atom status
 
 The next stable implementation-facing primitive extracted after issue and wait
