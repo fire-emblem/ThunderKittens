@@ -15,13 +15,13 @@
 #include "layout_atom.cuh"
 #include "mma_atom.cuh"
 #include "prologue_atom.cuh"
+#include "reload_atom.cuh"
 #include "schedule_atom.cuh"
 #include "stage_layout_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
 using ::bf16_c500_tk_local::kernel::drain_layoutc_tail;
-using ::bf16_c500_tk_local::kernel::load_layoutc_fragment_from_shared;
 using ::bf16_c500_tk_local::kernel::mma_16x16x16b16;
 using ::bf16_c500_tk_local::kernel::run_layoutc_tail_iteration;
 
@@ -144,7 +144,7 @@ layoutc_stage4_device(
             C_f32[1][0] = mma_16x16x16b16<T, true>(
                 b[0][3][2], b[0][3][3], a[1][3][2], a[1][3][3], C_f32[1][0]);
 
-            a[2][0] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[2][0] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 0);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][0][0], b[1][0][1], a[0][0][0], a[0][0][1], C_f32[0][1]);
@@ -153,25 +153,25 @@ layoutc_stage4_device(
                 true, false, true, startCol + 0, N, MACA_ICMP_SLT);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][0][2], b[1][0][3], a[0][0][2], a[0][0][3], C_f32[0][1]);
-            a[2][1] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[2][1] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 1);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][1][0], b[1][1][1], a[0][1][0], a[0][1][1], C_f32[0][1]);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][1][2], b[1][1][3], a[0][1][2], a[0][1][3], C_f32[0][1]);
-            a[2][2] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[2][2] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 2);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][2][0], b[1][2][1], a[0][2][0], a[0][2][1], C_f32[0][1]);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][2][2], b[1][2][3], a[0][2][2], a[0][2][3], C_f32[0][1]);
-            a[2][3] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[2][3] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), ALdsOffset, 3);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][3][0], b[1][3][1], a[0][3][0], a[0][3][1], C_f32[0][1]);
             C_f32[0][1] = mma_16x16x16b16<T, true>(
                 b[1][3][2], b[1][3][3], a[0][3][2], a[0][3][3], C_f32[0][1]);
-            b[2][0] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[2][0] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 0);
 
             C_f32[1][1] = mma_16x16x16b16<T, true>(
@@ -181,19 +181,19 @@ layoutc_stage4_device(
                 true, false, true, startCol + 64, N, MACA_ICMP_SLT);
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][0][2], b[1][0][3], a[1][0][2], a[1][0][3], C_f32[1][1]);
-            b[2][1] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[2][1] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 1);
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][1][0], b[1][1][1], a[1][1][0], a[1][1][1], C_f32[1][1]);
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][1][2], b[1][1][3], a[1][1][2], a[1][1][3], C_f32[1][1]);
-            b[2][2] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[2][2] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 2);
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][2][0], b[1][2][1], a[1][2][0], a[1][2][1], C_f32[1][1]);
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][2][2], b[1][2][3], a[1][2][2], a[1][2][3], C_f32[1][1]);
-            b[2][3] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[2][3] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(2), BLdsOffset, 3);
             C_f32[1][1] = mma_16x16x16b16<T, true>(
                 b[1][3][0], b[1][3][1], a[1][3][0], a[1][3][1], C_f32[1][1]);
@@ -230,19 +230,19 @@ layoutc_stage4_device(
             schedule_atom::template wait_steady_window<Stage>();
             C_f32[2][1] = mma_16x16x16b16<T, true>(
                 b[1][1][2], b[1][1][3], a[2][1][2], a[2][1][3], C_f32[2][1]);
-            a[3][0] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[3][0] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 0);
             C_f32[2][1] = mma_16x16x16b16<T, true>(
                 b[1][2][0], b[1][2][1], a[2][2][0], a[2][2][1], C_f32[2][1]);
             C_f32[2][1] = mma_16x16x16b16<T, true>(
                 b[1][2][2], b[1][2][3], a[2][2][2], a[2][2][3], C_f32[2][1]);
-            a[3][1] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[3][1] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 1);
             C_f32[2][1] = mma_16x16x16b16<T, true>(
                 b[1][3][0], b[1][3][1], a[2][3][0], a[2][3][1], C_f32[2][1]);
             C_f32[2][1] = mma_16x16x16b16<T, true>(
                 b[1][3][2], b[1][3][3], a[2][3][2], a[2][3][3], C_f32[2][1]);
-            a[3][2] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[3][2] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 2);
 
             C_f32[0][2] = mma_16x16x16b16<T, true>(
@@ -252,25 +252,25 @@ layoutc_stage4_device(
                 true, false, true, startCol + 16, N, MACA_ICMP_SLT);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][0][2], b[2][0][3], a[0][0][2], a[0][0][3], C_f32[0][2]);
-            a[3][3] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[3][3] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), ALdsOffset, 3);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][1][0], b[2][1][1], a[0][1][0], a[0][1][1], C_f32[0][2]);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][1][2], b[2][1][3], a[0][1][2], a[0][1][3], C_f32[0][2]);
-            b[3][0] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[3][0] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 0);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][2][0], b[2][2][1], a[0][2][0], a[0][2][1], C_f32[0][2]);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][2][2], b[2][2][3], a[0][2][2], a[0][2][3], C_f32[0][2]);
-            b[3][1] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[3][1] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 1);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][3][0], b[2][3][1], a[0][3][0], a[0][3][1], C_f32[0][2]);
             C_f32[0][2] = mma_16x16x16b16<T, true>(
                 b[2][3][2], b[2][3][3], a[0][3][2], a[0][3][3], C_f32[0][2]);
-            b[3][2] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[3][2] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 2);
 
             C_f32[1][2] = mma_16x16x16b16<T, true>(
@@ -280,7 +280,7 @@ layoutc_stage4_device(
                 true, false, true, startCol + 80, N, MACA_ICMP_SLT);
             C_f32[1][2] = mma_16x16x16b16<T, true>(
                 b[2][0][2], b[2][0][3], a[1][0][2], a[1][0][3], C_f32[1][2]);
-            b[3][3] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[3][3] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(3), BLdsOffset, 3);
             C_f32[1][2] = mma_16x16x16b16<T, true>(
                 b[2][1][0], b[2][1][1], a[1][1][0], a[1][1][1], C_f32[1][2]);
@@ -341,25 +341,25 @@ layoutc_stage4_device(
                 true, false, true, startCol + 32, N, MACA_ICMP_SLT);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][0][2], b[3][0][3], a[0][0][2], a[0][0][3], C_f32[0][3]);
-            b[0][0] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[0][0] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds, BLdsOffset, 0);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][1][0], b[3][1][1], a[0][1][0], a[0][1][1], C_f32[0][3]);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][1][2], b[3][1][3], a[0][1][2], a[0][1][3], C_f32[0][3]);
-            b[0][1] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[0][1] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds, BLdsOffset, 1);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][2][0], b[3][2][1], a[0][2][0], a[0][2][1], C_f32[0][3]);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][2][2], b[3][2][3], a[0][2][2], a[0][2][3], C_f32[0][3]);
-            b[0][2] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[0][2] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds, BLdsOffset, 2);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][3][0], b[3][3][1], a[0][3][0], a[0][3][1], C_f32[0][3]);
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][3][2], b[3][3][3], a[0][3][2], a[0][3][3], C_f32[0][3]);
-            b[0][3] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[0][3] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds, BLdsOffset, 3);
 
             C_f32[3][1] = mma_16x16x16b16<T, true>(
@@ -369,25 +369,25 @@ layoutc_stage4_device(
                 true, false, true, startCol + 96, N, MACA_ICMP_SLT);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][0][2], b[1][0][3], a[3][0][2], a[3][0][3], C_f32[3][1]);
-            a[0][0] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[0][0] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds, ALdsOffset, 0);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][1][0], b[1][1][1], a[3][1][0], a[3][1][1], C_f32[3][1]);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][1][2], b[1][1][3], a[3][1][2], a[3][1][3], C_f32[3][1]);
-            a[0][1] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[0][1] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds, ALdsOffset, 1);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][2][0], b[1][2][1], a[3][2][0], a[3][2][1], C_f32[3][1]);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][2][2], b[1][2][3], a[3][2][2], a[3][2][3], C_f32[3][1]);
-            a[0][2] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[0][2] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds, ALdsOffset, 2);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][3][0], b[1][3][1], a[3][3][0], a[3][3][1], C_f32[3][1]);
             C_f32[3][1] = mma_16x16x16b16<T, true>(
                 b[1][3][2], b[1][3][3], a[3][3][2], a[3][3][3], C_f32[3][1]);
-            a[0][3] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[0][3] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds, ALdsOffset, 3);
 
             C_f32[1][3] = mma_16x16x16b16<T, true>(
@@ -424,13 +424,13 @@ layoutc_stage4_device(
             schedule_atom::template wait_steady_window<Stage>();
             C_f32[3][2] = mma_16x16x16b16<T, true>(
                 b[2][2][2], b[2][2][3], a[3][2][2], a[3][2][3], C_f32[3][2]);
-            a[1][0] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[1][0] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 0);
             C_f32[3][2] = mma_16x16x16b16<T, true>(
                 b[2][3][0], b[2][3][1], a[3][3][0], a[3][3][1], C_f32[3][2]);
             C_f32[3][2] = mma_16x16x16b16<T, true>(
                 b[2][3][2], b[2][3][3], a[3][3][2], a[3][3][3], C_f32[3][2]);
-            a[1][1] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[1][1] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 1);
 
             C_f32[2][3] = mma_16x16x16b16<T, true>(
@@ -440,25 +440,25 @@ layoutc_stage4_device(
                 true, false, true, startCol + 48, N, MACA_ICMP_SLT);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][0][2], b[3][0][3], a[2][0][2], a[2][0][3], C_f32[2][3]);
-            a[1][2] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[1][2] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 2);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][1][0], b[3][1][1], a[2][1][0], a[2][1][1], C_f32[2][3]);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][1][2], b[3][1][3], a[2][1][2], a[2][1][3], C_f32[2][3]);
-            a[1][3] = load_layoutc_fragment_from_shared<ALdsType>(
+            a[1][3] = reload_atom::load_fragment<ALdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), ALdsOffset, 3);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][2][0], b[3][2][1], a[2][2][0], a[2][2][1], C_f32[2][3]);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][2][2], b[3][2][3], a[2][2][2], a[2][2][3], C_f32[2][3]);
-            b[1][0] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[1][0] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 0);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][3][0], b[3][3][1], a[2][3][0], a[2][3][1], C_f32[2][3]);
             C_f32[2][3] = mma_16x16x16b16<T, true>(
                 b[3][3][2], b[3][3][3], a[2][3][2], a[2][3][3], C_f32[2][3]);
-            b[1][1] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[1][1] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 1);
 
             C_f32[3][3] = mma_16x16x16b16<T, true>(
@@ -468,13 +468,13 @@ layoutc_stage4_device(
                 true, false, true, startCol + 112, N, MACA_ICMP_SLT);
             C_f32[3][3] = mma_16x16x16b16<T, true>(
                 b[3][0][2], b[3][0][3], a[3][0][2], a[3][0][3], C_f32[3][3]);
-            b[1][2] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[1][2] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 2);
             C_f32[3][3] = mma_16x16x16b16<T, true>(
                 b[3][1][0], b[3][1][1], a[3][1][0], a[3][1][1], C_f32[3][3]);
             C_f32[3][3] = mma_16x16x16b16<T, true>(
                 b[3][1][2], b[3][1][3], a[3][1][2], a[3][1][3], C_f32[3][3]);
-            b[1][3] = load_layoutc_fragment_from_shared<BLdsType>(
+            b[1][3] = reload_atom::load_fragment<BLdsType>(
                 WSM_lds + stage_layout::stage_base_offset(1), BLdsOffset, 3);
             C_f32[3][3] = mma_16x16x16b16<T, true>(
                 b[3][2][0], b[3][2][1], a[3][2][0], a[3][2][1], C_f32[3][3]);
