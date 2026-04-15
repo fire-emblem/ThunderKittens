@@ -43,6 +43,10 @@ int run_shape_aware_dispatch(int m, int n, int k, int warmup, int profile) {
         return run_best_family_case<4096, 4096, 4096, LocalT, RefT>(warmup,
                                                                     profile);
     }
+    if (m == 8192 && n == 8192 && k == 8192) {
+        return run_best_family_case<8192, 8192, 8192, LocalT, RefT>(warmup,
+                                                                    profile);
+    }
     if (m == 4608 && n == 128 && k == 3584) {
         return run_best_family_case<4608, 128, 3584, LocalT, RefT>(warmup,
                                                                     profile);
@@ -125,11 +129,11 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
                 "cute_runtime_case_2048cube_square_tt256", m, n, k, warmup,
                 profile);
         }
-        if (m == 4096 && n == 4096 && k == 4096) {
-            using family = cute_tk::square_tt_256x256x64_stage4_family;
-            return run_family<LocalT, RefT, family>(
-                "cute_runtime_case_4096cube_square_tt256", m, n, k, warmup,
-                profile);
+    if (m == 4096 && n == 4096 && k == 4096) {
+        using family = cute_tk::square_tt_256x256x64_stage4_family;
+        return run_family<LocalT, RefT, family>(
+            "cute_runtime_case_4096cube_square_tt256", m, n, k, warmup,
+            profile);
         }
     }
     if (m == 1664 && n == 1024 && k == 16384) {
@@ -145,6 +149,11 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
     if (m == 4096 && n == 4096 && k == 4096) {
         using family = cute_tk::layoutc_perf_family<4096, 4096, 4096>;
         return run_family<LocalT, RefT, family>("cute_runtime_case_4096cube_layoutc",
+                                                m, n, k, warmup, profile);
+    }
+    if (m == 8192 && n == 8192 && k == 8192) {
+        using family = cute_tk::layoutc_perf_family<8192, 8192, 8192>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_8192cube_layoutc",
                                                 m, n, k, warmup, profile);
     }
     return -1;

@@ -318,6 +318,50 @@ TARGETS = [
         },
     ),
     Target(
+        name="cute_shape_aware_best_8192cube_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_shape_aware_best_8192cube_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_SHAPE_AWARE": "1",
+            "TK_CUTE_M": "8192",
+            "TK_CUTE_N": "8192",
+            "TK_CUTE_K": "8192",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="cute_tn_example_8192cube_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tn_example_8192cube_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_USE_TN_EXAMPLE": "1",
+            "TK_CUTE_M": "8192",
+            "TK_CUTE_N": "8192",
+            "TK_CUTE_K": "8192",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
+        name="cute_layoutc_8192cube_bf16",
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name="cute_tk_runtime_8192cube_bf16_cmp.out",
+        extra_flags="",
+        env={
+            "TK_CUTE_M": "8192",
+            "TK_CUTE_N": "8192",
+            "TK_CUTE_K": "8192",
+            "TK_CUTE_WARMUP": "1",
+            "TK_CUTE_PROFILE": "3",
+        },
+    ),
+    Target(
         name="tk_local_layoutc_4096cube_bf16",
         dtype="bf16",
         src="bf16_c500_tk_local_gemm.cu",
@@ -729,6 +773,18 @@ MCBLAS_DIRECT_TARGETS = {
             "-DBF16_MCBLAS_PROBLEM_M=2048 "
             "-DBF16_MCBLAS_PROBLEM_N=2048 "
             "-DBF16_MCBLAS_PROBLEM_K=2048 "
+            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
+            "-DBF16_MCBLAS_PROFILE_ITERS=20"
+        ),
+    },
+    ("bf16", 8192, 8192, 8192): {
+        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
+        "out_name": "mcblas_8192cube_bf16_cmp.out",
+        "extra_flags": (
+            "-lmcblas "
+            "-DBF16_MCBLAS_PROBLEM_M=8192 "
+            "-DBF16_MCBLAS_PROBLEM_N=8192 "
+            "-DBF16_MCBLAS_PROBLEM_K=8192 "
             "-DBF16_MCBLAS_WARMUP_ITERS=5 "
             "-DBF16_MCBLAS_PROFILE_ITERS=20"
         ),

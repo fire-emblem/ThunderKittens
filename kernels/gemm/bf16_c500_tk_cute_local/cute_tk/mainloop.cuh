@@ -64,6 +64,11 @@ struct best_family_policy<4096, 4096, 4096> {
 };
 
 template <>
+struct best_family_policy<8192, 8192, 8192> {
+    using type = default_layoutc_family;
+};
+
+template <>
 struct best_family_policy<4608, 128, 3584> {
     using type = continuousc_reusea_perf_family<4608, 128, 3584>;
 };

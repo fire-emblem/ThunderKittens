@@ -80,6 +80,12 @@ struct layoutc_perf_policy<4096, 4096, 4096> {
     using stage_policy = stage_4;
 };
 
+template <>
+struct layoutc_perf_policy<8192, 8192, 8192> {
+    using tile_shape = tile_128x128x128;
+    using stage_policy = stage_4;
+};
+
 template <typename TileShape, typename StagePolicy, int APerWarp_, int SplitN_,
           int SplitK_>
 struct continuousc_reusea_family_policy {
