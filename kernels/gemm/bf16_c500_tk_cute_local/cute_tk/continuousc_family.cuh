@@ -7,6 +7,7 @@
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
 #include "composition/family_pattern.cuh"
+#include "composition/gemm_kernel_template.cuh"
 #include "primitives/structure/geometry_atom.cuh"
 #include "continuousc_skeleton.cuh"
 #include "policies.cuh"
@@ -60,10 +61,11 @@ struct continuousc_family
                               int ldc, Tscal alpha_value, Tscal beta_value,
                               const void *bias = nullptr) {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            cute_tk_bf16_continuousc_tile128x128x128_stage4_family_t<
-                T, Tc, Tscal, IsBetaZero,
-                HasOneDimBias><<<grid_dim, tile::threads>>>(
-                a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
+            launch_gemm_pattern_kernel<
+                ::bf16_c500_tk_cute_local::cute_tk::kernel::continuousc_stage4_body,
+                tile::threads, T, Tc, Tscal, IsBetaZero, HasOneDimBias,
+                pattern>(grid_dim, a, b, c, m, n, k, lda, ldb, ldc,
+                         alpha_value, beta_value, bias);
     }
 };
 

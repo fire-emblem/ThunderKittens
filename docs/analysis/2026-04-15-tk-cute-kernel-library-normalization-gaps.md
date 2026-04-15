@@ -43,7 +43,7 @@ Where the family-specific part is only the irreducible hot-path ordering.
 | --- | --- | --- |
 | `layoutc` | medium-high | still owns a large hand-written mainloop body; many direct `LDG_B128_BSM...` calls remain in skeleton/prologue |
 | `swizzled_tn` | medium-high | same 128-family hot loop is still open-coded instead of expressed through a reusable kernel body |
-| `continuousc` | low-medium | mostly unified at family-shell level, not yet deeply rewritten around the primitive library |
+| `continuousc` | medium | shares the template kernel-entry surface now, but still delegates its real body to tk-local logic |
 | `continuousc_reusea` | medium | schedule/store sharing exists, but hot refill/seed and work partition remain mostly private |
 | `square_tt` | low-medium | only stage-I/O and fragment-pack atoms exist; most execution still depends on macro-heavy local choreography |
 
@@ -63,15 +63,18 @@ Consequence:
 - launch structure is normalized
 - hot-loop structure is not yet normalized
 
-### 2. `continuousc` is still mostly a shell, not a primitive-library consumer
+### 2. `continuousc` still delegates its body to tk-local logic
 
 Current issue:
-- shell naming and dispatch are unified
+- shell naming, dispatch, and launch entry are unified
 - deeper geometry/stage/pipeline usage is still not on par with `layoutc` and
   `swizzled_tn`
+- the lane still forwards its real stage4 body into tk-local code instead of
+  expressing it through the cute-side primitive vocabulary
 
 Consequence:
 - adding future continuous-C variants would still encourage local ad-hoc logic
+- the lane looks normalized at the surface, but not yet in its body
 
 ### 3. `continuousc_reusea` still hides too much family-private pipeline logic
 
