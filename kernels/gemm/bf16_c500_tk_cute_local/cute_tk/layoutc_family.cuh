@@ -41,7 +41,7 @@ struct layoutc_family
                   "cute_tk layoutc_family currently supports only stage4");
 
     static constexpr const char *family_name =
-        "cute_tk_layoutc_128x128x128_stage4";
+        "cute_tk_layoutc_tile128x128x128_stage4";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
     static constexpr bool requires_zero_init = false;
@@ -62,17 +62,28 @@ struct layoutc_family
                               int ldc, Tscal alpha_value, Tscal beta_value,
                               const void *bias = nullptr) {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            cute_tk_bf16_layoutc_128x128x128_stage4<
+            cute_tk_bf16_layoutc_tile128x128x128_stage4_family_t<
                 T, Tc, Tscal, IsBetaZero, HasOneDimBias,
                 pattern><<<grid_dim, tile::threads>>>(
                 a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
     }
 };
 
-using layoutc_128x128x128_stage4 =
+using layoutc_tile128x128x128_stage4_family_t =
     layoutc_family<tile_128x128x128, stage_4>;
-using layoutc_128x128x128_stage4_tn_swizzled =
+using layoutc_tile128x128x128_stage4_swizzled_tn_geometry_family_t =
     layoutc_family<tile_128x128x128, stage_4,
-                   ::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom>;
+                   ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_layout_atom>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::families
+
+namespace bf16_c500_tk_cute_local::cute_tk {
+
+using layoutc_tile128x128x128_stage4_family_t =
+    ::bf16_c500_tk_cute_local::cute_tk::families::
+        layoutc_tile128x128x128_stage4_family_t;
+using layoutc_tile128x128x128_stage4_swizzled_tn_geometry_family_t =
+    ::bf16_c500_tk_cute_local::cute_tk::families::
+        layoutc_tile128x128x128_stage4_swizzled_tn_geometry_family_t;
+
+} // namespace bf16_c500_tk_cute_local::cute_tk

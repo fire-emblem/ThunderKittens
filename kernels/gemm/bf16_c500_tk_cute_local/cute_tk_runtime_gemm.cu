@@ -24,8 +24,8 @@ int run_family(const char *case_name, int m, int n, int k, int warmup,
 
 template <int M, int N, int K, typename LocalT, typename RefT>
 int run_best_family_case(int warmup, int profile) {
-    using family = cute_tk::best_family_t<M, N, K>;
-    return run_family<LocalT, RefT, family>("cute_runtime_case_shape_aware_best",
+    using family = cute_tk::best_shape_selected_family_t<M, N, K>;
+    return run_family<LocalT, RefT, family>("cute_runtime_case_shape_selected_best",
                                             M, N, K, warmup, profile);
 }
 
@@ -84,49 +84,49 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
         }
         return -1;
     }
-    if (env_flag("TK_CUTE_USE_TN_EXAMPLE")) {
-        using family = cute_tk::tn_example_bf16_stage4_family;
+    if (env_flag("TK_CUTE_USE_SWIZZLED_TN")) {
+        using family = cute_tk::swizzled_tn_tile128x128x128_stage4_family_t;
         return run_family<LocalT, RefT, family>(
-            "cute_runtime_case_tn_example", m, n, k, warmup, profile);
+            "cute_runtime_case_swizzled_tn", m, n, k, warmup, profile);
     }
     if (env_flag("TK_CUTE_USE_SQUARE_TT256")) {
         if (m == 256 && n == 256 && k == 64) {
-            using family = cute_tk::square_tt_256x256x64_stage4_family;
+            using family = cute_tk::square_tt_tile256x256x64_stage4_family_t;
             return run_family<LocalT, RefT, family>(
-                "cute_runtime_case_256tile_square_tt256", m, n, k, warmup,
+                "cute_runtime_case_square_tt_256x256x64", m, n, k, warmup,
                 profile);
         }
         if (m == 2048 && n == 2048 && k == 2048) {
-            using family = cute_tk::square_tt_256x256x64_stage4_family;
+            using family = cute_tk::square_tt_tile256x256x64_stage4_family_t;
             return run_family<LocalT, RefT, family>(
-                "cute_runtime_case_2048cube_square_tt256", m, n, k, warmup,
+                "cute_runtime_case_square_tt_2048x2048x2048", m, n, k, warmup,
                 profile);
         }
         if (m == 4096 && n == 4096 && k == 4096) {
-            using family = cute_tk::square_tt_256x256x64_stage4_family;
+            using family = cute_tk::square_tt_tile256x256x64_stage4_family_t;
             return run_family<LocalT, RefT, family>(
-                "cute_runtime_case_4096cube_square_tt256", m, n, k, warmup,
+                "cute_runtime_case_square_tt_4096x4096x4096", m, n, k, warmup,
                 profile);
         }
     }
     if (m == 1664 && n == 1024 && k == 16384) {
-        using family = cute_tk::default_layoutc_family;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_1664x1024x16384_layoutc",
+        using family = cute_tk::layoutc_tile128x128x128_stage4_family_t;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_layoutc_1664x1024x16384",
                                                 m, n, k, warmup, profile);
     }
     if (m == 2048 && n == 2048 && k == 2048) {
-        using family = cute_tk::layoutc_perf_family<2048, 2048, 2048>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_2048cube_layoutc",
+        using family = cute_tk::layoutc_shape_selected_family_t<2048, 2048, 2048>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_layoutc_2048x2048x2048",
                                                 m, n, k, warmup, profile);
     }
     if (m == 4096 && n == 4096 && k == 4096) {
-        using family = cute_tk::layoutc_perf_family<4096, 4096, 4096>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_4096cube_layoutc",
+        using family = cute_tk::layoutc_shape_selected_family_t<4096, 4096, 4096>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_layoutc_4096x4096x4096",
                                                 m, n, k, warmup, profile);
     }
     if (m == 8192 && n == 8192 && k == 8192) {
-        using family = cute_tk::layoutc_perf_family<8192, 8192, 8192>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_8192cube_layoutc",
+        using family = cute_tk::layoutc_shape_selected_family_t<8192, 8192, 8192>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_layoutc_8192x8192x8192",
                                                 m, n, k, warmup, profile);
     }
     return -1;
@@ -135,38 +135,38 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
 template <typename LocalT, typename RefT>
 int run_continuousc_dispatch(int m, int n, int k, int warmup, int profile) {
     if (m == 4608 && n == 128 && k == 3584) {
-        using family = cute_tk::continuousc_reusea_perf_family<4608, 128, 3584>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_4608x128x3584",
+        using family = cute_tk::continuousc_reusea_shape_selected_family_t<4608, 128, 3584>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_continuousc_reusea_4608x128x3584",
                                                 m, n, k, warmup, profile);
     }
     if (m == 4608 && n == 256 && k == 3584) {
-        using family = cute_tk::continuousc_reusea_perf_family<4608, 256, 3584>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_4608x256x3584",
+        using family = cute_tk::continuousc_reusea_shape_selected_family_t<4608, 256, 3584>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_continuousc_reusea_4608x256x3584",
                                                 m, n, k, warmup, profile);
     }
     if (m == 3584 && n == 128 && k == 3584) {
-        using family = cute_tk::continuousc_reusea_perf_family<3584, 128, 3584>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_3584x128x3584",
+        using family = cute_tk::continuousc_reusea_shape_selected_family_t<3584, 128, 3584>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_continuousc_reusea_3584x128x3584",
                                                 m, n, k, warmup, profile);
     }
     if (m == 3584 && n == 128 && k == 18944) {
-        using family = cute_tk::continuousc_reusea_perf_family<3584, 128, 18944>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_3584x128x18944",
+        using family = cute_tk::continuousc_reusea_shape_selected_family_t<3584, 128, 18944>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_continuousc_reusea_3584x128x18944",
                                                 m, n, k, warmup, profile);
     }
     if (m == 3584 && n == 256 && k == 18944) {
-        using family = cute_tk::continuousc_reusea_perf_family<3584, 256, 18944>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_3584x256x18944",
+        using family = cute_tk::continuousc_reusea_shape_selected_family_t<3584, 256, 18944>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_continuousc_reusea_3584x256x18944",
                                                 m, n, k, warmup, profile);
     }
     if (m == 37888 && n == 256 && k == 3584) {
-        using family = cute_tk::continuousc_reusea_perf_family<37888, 256, 3584>;
-        return run_family<LocalT, RefT, family>("cute_runtime_case_37888x256x3584",
+        using family = cute_tk::continuousc_reusea_shape_selected_family_t<37888, 256, 3584>;
+        return run_family<LocalT, RefT, family>("cute_runtime_case_continuousc_reusea_37888x256x3584",
                                                 m, n, k, warmup, profile);
     }
 
-    using family = cute_tk::default_continuousc_family;
-    return run_family<LocalT, RefT, family>("cute_runtime_case_default", m, n, k,
+    using family = cute_tk::continuousc_tile128x128x128_stage4_family_t;
+    return run_family<LocalT, RefT, family>("cute_runtime_case_continuousc_default", m, n, k,
                                             warmup, profile);
 }
 

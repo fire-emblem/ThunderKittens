@@ -17,10 +17,10 @@ CURRENT = Path(
 MIN_RATIO = float(os.environ.get("CUTE_TK_VS_TK_LOCAL_MIN_RATIO", "0.95"))
 
 PAIRS = [
-    ("cute_layoutc_2048cube_bf16", "tk_local_layoutc_2048cube_bf16"),
-    ("cute_layoutc_4096cube_bf16", "tk_local_layoutc_4096cube_bf16"),
-    ("cute_reusea_n128", "tk_local_n128"),
-    ("cute_reusea_n256", "tk_local_n256"),
+    ("cute_layoutc_2048x2048x2048_bf16", "tk_local_layoutc_2048x2048x2048_bf16"),
+    ("cute_layoutc_4096x4096x4096_bf16", "tk_local_layoutc_4096x4096x4096_bf16"),
+    ("cute_continuousc_reusea_4608x128x3584_bf16", "tk_local_continuousc_4608x128x3584_bf16"),
+    ("cute_continuousc_reusea_4608x256x3584_bf16", "tk_local_continuousc_4608x256x3584_bf16"),
     ("cute_reusea_3584x128x3584", "tk_local_3584x128x3584"),
     ("cute_reusea_3584x128x18944", "tk_local_3584x128x18944"),
     ("cute_reusea_37888x256x3584", "tk_local_37888x256x3584"),

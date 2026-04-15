@@ -3,10 +3,11 @@
 namespace bf16_c500_tk_cute_local::cute_tk {
 
 struct layoutc_semantic_tag {};
-struct tn_example_semantic_tag {};
+struct swizzled_tn_semantic_tag {};
 struct continuousc_semantic_tag {};
 struct continuousc_reusea_semantic_tag {};
 struct continuousc_reusea_layoutc_semantic_tag {};
+struct square_tt_semantic_tag {};
 
 template <typename SemanticTag, typename TileShape, typename GeometryAtom,
           typename SchedulePolicy, typename StageLayoutAtom>

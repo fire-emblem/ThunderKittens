@@ -15,9 +15,9 @@ namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-              ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+              ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_semantic_tag,
               ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
-              ::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
+              ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_layout_atom,
               ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
               ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
 __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const void *A,
@@ -648,9 +648,9 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-              ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+              ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_semantic_tag,
               ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
-              ::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
+              ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_layout_atom,
               ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
               ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
 __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,

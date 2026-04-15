@@ -44,7 +44,7 @@ struct continuousc_family
                   "continuousc_family schedule policy must match stage policy");
 
     static constexpr const char *family_name =
-        "cute_tk_continuousc_128x128x128_stage4";
+        "cute_tk_continuousc_tile128x128x128_stage4";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
     static constexpr bool requires_zero_init = false;
@@ -60,14 +60,22 @@ struct continuousc_family
                               int ldc, Tscal alpha_value, Tscal beta_value,
                               const void *bias = nullptr) {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            cute_tk_bf16_continuousc_128x128x128_stage4<
+            cute_tk_bf16_continuousc_tile128x128x128_stage4_family_t<
                 T, Tc, Tscal, IsBetaZero,
                 HasOneDimBias><<<grid_dim, tile::threads>>>(
                 a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
     }
 };
 
-using continuousc_128x128x128_stage4 =
+using continuousc_tile128x128x128_stage4_family_t =
     continuousc_family<tile_128x128x128, stage_4>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::families
+
+namespace bf16_c500_tk_cute_local::cute_tk {
+
+using continuousc_tile128x128x128_stage4_family_t =
+    ::bf16_c500_tk_cute_local::cute_tk::families::
+        continuousc_tile128x128x128_stage4_family_t;
+
+} // namespace bf16_c500_tk_cute_local::cute_tk

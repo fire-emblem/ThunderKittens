@@ -31,14 +31,14 @@ struct current_layoutc_geometry_provider {
     }
 };
 
-struct tn_example_swizzled_geometry_provider {
+struct swizzled_tn_geometry_provider {
     template <typename ALdgType, typename BLdgType, typename ALdsType,
               typename BLdsType>
     __device__ __forceinline__ static auto make(int tid, int lane, int slot,
                                                 int lda, int ldb, int m_a,
                                                 int n_b) {
         return ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            tn_example_swizzled_geometry::template make<ALdgType, BLdgType,
+            swizzled_tn_geometry::template make<ALdgType, BLdgType,
                                                         ALdsType, BLdsType>(
                 tid, lane, slot, lda, ldb, m_a, n_b);
     }
@@ -51,8 +51,8 @@ using layoutc_layout_atom =
 using continuousc_layout_atom =
     geometry_atom<::bf16_c500_tk_local::host::continuousc_host_traits,
                   current_layoutc_geometry_provider>;
-using tn_example_swizzled_layout_atom =
+using swizzled_tn_layout_atom =
     geometry_atom<::bf16_c500_tk_local::host::tn_example_host_traits,
-                  tn_example_swizzled_geometry_provider>;
+                  swizzled_tn_geometry_provider>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

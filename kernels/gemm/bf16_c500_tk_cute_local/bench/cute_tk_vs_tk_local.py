@@ -87,51 +87,51 @@ def tk_local_layoutc_target(name: str, m: int, n: int, k: int) -> Target:
     )
 
 TARGETS = [
-    cute_runtime_target("cute_shape_aware_best_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_shape_selected_best_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
     cute_runtime_target("cute_layoutc_1664x1024x16384_bf16", 1664, 1024, 16384),
 
-    cute_runtime_target("cute_shape_aware_best_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_layoutc_2048cube_bf16", 2048, 2048, 2048),
-    tk_local_layoutc_target("tk_local_layoutc_2048cube_bf16", 2048, 2048, 2048),
+    cute_runtime_target("cute_shape_selected_best_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_layoutc_2048x2048x2048_bf16", 2048, 2048, 2048),
+    tk_local_layoutc_target("tk_local_layoutc_2048x2048x2048_bf16", 2048, 2048, 2048),
 
-    cute_runtime_target("cute_shape_aware_best_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_layoutc_4096cube_bf16", 4096, 4096, 4096),
-    tk_local_layoutc_target("tk_local_layoutc_4096cube_bf16", 4096, 4096, 4096),
+    cute_runtime_target("cute_shape_selected_best_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_layoutc_4096x4096x4096_bf16", 4096, 4096, 4096),
+    tk_local_layoutc_target("tk_local_layoutc_4096x4096x4096_bf16", 4096, 4096, 4096),
 
-    cute_runtime_target("cute_shape_aware_best_8192cube_bf16", 8192, 8192, 8192, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_8192cube_bf16", 8192, 8192, 8192, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_layoutc_8192cube_bf16", 8192, 8192, 8192),
+    cute_runtime_target("cute_shape_selected_best_8192cube_bf16", 8192, 8192, 8192, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_8192cube_bf16", 8192, 8192, 8192, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_layoutc_8192x8192x8192_bf16", 8192, 8192, 8192),
 
-    cute_runtime_target("cute_shape_aware_best_4608x128x3584_bf16", 4608, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_4608x128x3584_bf16", 4608, 128, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_reusea_n128", 4608, 128, 3584),
-    tk_local_target("tk_local_n128", 4608, 128, 3584),
+    cute_runtime_target("cute_shape_selected_best_4608x128x3584_bf16", 4608, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_4608x128x3584_bf16", 4608, 128, 3584, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_continuousc_reusea_4608x128x3584_bf16", 4608, 128, 3584),
+    tk_local_target("tk_local_continuousc_4608x128x3584_bf16", 4608, 128, 3584),
 
-    cute_runtime_target("cute_shape_aware_best_4608x256x3584_bf16", 4608, 256, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_4608x256x3584_bf16", 4608, 256, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_reusea_n256", 4608, 256, 3584),
-    tk_local_target("tk_local_n256", 4608, 256, 3584),
+    cute_runtime_target("cute_shape_selected_best_4608x256x3584_bf16", 4608, 256, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_4608x256x3584_bf16", 4608, 256, 3584, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_continuousc_reusea_4608x256x3584_bf16", 4608, 256, 3584),
+    tk_local_target("tk_local_continuousc_4608x256x3584_bf16", 4608, 256, 3584),
 
-    cute_runtime_target("cute_shape_aware_best_3584x128x3584_bf16", 3584, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_3584x128x3584_bf16", 3584, 128, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_reusea_3584x128x3584", 3584, 128, 3584),
+    cute_runtime_target("cute_shape_selected_best_3584x128x3584_bf16", 3584, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_3584x128x3584_bf16", 3584, 128, 3584, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_continuousc_reusea_3584x128x3584", 3584, 128, 3584),
     tk_local_target("tk_local_3584x128x3584", 3584, 128, 3584),
 
-    cute_runtime_target("cute_shape_aware_best_3584x128x18944_bf16", 3584, 128, 18944, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_3584x128x18944_bf16", 3584, 128, 18944, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_reusea_3584x128x18944", 3584, 128, 18944),
+    cute_runtime_target("cute_shape_selected_best_3584x128x18944_bf16", 3584, 128, 18944, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_3584x128x18944_bf16", 3584, 128, 18944, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_continuousc_reusea_3584x128x18944", 3584, 128, 18944),
     tk_local_target("tk_local_3584x128x18944", 3584, 128, 18944),
 
-    cute_runtime_target("cute_shape_aware_best_37888x256x3584_bf16", 37888, 256, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_37888x256x3584_bf16", 37888, 256, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
-    cute_runtime_target("cute_reusea_37888x256x3584", 37888, 256, 3584),
+    cute_runtime_target("cute_shape_selected_best_37888x256x3584_bf16", 37888, 256, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_37888x256x3584_bf16", 37888, 256, 3584, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
+    cute_runtime_target("cute_continuousc_reusea_37888x256x3584", 37888, 256, 3584),
     tk_local_target("tk_local_37888x256x3584", 37888, 256, 3584),
 
-    cute_runtime_target("cute_shape_aware_best_37888x128x3584_bf16", 37888, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
-    cute_runtime_target("cute_tn_example_37888x128x3584_bf16", 37888, 128, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_shape_selected_best_37888x128x3584_bf16", 37888, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_swizzled_tn_37888x128x3584_bf16", 37888, 128, 3584, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
 ]
 
 def run_cmd(cmd: list[str], env: dict[str, str] | None = None) -> str:

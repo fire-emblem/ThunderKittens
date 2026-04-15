@@ -35,7 +35,7 @@ struct continuousc_reusea_family
     using stage_layout_atom = typename pattern::stage_layout_atom;
     using host_layout = typename pattern::host_layout;
     static constexpr const char *family_name =
-        "cute_tk_continuousc_reusea_n_params";
+        "cute_tk_continuousc_reusea_parametric";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
     static constexpr bool requires_zero_init = (SplitK > 1);
@@ -89,7 +89,7 @@ struct continuousc_reusea_family
 };
 
 template <int NTile, int APerWarp, int SplitN, int SplitK>
-using continuousc_reusea_n_params =
+using continuousc_reusea_param_family_t =
     continuousc_reusea_family<tile_shape_policy<128, NTile, 128>, stage_4,
                               APerWarp, SplitN, SplitK>;
 

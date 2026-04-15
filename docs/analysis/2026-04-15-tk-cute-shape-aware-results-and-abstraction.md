@@ -532,6 +532,29 @@ headers, no duplicate old paths, and no need to keep historical flat-header
 layout alive.
 
 
+## Structural naming rule
+
+Public Cute-side names now prefer structural characteristics over provenance.
+
+Canonical order:
+
+- semantic / contract first
+- tile shape second
+- stage count third
+- family/type suffix last
+
+Examples:
+
+- `swizzled_tn_tile128x128x128_stage4_family_t`
+- `layoutc_tile128x128x128_stage4_family_t`
+- `continuousc_tile128x128x128_stage4_family_t`
+- `square_tt_tile256x256x64_stage4_family_t`
+
+This rule is intended to make related implementations visibly comparable
+without encoding historical origin stories such as “example” into the public
+surface.
+
+
 ## Deleted historical experiment surface
 
 The following experimental comparison surface is no longer part of the active

@@ -192,14 +192,14 @@ Status at this commit:
   `37888x256x3584`.
 - `2048x2048x2048 bf16` is now in the current comparison set through the
   `layoutC` runtime-dispatch path:
-  - `cute_tk_layoutc_128x128x128_stage4`
+  - `cute_tk_layoutc_tile128x128x128_stage4`
     `96.110 TFLOP/s`
   - `tk_local_bf16_layoutc_128x128x128_stage4`
     `99.646 TFLOP/s`
   - `mcBLAS`
     `166.358 TFLOP/s`
 - `4096x4096x4096 bf16` is now also in the current square comparison set:
-  - `cute_tk_layoutc_128x128x128_stage4`
+  - `cute_tk_layoutc_tile128x128x128_stage4`
     `149.298 TFLOP/s`
   - `tk_local_bf16_layoutc_128x128x128_stage4`
     `148.045 TFLOP/s`

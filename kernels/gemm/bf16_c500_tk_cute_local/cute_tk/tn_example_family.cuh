@@ -14,20 +14,20 @@ template <typename GeometryAtom,
           typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
           typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
           typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
-struct tn_example_family
+struct swizzled_tn_family
     : ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-          ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+          ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_semantic_tag,
           TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom> {
     using pattern =
         ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-            ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+            ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_semantic_tag,
             TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom>;
     using geometry_atom = typename pattern::geometry_atom;
     using host_layout = typename pattern::host_layout;
     using schedule_policy = typename pattern::schedule_policy;
     using tile_shape = typename pattern::tile_shape;
     using stage_layout_atom = typename pattern::stage_layout_atom;
-    static constexpr const char *family_name = "cute_tk_tn_example_generic";
+    static constexpr const char *family_name = "cute_tk_swizzled_tn_generic";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
     static constexpr bool requires_zero_init = false;
@@ -57,12 +57,12 @@ struct tn_example_family
     }
 };
 
-struct tn_example_bf16_128x128x128_stage4_family
-    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
-                        ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-                        ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128> {
+struct swizzled_tn_tile128x128x128_stage4_family
+    : swizzled_tn_family<::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_layout_atom,
+                         ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
+                         ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128> {
     static constexpr const char *family_name =
-        "cute_tk_tn_example_bf16_128x128x128_stage4";
+        "cute_tk_swizzled_tn_tile128x128x128_stage4";
 };
 
 
@@ -72,8 +72,8 @@ struct tn_example_bf16_128x128x128_stage4_family
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
-using tn_example_bf16_stage4_family =
+using swizzled_tn_tile128x128x128_stage4_family_t =
     ::bf16_c500_tk_cute_local::cute_tk::families::
-        tn_example_bf16_128x128x128_stage4_family;
+        swizzled_tn_tile128x128x128_stage4_family;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

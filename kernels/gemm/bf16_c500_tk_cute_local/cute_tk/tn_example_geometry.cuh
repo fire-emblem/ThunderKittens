@@ -13,7 +13,7 @@ struct tn_example_stage_geometry {
     int b_cmp_op1;
 };
 
-struct tn_example_swizzled_geometry {
+struct swizzled_tn_geometry {
     template <typename ALdgType, typename BLdgType, typename ALdsType,
               typename BLdsType>
     __device__ __forceinline__ static tn_example_stage_geometry<ALdgType, BLdgType,
