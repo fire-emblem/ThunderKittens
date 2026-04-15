@@ -172,6 +172,9 @@ def parse_mcblas_tflops(text: str) -> float:
     return float(PERF_RE.search(text).group(1))
 
 
+MCBLAS_DIRECT_TARGETS: dict[tuple[str, int, int, int], dict[str, str]] = {}
+
+
 def build_and_run_mcblas(dtype: str, m: int, n: int, k: int) -> float | None:
     config = MCBLAS_DIRECT_TARGETS.get((dtype, m, n, k))
     if config is None:

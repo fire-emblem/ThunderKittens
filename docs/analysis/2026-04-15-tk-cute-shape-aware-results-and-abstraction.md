@@ -216,6 +216,28 @@ than a monolithic replacement kernel.
 The current project is now in a good position to scale because the critical
 abstraction seam — geometry provider selection — has been established.
 
+## Square-TT integration snapshot
+
+The `square_tt` lane is now part of the same public naming/runtime vocabulary
+as the other Cute-side lanes, and filtered benchmark runs confirm it is a real
+kernel lane rather than just a compile-only artifact.
+
+Representative filtered results:
+
+| Shape | Family | TFLOP/s avg | Notes |
+| --- | --- | ---: | --- |
+| 256x256x64 | `cute_tk_square_tt_tile256x256x64_stage4` | 0.046 | tiny shape, mostly latency-dominated |
+| 2048x2048x2048 | `cute_tk_square_tt_tile256x256x64_stage4` | 61.518 | below current layoutc best |
+| 4096x4096x4096 | `cute_tk_square_tt_tile256x256x64_stage4` | 101.782 | below current swizzled_tn/layoutc best |
+
+Current conclusion:
+
+- `square_tt` has been integrated as a peer lane in naming and runtime flow
+- it is not currently a best-family winner on the measured square shapes
+- its value today is architectural: it broadens the family set and provides a
+  structurally distinct high-performance candidate to test against the
+  primitive/composition model
+
 
 ## Schedule policy seam status
 

@@ -21,9 +21,9 @@ PAIRS = [
     ("cute_layoutc_4096x4096x4096_bf16", "tk_local_layoutc_4096x4096x4096_bf16"),
     ("cute_continuousc_reusea_4608x128x3584_bf16", "tk_local_continuousc_4608x128x3584_bf16"),
     ("cute_continuousc_reusea_4608x256x3584_bf16", "tk_local_continuousc_4608x256x3584_bf16"),
-    ("cute_reusea_3584x128x3584", "tk_local_3584x128x3584"),
-    ("cute_reusea_3584x128x18944", "tk_local_3584x128x18944"),
-    ("cute_reusea_37888x256x3584", "tk_local_37888x256x3584"),
+    ("cute_continuousc_reusea_3584x128x3584", "tk_local_3584x128x3584"),
+    ("cute_continuousc_reusea_3584x128x18944", "tk_local_3584x128x18944"),
+    ("cute_continuousc_reusea_37888x256x3584", "tk_local_37888x256x3584"),
     ("cute_continuousc_37888x128x3584_bf16", "tk_local_37888x128x3584_bf16"),
     ("cute_continuousc_37888x128x3584_fp16", "tk_local_37888x128x3584_fp16"),
 ]
