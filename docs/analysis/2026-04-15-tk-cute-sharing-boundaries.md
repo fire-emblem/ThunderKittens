@@ -205,6 +205,25 @@ Recommendation:
 - treat it as a family-local primitive that may later inform more general
   stage-I/O abstraction if another lane converges on the same unit
 
+### 10.6. Square-TT fragment arrangement
+
+Shareability: **medium-high** inside the square-tt family, **low-partial**
+across the wider family set
+
+Why:
+- square-tt repeatedly repacks four loaded B fragments into the register layout
+  consumed by its MMA schedule
+- this `byte_perm` quartet is a stable semantic action inside that family
+- it is more meaningful than keeping the repack as open-coded scalar
+  assignments, but it is not yet proven to match other families' fragment
+  arrangement contracts
+
+Recommendation:
+- keep the quartet repack as a `square_tt_fragment_atom`
+- treat it as a family-local primitive first
+- only promote it upward if another lane converges on the same fragment
+  contract
+
 ### 11. ReuseA hot refill / seed path
 
 Shareability: **low** for now

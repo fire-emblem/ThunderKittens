@@ -7,6 +7,7 @@
 #include <bit>
 #include <cute/tensor.hpp>
 
+#include "primitives/pipeline/square_tt_fragment_atom.cuh"
 #include "primitives/pipeline/square_tt_stage_io_atom.cuh"
 #include "square_tt_tile256x256x64_traits.cuh"
 
@@ -135,23 +136,17 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
         a[6], a[7], smem, lds_off[0], traits::lds_stride_bytes, 6);
 
     ab_type b[2][2];
-    b[0][0][0] = __builtin_mxc_byte_perm(B_frag[0][0], B_frag[0][1], 0x01000504u);
-    b[0][1][0] = __builtin_mxc_byte_perm(B_frag[0][0], B_frag[0][1], 0x03020706u);
-    b[0][0][1] = __builtin_mxc_byte_perm(B_frag[0][2], B_frag[0][3], 0x01000504u);
-    b[0][1][1] = __builtin_mxc_byte_perm(B_frag[0][2], B_frag[0][3], 0x03020706u);
+    square_tt_fragment_atom::pack_b_quartet(b[0], B_frag[0]);
 
     int num_tile_k = size<2>(gA);
     uint32_t tileK = 1;
     for (; tileK < num_tile_k; ++tileK) {
         LDG_A(tileK, 0); LDG_A(tileK, 1); MMA_MNK(0, 0, 0); LDG_A(tileK, 2);
         MMA_MNK(0, 1, 0);
-        b[1][0][0] = __builtin_mxc_byte_perm(B_frag[1][0], B_frag[1][1], 0x01000504u);
-        b[1][1][0] = __builtin_mxc_byte_perm(B_frag[1][0], B_frag[1][1], 0x03020706u);
-        b[1][0][1] = __builtin_mxc_byte_perm(B_frag[1][2], B_frag[1][3], 0x01000504u);
+        square_tt_fragment_atom::pack_b_quartet(b[1], B_frag[1]);
         MMA_MNK(1, 0, 0); LDG_A(tileK, 3); LDS_B64X2_STAGE_I(0, 8); MMA_MNK(1, 1, 0);
         LDS_B64X2_STAGE_I(0, 10); MMA_MNK(2, 0, 0); LDG_A(tileK, 4);
         LDS_B64X2_STAGE_I(0, 12);
-        b[1][1][1] = __builtin_mxc_byte_perm(B_frag[1][2], B_frag[1][3], 0x03020706u);
         MMA_MNK(2, 1, 0); LDS_B64X2_STAGE_I(0, 14); MMA_MNK(3, 0, 0); LDG_A(tileK, 5);
         MMA_MNK(3, 1, 0); MMA_MNK(4, 0, 0); LDG_A(tileK, 6); MMA_MNK(4, 1, 0);
         MMA_MNK(5, 0, 0); LDG_A(tileK, 7); MMA_MNK(5, 1, 0); MMA_MNK(6, 0, 0);
@@ -175,11 +170,8 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
 
         LDS_B64X2_STAGE_I(2, 0); MMA_MNK(8, 0, 1); LDS_B64X2_STAGE_I(2, 2); MMA_MNK(8, 1, 1);
         LDS_B64X2_STAGE_I(2, 4); MMA_MNK(9, 0, 1); LDS_B64X2_STAGE_I(2, 6); MMA_MNK(9, 1, 1);
-        b[0][0][0] = __builtin_mxc_byte_perm(B_frag[2][0], B_frag[2][1], 0x01000504u);
-        b[0][1][0] = __builtin_mxc_byte_perm(B_frag[2][0], B_frag[2][1], 0x03020706u);
+        square_tt_fragment_atom::pack_b_quartet(b[0], B_frag[2]);
         MMA_MNK(10, 0, 1);
-        b[0][0][1] = __builtin_mxc_byte_perm(B_frag[2][2], B_frag[2][3], 0x01000504u);
-        b[0][1][1] = __builtin_mxc_byte_perm(B_frag[2][2], B_frag[2][3], 0x03020706u);
         MMA_MNK(10, 1, 1); MMA_MNK(11, 0, 1); MMA_MNK(11, 1, 1); LDG_B(tileK, 2, 0);
         MMA_MNK(12, 0, 1); MMA_MNK(12, 1, 1); LDG_B(tileK, 2, 1); MMA_MNK(13, 0, 1);
         MMA_MNK(13, 1, 1); LDG_B(tileK, 2, 2); MMA_MNK(14, 0, 1); MMA_MNK(14, 1, 1);
@@ -192,11 +184,8 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
         MMA_MNK(6, 0, 0); MMA_MNK(6, 1, 0); MMA_MNK(7, 0, 0); MMA_MNK(7, 1, 0);
 
         LDS_B64X2_STAGE_I(3, 0); MMA_MNK(8, 0, 0); LDS_B64X2_STAGE_I(3, 2);
-        b[1][0][0] = __builtin_mxc_byte_perm(B_frag[3][0], B_frag[3][1], 0x01000504u);
-        b[1][1][0] = __builtin_mxc_byte_perm(B_frag[3][0], B_frag[3][1], 0x03020706u);
+        square_tt_fragment_atom::pack_b_quartet(b[1], B_frag[3]);
         MMA_MNK(8, 1, 0); LDS_B64X2_STAGE_I(3, 4);
-        b[1][0][1] = __builtin_mxc_byte_perm(B_frag[3][2], B_frag[3][3], 0x01000504u);
-        b[1][1][1] = __builtin_mxc_byte_perm(B_frag[3][2], B_frag[3][3], 0x03020706u);
         MMA_MNK(9, 0, 0); LDS_B64X2_STAGE_I(3, 6); MMA_MNK(9, 1, 0); LDG_B(tileK, 3, 0);
         MMA_MNK(10, 0, 0); MMA_MNK(10, 1, 0); LDG_B(tileK, 3, 1); MMA_MNK(11, 0, 0);
         MMA_MNK(11, 1, 0); LDG_B(tileK, 3, 2); MMA_MNK(12, 0, 0); MMA_MNK(12, 1, 0);
@@ -237,11 +226,8 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
     MMA_MNK(10, 0, 0); MMA_MNK(10, 1, 0); MMA_MNK(11, 0, 0); MMA_MNK(11, 1, 0);
     MMA_MNK(12, 0, 0); MMA_MNK(12, 1, 0); MMA_MNK(13, 0, 0); MMA_MNK(13, 1, 0);
     MMA_MNK(14, 0, 0); MMA_MNK(14, 1, 0);
-    b[1][0][0] = __builtin_mxc_byte_perm(B_frag[1][0], B_frag[1][1], 0x01000504u);
-    b[1][1][0] = __builtin_mxc_byte_perm(B_frag[1][0], B_frag[1][1], 0x03020706u);
+    square_tt_fragment_atom::pack_b_quartet(b[1], B_frag[1]);
     MMA_MNK(15, 0, 0);
-    b[1][0][1] = __builtin_mxc_byte_perm(B_frag[1][2], B_frag[1][3], 0x01000504u);
-    b[1][1][1] = __builtin_mxc_byte_perm(B_frag[1][2], B_frag[1][3], 0x03020706u);
     MMA_MNK(15, 1, 0);
 
     LDS_B64X2_STAGE_I(1, 8); MMA_MNK(0, 0, 1); LDS_B64X2_STAGE_I(1, 10); MMA_MNK(0, 1, 1);
@@ -255,11 +241,8 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
     MMA_MNK(10, 0, 1); MMA_MNK(10, 1, 1); MMA_MNK(11, 0, 1); MMA_MNK(11, 1, 1);
     MMA_MNK(12, 0, 1); MMA_MNK(12, 1, 1); MMA_MNK(13, 0, 1); MMA_MNK(13, 1, 1);
     MMA_MNK(14, 0, 1); MMA_MNK(14, 1, 1);
-    b[0][0][0] = __builtin_mxc_byte_perm(B_frag[2][0], B_frag[2][1], 0x01000504u);
-    b[0][1][0] = __builtin_mxc_byte_perm(B_frag[2][0], B_frag[2][1], 0x03020706u);
+    square_tt_fragment_atom::pack_b_quartet(b[0], B_frag[2]);
     MMA_MNK(15, 0, 1);
-    b[0][0][1] = __builtin_mxc_byte_perm(B_frag[2][2], B_frag[2][3], 0x01000504u);
-    b[0][1][1] = __builtin_mxc_byte_perm(B_frag[2][2], B_frag[2][3], 0x03020706u);
     MMA_MNK(15, 1, 1);
 
     LDS_B64X2_STAGE_I(2, 8); MMA_MNK(0, 0, 0); LDS_B64X2_STAGE_I(2, 10); MMA_MNK(0, 1, 0);
@@ -273,11 +256,8 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
     MMA_MNK(10, 0, 0); MMA_MNK(10, 1, 0); MMA_MNK(11, 0, 0); MMA_MNK(11, 1, 0);
     MMA_MNK(12, 0, 0); MMA_MNK(12, 1, 0); MMA_MNK(13, 0, 0); MMA_MNK(13, 1, 0);
     MMA_MNK(14, 0, 0); MMA_MNK(14, 1, 0);
-    b[1][0][0] = __builtin_mxc_byte_perm(B_frag[3][0], B_frag[3][1], 0x01000504u);
-    b[1][1][0] = __builtin_mxc_byte_perm(B_frag[3][0], B_frag[3][1], 0x03020706u);
+    square_tt_fragment_atom::pack_b_quartet(b[1], B_frag[3]);
     MMA_MNK(15, 0, 0);
-    b[1][0][1] = __builtin_mxc_byte_perm(B_frag[3][2], B_frag[3][3], 0x01000504u);
-    b[1][1][1] = __builtin_mxc_byte_perm(B_frag[3][2], B_frag[3][3], 0x03020706u);
     MMA_MNK(15, 1, 0);
 
     LDS_B64X2_STAGE_I(3, 8); MMA_MNK(0, 0, 1); MMA_MNK(0, 1, 1); LDS_B64X2_STAGE_I(3, 10);
