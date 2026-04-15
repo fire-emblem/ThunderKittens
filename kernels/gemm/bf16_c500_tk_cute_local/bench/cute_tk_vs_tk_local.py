@@ -87,16 +87,20 @@ def tk_local_layoutc_target(name: str, m: int, n: int, k: int) -> Target:
     )
 
 TARGETS = [
+    cute_runtime_target("cute_square_tt_256x256x64_bf16", 256, 256, 64, env={"TK_CUTE_USE_SQUARE_TT256": "1"}),
+
     cute_runtime_target("cute_shape_selected_best_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
     cute_runtime_target("cute_swizzled_tn_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
     cute_runtime_target("cute_layoutc_1664x1024x16384_bf16", 1664, 1024, 16384),
 
     cute_runtime_target("cute_shape_selected_best_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_square_tt_2048x2048x2048_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_SQUARE_TT256": "1"}),
     cute_runtime_target("cute_swizzled_tn_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
     cute_runtime_target("cute_layoutc_2048x2048x2048_bf16", 2048, 2048, 2048),
     tk_local_layoutc_target("tk_local_layoutc_2048x2048x2048_bf16", 2048, 2048, 2048),
 
     cute_runtime_target("cute_shape_selected_best_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_square_tt_4096x4096x4096_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_SQUARE_TT256": "1"}),
     cute_runtime_target("cute_swizzled_tn_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_SWIZZLED_TN": "1"}),
     cute_runtime_target("cute_layoutc_4096x4096x4096_bf16", 4096, 4096, 4096),
     tk_local_layoutc_target("tk_local_layoutc_4096x4096x4096_bf16", 4096, 4096, 4096),

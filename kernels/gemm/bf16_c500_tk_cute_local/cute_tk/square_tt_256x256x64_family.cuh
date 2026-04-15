@@ -35,6 +35,12 @@ struct square_tt_256x256x64_family
                     (m + TileShape::tile_m - 1) / TileShape::tile_m);
     }
 
+    static inline bool supports_runtime_shape(int m, int n, int k) {
+        return (m == 256 && n == 256 && k == 64) ||
+               (m == 2048 && n == 2048 && k == 2048) ||
+               (m == 4096 && n == 4096 && k == 4096);
+    }
+
     template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
               bool HasOneDimBias>
     static inline void launch(dim3 grid_dim, const void *a, const void *b,
