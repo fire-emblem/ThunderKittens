@@ -3,6 +3,7 @@
 #include "../kernel/continuousc_store.cuh"
 #include "../kernel/layoutc_epilogue.cuh"
 #include "../kernel/layoutc_store.cuh"
+#include "bias_atom.cuh"
 #include "store_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
@@ -15,7 +16,7 @@ struct epilogue_atom {
         int start_row,
         int slot,
         int lane) {
-        ::bf16_c500_tk_local::kernel::load_layoutc_bias_fragment<CStgType, HasOneDimBias>(
+        bias_atom::template load_layoutc_bias<CStgType, HasOneDimBias>(
             bias_load, bias, start_row, slot, lane);
     }
 

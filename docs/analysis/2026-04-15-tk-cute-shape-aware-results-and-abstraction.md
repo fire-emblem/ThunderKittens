@@ -468,6 +468,22 @@ This is again intentionally narrow and TK/Cute-aligned:
   more can be shared safely
 
 
+## Bias-atom status
+
+The next stable epilogue-side primitive is bias-fragment loading.
+
+Current extracted bias atom:
+
+- `load_layoutc_bias(...)`
+
+`epilogue_atom` now delegates bias-fragment loading to a smaller `bias_atom`
+instead of binding directly to the kernel helper. This keeps the same design
+shape as the other recent refactors:
+
+- semantic façade stays in `epilogue_atom`
+- repeated low-level fragment action moves to a dedicated atom
+
+
 ## Tile-shape seam status
 
 The imported TN example family now also accepts an explicit tile-shape policy
