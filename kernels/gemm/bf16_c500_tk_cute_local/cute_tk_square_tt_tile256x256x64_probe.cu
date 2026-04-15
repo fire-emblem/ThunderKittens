@@ -173,7 +173,7 @@ int run() {
     }
 
     std::cout << std::fixed << std::setprecision(6);
-    std::cout << "cute_tk square_tt_256x256x64 probe" << std::endl;
+    std::cout << "cute_tk square_tt_tile256x256x64 probe" << std::endl;
     std::cout << "Problem size: M=" << M << ", N=" << N << ", K=" << K << std::endl;
     std::cout << "Average runtime: " << runtime_ms << " ms" << std::endl;
     std::cout << "Performance: " << tflops << " TFLOP/s" << std::endl;

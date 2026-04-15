@@ -4,7 +4,7 @@
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
-struct layoutc_tt_256x256x64_traits {
+struct square_tt_tile256x256x64_traits {
     static constexpr int tile_m = 256;
     static constexpr int tile_n = 256;
     static constexpr int tile_k = 64;

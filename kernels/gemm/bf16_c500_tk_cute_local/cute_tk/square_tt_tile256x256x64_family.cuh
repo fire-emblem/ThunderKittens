@@ -5,12 +5,12 @@
 #include "../host/layout_traits.cuh"
 #include "composition/family_pattern.cuh"
 #include "layoutc_square_candidates.cuh"
-#include "square_tt_256x256x64_skeleton.cuh"
+#include "square_tt_tile256x256x64_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
 template <typename TileShape, typename StagePolicy>
-struct square_tt_256x256x64_family
+struct square_tt_tile256x256x64_family
     : ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
           ::bf16_c500_tk_cute_local::cute_tk::square_tt_semantic_tag,
           TileShape, ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
@@ -26,9 +26,9 @@ struct square_tt_256x256x64_family
 
     static_assert(TileShape::tile_m == 256 && TileShape::tile_n == 256 &&
                       TileShape::tile_k == 64,
-                  "square_tt_256x256x64_family requires 256x256x64 tile");
+                  "square_tt_tile256x256x64_family requires 256x256x64 tile");
     static_assert(StagePolicy::stage_count == 4,
-                  "square_tt_256x256x64_family currently supports only stage4");
+                  "square_tt_tile256x256x64_family currently supports only stage4");
 
     static inline dim3 grid(int m, int n) {
         return dim3((n + TileShape::tile_n - 1) / TileShape::tile_n,
@@ -48,11 +48,11 @@ struct square_tt_256x256x64_family
                               int ldc, Tscal alpha_value, Tscal beta_value,
                               const void *bias = nullptr) {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            cute_tk_bf16_square_tt_256x256x64_stage4<T, Tc, Tscal, IsBetaZero,
+            cute_tk_bf16_square_tt_tile256x256x64_stage4<T, Tc, Tscal, IsBetaZero,
                                                      HasOneDimBias>
             <<<grid_dim,
-               ::bf16_c500_tk_cute_local::cute_tk::layoutc_tt_256x256x64_traits::threads,
-               ::bf16_c500_tk_cute_local::cute_tk::layoutc_tt_256x256x64_traits::
+               ::bf16_c500_tk_cute_local::cute_tk::square_tt_tile256x256x64_traits::threads,
+               ::bf16_c500_tk_cute_local::cute_tk::square_tt_tile256x256x64_traits::
                    a_smem_double_buffer_bytes>>>(
                 a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
     }
@@ -63,7 +63,7 @@ struct square_tt_256x256x64_family
 namespace bf16_c500_tk_cute_local::cute_tk {
 
 using square_tt_tile256x256x64_stage4_family_t =
-    ::bf16_c500_tk_cute_local::cute_tk::families::square_tt_256x256x64_family<
+    ::bf16_c500_tk_cute_local::cute_tk::families::square_tt_tile256x256x64_family<
         tile_256x256x64, stage_4>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

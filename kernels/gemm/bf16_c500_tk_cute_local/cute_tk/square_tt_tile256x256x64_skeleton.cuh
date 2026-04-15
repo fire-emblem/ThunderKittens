@@ -7,13 +7,13 @@
 #include <bit>
 #include <cute/tensor.hpp>
 
-#include "layoutc_tt_256x256x64_traits.cuh"
+#include "square_tt_tile256x256x64_traits.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           bool HasOneDimBias>
-__global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_256x256x64_stage4(
+__global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_stage4(
     const void *A, const void *B, void *C, int M, int N, int K, int lda,
     int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias) {
     (void)lda;
@@ -29,7 +29,7 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_256x256x64_stage4(
                   "square_tt_256x256x64 output is currently BF16-only");
 
     using namespace cute;
-    using traits = ::bf16_c500_tk_cute_local::cute_tk::layoutc_tt_256x256x64_traits;
+    using traits = ::bf16_c500_tk_cute_local::cute_tk::square_tt_tile256x256x64_traits;
     using int4_t = typename traits::int4_t;
     using ab_type = typename traits::ab_type;
     using a_ldg_type = typename traits::a_ldg_type;

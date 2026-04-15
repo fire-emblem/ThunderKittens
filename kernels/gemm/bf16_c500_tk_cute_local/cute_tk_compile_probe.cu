@@ -1,5 +1,5 @@
 #include "cute_tk/mainloop.cuh"
-#include "cute_tk/layoutc_tt_256x256x64_traits.cuh"
+#include "cute_tk/square_tt_tile256x256x64_traits.cuh"
 
 using layoutc_2048_policy =
     bf16_c500_tk_cute_local::cute_tk::layoutc_perf_policy<2048, 2048, 2048>;
@@ -18,7 +18,7 @@ using layoutc_square_tt_family =
 using layoutc_square_nt_family =
     bf16_c500_tk_cute_local::cute_tk::layoutc_nt_128x256x64_stage4_family;
 using layoutc_tt_traits =
-    bf16_c500_tk_cute_local::cute_tk::layoutc_tt_256x256x64_traits;
+    bf16_c500_tk_cute_local::cute_tk::square_tt_tile256x256x64_traits;
 using square_tt_family =
     bf16_c500_tk_cute_local::cute_tk::square_tt_256x256x64_stage4_family;
 
