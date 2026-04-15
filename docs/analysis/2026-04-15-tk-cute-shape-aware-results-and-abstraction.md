@@ -335,3 +335,31 @@ kernel-shaping axes we currently care about:
 - geometry
 - schedule / stage
 - tile shape
+
+
+## Stage-layout seam status
+
+The next reusable primitive extracted from the imported example is the shared
+stage-layout contract: the physical per-stage shared-memory byte span plus the
+fixed A/B bank offsets inside each stage.
+
+Current status:
+
+- `cute_tk/stage_layout_atom.cuh` now exposes a reusable
+  `stage_layout_atom<StageContract>`
+- both the imported `tn_example` path and the current `layoutc` path thread a
+  stage-layout atom through their family/skeleton boundary
+- the legacy `stage_contract` now provides named helpers such as
+  `stage_base_offset`, `a_stage_offset`, and `b_stage_offset`
+- layoutc prologue/register-prime helpers and the TN example skeleton now use
+  these named stage-layout helpers instead of repeating raw `0x4000/0x1000`
+  slot math inline
+
+Why this matters:
+
+- geometry answers *which thread owns which data*
+- stage layout answers *where that data physically lives inside each shared
+  stage*
+
+Keeping those as separate seams is what lets example-style low-level code turn
+into reusable Cute/TK building blocks rather than another monolithic family.

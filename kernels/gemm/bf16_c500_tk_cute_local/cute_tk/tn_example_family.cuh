@@ -4,19 +4,22 @@
 
 #include "layout_atom.cuh"
 #include "policies.cuh"
+#include "stage_layout_atom.cuh"
 #include "tn_example_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
 template <typename GeometryAtom,
           typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128>
+          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
+          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
 struct tn_example_family {
     using geometry_atom = GeometryAtom;
     using host_layout = typename geometry_atom::host_layout;
     using geometry_provider = typename geometry_atom::provider;
     using schedule_policy = SchedulePolicy;
     using tile_shape = TileShape;
+    using stage_layout_atom = StageLayoutAtom;
     static constexpr const char *family_name = "cute_tk_tn_example_generic";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
@@ -43,7 +46,7 @@ struct tn_example_family {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
             hgemm_tn_128x128x128_4m1n8k_256t<T, Tc, Tscal, IsBetaZero,
                                             geometry_provider, schedule_policy,
-                                            tile_shape>
+                                            tile_shape, stage_layout_atom>
             <<<grid_dim, 256>>>(a, b, c, m, n, k, lda, ldb, ldc, alpha_value,
                                 beta_value);
     }

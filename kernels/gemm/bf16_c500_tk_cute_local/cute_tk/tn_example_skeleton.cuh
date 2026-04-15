@@ -3,6 +3,7 @@
 #include <cmath>
 #include <type_traits>
 #include "policies.cuh"
+#include "stage_layout_atom.cuh"
 #include "tn_example_utils.cuh"
 #include "tn_example_geometry.cuh"
 
@@ -11,7 +12,8 @@ namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           typename GeometryPolicy = tn_example_swizzled_geometry,
           typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128>
+          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
+          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
 __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const void *A,
                                                                         const void *B,
                                                                         void *C,
@@ -28,11 +30,14 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     constexpr int TileM = TileShape::tile_m;
     constexpr int TileN = TileShape::tile_n;
     constexpr int Stage = SchedulePolicy::stage_count;
+    using stage_layout = StageLayoutAtom;
     static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
                       TileShape::tile_k == 128,
                   "tn_example tile-shape abstraction is in place, but only 128x128x128 is implemented today");
     static_assert(Stage == 4,
                   "tn_example schedule abstraction is in place, but only stage4 is implemented today");
+    static_assert(stage_layout::stage_count == Stage,
+                  "tn_example stage layout must agree with schedule stage count");
 
     using ALdgType = __NATIVE_VECTOR__(4, uint);
     using BLdgType = __NATIVE_VECTOR__(4, uint);
@@ -79,7 +84,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     const int A_col = geometry.a_cmp_op1;
     const int B_row = geometry.b_cmp_op1;
 
-    __shared__ uint8_t WSM[0x10000];  // 64KB
+    __shared__ uint8_t WSM[stage_layout::stage_bytes * stage_layout::stage_count];
 
     FLOAT4 C_f32[4][4] = {0};
     ALdsType a[4][4];
@@ -89,16 +94,16 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
     for (int stage_i = 0; stage_i < Stage; ++stage_i) {
         __builtin_mxc_ldg_b128_bsm_predicator(
-            WSM_Ldg + 0x4000 * stage_i + 0x0000, APtr + ALdgOffset[0][stage_i], 0, true, true,
+            WSM_Ldg + stage_layout::a_stage_offset(stage_i, 0), APtr + ALdgOffset[0][stage_i], 0, true, true,
             false, true, A_col, K / (sizeof(ALdgType) / sizeof(T)), MACA_ICMP_SLT);
         __builtin_mxc_ldg_b128_bsm_predicator(
-            WSM_Ldg + 0x4000 * stage_i + 0x1000, APtr + ALdgOffset[1][stage_i], 0, true, true,
+            WSM_Ldg + stage_layout::a_stage_offset(stage_i, 1), APtr + ALdgOffset[1][stage_i], 0, true, true,
             false, true, A_col, K / (sizeof(ALdgType) / sizeof(T)), MACA_ICMP_SLT);
         __builtin_mxc_ldg_b128_bsm_predicator(
-            WSM_Ldg + 0x4000 * stage_i + 0x2000, BPtr + BLdgOffset[0][stage_i], 0, true, true,
+            WSM_Ldg + stage_layout::b_stage_offset(stage_i, 0), BPtr + BLdgOffset[0][stage_i], 0, true, true,
             false, true, B_row, K / (sizeof(BLdgType) / sizeof(T)), MACA_ICMP_SLT);
         __builtin_mxc_ldg_b128_bsm_predicator(
-            WSM_Ldg + 0x4000 * stage_i + 0x3000, BPtr + BLdgOffset[1][stage_i], 0, true, true,
+            WSM_Ldg + stage_layout::b_stage_offset(stage_i, 1), BPtr + BLdgOffset[1][stage_i], 0, true, true,
             false, true, B_row, K / (sizeof(BLdgType) / sizeof(T)), MACA_ICMP_SLT);
         if constexpr (SchedulePolicy::sync_each_stage_issue) {
             __builtin_mxc_barrier_inst();
@@ -126,21 +131,21 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     arrive_gvmcnt(4 * (Stage - 2));
     __builtin_mxc_barrier_inst();
 
-    a[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + ALdsOffset[0] + 0x4000);
-    a[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + ALdsOffset[1] + 0x4000);
-    a[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + ALdsOffset[2] + 0x4000);
-    a[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + ALdsOffset[3] + 0x4000);
-    b[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + BLdsOffset[0] + 0x4000);
-    b[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + BLdsOffset[1] + 0x4000);
-    b[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + BLdsOffset[2] + 0x4000);
-    b[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + BLdsOffset[3] + 0x4000);
+    a[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[0]);
+    a[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[1]);
+    a[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[2]);
+    a[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[3]);
+    b[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[0]);
+    b[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[1]);
+    b[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[2]);
+    b[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[3]);
 
     // LDG not consider mask of K
     for (; K >= 128; K -= 128) {
         {
             C_f32[0][0] =
                 mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[0][0][0], a[0][0][1], C_f32[0][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 0 + 0x0000, APtr + ALdgOffset[0][0])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(0, 0), APtr + ALdgOffset[0][0])
             C_f32[0][0] =
                 mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[0][0][2], a[0][0][3], C_f32[0][0]);
             C_f32[0][0] =
@@ -158,7 +163,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[1][0] =
                 mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[1][0][0], a[1][0][1], C_f32[1][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 0 + 0x1000, APtr + ALdgOffset[1][0])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(0, 1), APtr + ALdgOffset[1][0])
             C_f32[1][0] =
                 mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[1][0][2], a[1][0][3], C_f32[1][0]);
             C_f32[1][0] =
@@ -176,45 +181,45 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[1][0] =
                 mma_16x16x16b16<T>(b[0][3][2], b[0][3][3], a[1][3][2], a[1][3][3], C_f32[1][0]);
-            a[2][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + ALdsOffset[0]);
+            a[2][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + ALdsOffset[0]);
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[0][0][0], a[0][0][1], C_f32[0][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 0 + 0x2000, BPtr + BLdgOffset[0][0])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(0, 0), BPtr + BLdgOffset[0][0])
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[0][0][2], a[0][0][3], C_f32[0][1]);
-            a[2][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + ALdsOffset[1]);
+            a[2][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + ALdsOffset[1]);
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][1][0], b[1][1][1], a[0][1][0], a[0][1][1], C_f32[0][1]);
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][1][2], b[1][1][3], a[0][1][2], a[0][1][3], C_f32[0][1]);
-            a[2][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + ALdsOffset[2]);
+            a[2][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + ALdsOffset[2]);
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][2][0], b[1][2][1], a[0][2][0], a[0][2][1], C_f32[0][1]);
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][2][2], b[1][2][3], a[0][2][2], a[0][2][3], C_f32[0][1]);
-            a[2][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + ALdsOffset[3]);
+            a[2][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + ALdsOffset[3]);
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][3][0], b[1][3][1], a[0][3][0], a[0][3][1], C_f32[0][1]);
             C_f32[0][1] =
                 mma_16x16x16b16<T>(b[1][3][2], b[1][3][3], a[0][3][2], a[0][3][3], C_f32[0][1]);
-            b[2][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + BLdsOffset[0]);
+            b[2][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + BLdsOffset[0]);
 
             C_f32[1][1] =
                 mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[1][0][0], a[1][0][1], C_f32[1][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 0 + 0x3000, BPtr + BLdgOffset[1][0])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(0, 1), BPtr + BLdgOffset[1][0])
             C_f32[1][1] =
                 mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[1][0][2], a[1][0][3], C_f32[1][1]);
-            b[2][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + BLdsOffset[1]);
+            b[2][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + BLdsOffset[1]);
             C_f32[1][1] =
                 mma_16x16x16b16<T>(b[1][1][0], b[1][1][1], a[1][1][0], a[1][1][1], C_f32[1][1]);
             C_f32[1][1] =
                 mma_16x16x16b16<T>(b[1][1][2], b[1][1][3], a[1][1][2], a[1][1][3], C_f32[1][1]);
-            b[2][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + BLdsOffset[2]);
+            b[2][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + BLdsOffset[2]);
             C_f32[1][1] =
                 mma_16x16x16b16<T>(b[1][2][0], b[1][2][1], a[1][2][0], a[1][2][1], C_f32[1][1]);
             C_f32[1][1] =
                 mma_16x16x16b16<T>(b[1][2][2], b[1][2][3], a[1][2][2], a[1][2][3], C_f32[1][1]);
-            b[2][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x8000 + BLdsOffset[3]);
+            b[2][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(2) + BLdsOffset[3]);
             C_f32[1][1] =
                 mma_16x16x16b16<T>(b[1][3][0], b[1][3][1], a[1][3][0], a[1][3][1], C_f32[1][1]);
             C_f32[1][1] =
@@ -222,7 +227,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[2][0] =
                 mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[2][0][0], a[2][0][1], C_f32[2][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 1 + 0x0000, APtr + ALdgOffset[0][1])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(1, 0), APtr + ALdgOffset[0][1])
             C_f32[2][0] =
                 mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[2][0][2], a[2][0][3], C_f32[2][0]);
             C_f32[2][0] =
@@ -240,7 +245,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[2][1] =
                 mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[2][0][0], a[2][0][1], C_f32[2][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 1 + 0x1000, APtr + ALdgOffset[1][1])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(1, 1), APtr + ALdgOffset[1][1])
             C_f32[2][1] =
                 mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[2][0][2], a[2][0][3], C_f32[2][1]);
             C_f32[2][1] =
@@ -249,46 +254,46 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
             __builtin_mxc_barrier_inst();
             C_f32[2][1] =
                 mma_16x16x16b16<T>(b[1][1][2], b[1][1][3], a[2][1][2], a[2][1][3], C_f32[2][1]);
-            a[3][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + ALdsOffset[0]);
+            a[3][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + ALdsOffset[0]);
             C_f32[2][1] =
                 mma_16x16x16b16<T>(b[1][2][0], b[1][2][1], a[2][2][0], a[2][2][1], C_f32[2][1]);
             C_f32[2][1] =
                 mma_16x16x16b16<T>(b[1][2][2], b[1][2][3], a[2][2][2], a[2][2][3], C_f32[2][1]);
-            a[3][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + ALdsOffset[1]);
+            a[3][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + ALdsOffset[1]);
             C_f32[2][1] =
                 mma_16x16x16b16<T>(b[1][3][0], b[1][3][1], a[2][3][0], a[2][3][1], C_f32[2][1]);
             C_f32[2][1] =
                 mma_16x16x16b16<T>(b[1][3][2], b[1][3][3], a[2][3][2], a[2][3][3], C_f32[2][1]);
-            a[3][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + ALdsOffset[2]);
+            a[3][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + ALdsOffset[2]);
 
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[0][0][0], a[0][0][1], C_f32[0][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 1 + 0x2000, BPtr + BLdgOffset[0][1])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(1, 0), BPtr + BLdgOffset[0][1])
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[0][0][2], a[0][0][3], C_f32[0][2]);
-            a[3][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + ALdsOffset[3]);
+            a[3][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + ALdsOffset[3]);
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][1][0], b[2][1][1], a[0][1][0], a[0][1][1], C_f32[0][2]);
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][1][2], b[2][1][3], a[0][1][2], a[0][1][3], C_f32[0][2]);
-            b[3][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + BLdsOffset[0]);
+            b[3][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + BLdsOffset[0]);
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][2][0], b[2][2][1], a[0][2][0], a[0][2][1], C_f32[0][2]);
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][2][2], b[2][2][3], a[0][2][2], a[0][2][3], C_f32[0][2]);
-            b[3][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + BLdsOffset[1]);
+            b[3][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + BLdsOffset[1]);
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][3][0], b[2][3][1], a[0][3][0], a[0][3][1], C_f32[0][2]);
             C_f32[0][2] =
                 mma_16x16x16b16<T>(b[2][3][2], b[2][3][3], a[0][3][2], a[0][3][3], C_f32[0][2]);
-            b[3][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + BLdsOffset[2]);
+            b[3][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + BLdsOffset[2]);
 
             C_f32[1][2] =
                 mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[1][0][0], a[1][0][1], C_f32[1][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 1 + 0x3000, BPtr + BLdgOffset[1][1])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(1, 1), BPtr + BLdgOffset[1][1])
             C_f32[1][2] =
                 mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[1][0][2], a[1][0][3], C_f32[1][2]);
-            b[3][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0xC000 + BLdsOffset[3]);
+            b[3][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(3) + BLdsOffset[3]);
             C_f32[1][2] =
                 mma_16x16x16b16<T>(b[2][1][0], b[2][1][1], a[1][1][0], a[1][1][1], C_f32[1][2]);
             C_f32[1][2] =
@@ -304,7 +309,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[2][2] =
                 mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[2][0][0], a[2][0][1], C_f32[2][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 2 + 0x0000, APtr + ALdgOffset[0][2])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(2, 0), APtr + ALdgOffset[0][2])
             C_f32[2][2] =
                 mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[2][0][2], a[2][0][3], C_f32[2][2]);
             C_f32[2][2] =
@@ -322,7 +327,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[3][0] =
                 mma_16x16x16b16<T>(b[0][0][0], b[0][0][1], a[3][0][0], a[3][0][1], C_f32[3][0]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 2 + 0x1000, APtr + ALdgOffset[1][2])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(2, 1), APtr + ALdgOffset[1][2])
             C_f32[3][0] =
                 mma_16x16x16b16<T>(b[0][0][2], b[0][0][3], a[3][0][2], a[3][0][3], C_f32[3][0]);
             C_f32[3][0] =
@@ -342,7 +347,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[0][3] =
                 mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[0][0][0], a[0][0][1], C_f32[0][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 2 + 0x2000, BPtr + BLdgOffset[0][2])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(2, 0), BPtr + BLdgOffset[0][2])
             C_f32[0][3] =
                 mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[0][0][2], a[0][0][3], C_f32[0][3]);
             b[0][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + BLdsOffset[0]);
@@ -364,7 +369,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[3][1] =
                 mma_16x16x16b16<T>(b[1][0][0], b[1][0][1], a[3][0][0], a[3][0][1], C_f32[3][1]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 2 + 0x3000, BPtr + BLdgOffset[1][2])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(2, 1), BPtr + BLdgOffset[1][2])
             C_f32[3][1] =
                 mma_16x16x16b16<T>(b[1][0][2], b[1][0][3], a[3][0][2], a[3][0][3], C_f32[3][1]);
             a[0][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0 + ALdsOffset[0]);
@@ -386,7 +391,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[1][3] =
                 mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[1][0][0], a[1][0][1], C_f32[1][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 3 + 0x0000, APtr + ALdgOffset[0][3])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(3, 0), APtr + ALdgOffset[0][3])
             C_f32[1][3] =
                 mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[1][0][2], a[1][0][3], C_f32[1][3]);
             C_f32[1][3] =
@@ -404,7 +409,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             C_f32[3][2] =
                 mma_16x16x16b16<T>(b[2][0][0], b[2][0][1], a[3][0][0], a[3][0][1], C_f32[3][2]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 3 + 0x1000, APtr + ALdgOffset[1][3])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::a_stage_offset(3, 1), APtr + ALdgOffset[1][3])
             C_f32[3][2] =
                 mma_16x16x16b16<T>(b[2][0][2], b[2][0][3], a[3][0][2], a[3][0][3], C_f32[3][2]);
             C_f32[3][2] =
@@ -417,46 +422,46 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
             __builtin_mxc_barrier_inst();
             C_f32[3][2] =
                 mma_16x16x16b16<T>(b[2][2][2], b[2][2][3], a[3][2][2], a[3][2][3], C_f32[3][2]);
-            a[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + ALdsOffset[0]);
+            a[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[0]);
             C_f32[3][2] =
                 mma_16x16x16b16<T>(b[2][3][0], b[2][3][1], a[3][3][0], a[3][3][1], C_f32[3][2]);
             C_f32[3][2] =
                 mma_16x16x16b16<T>(b[2][3][2], b[2][3][3], a[3][3][2], a[3][3][3], C_f32[3][2]);
-            a[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + ALdsOffset[1]);
+            a[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[1]);
 
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[2][0][0], a[2][0][1], C_f32[2][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 3 + 0x2000, BPtr + BLdgOffset[0][3])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(3, 0), BPtr + BLdgOffset[0][3])
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[2][0][2], a[2][0][3], C_f32[2][3]);
-            a[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + ALdsOffset[2]);
+            a[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[2]);
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][1][0], b[3][1][1], a[2][1][0], a[2][1][1], C_f32[2][3]);
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][1][2], b[3][1][3], a[2][1][2], a[2][1][3], C_f32[2][3]);
-            a[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + ALdsOffset[3]);
+            a[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + ALdsOffset[3]);
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][2][0], b[3][2][1], a[2][2][0], a[2][2][1], C_f32[2][3]);
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][2][2], b[3][2][3], a[2][2][2], a[2][2][3], C_f32[2][3]);
-            b[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + BLdsOffset[0]);
+            b[1][0] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[0]);
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][3][0], b[3][3][1], a[2][3][0], a[2][3][1], C_f32[2][3]);
             C_f32[2][3] =
                 mma_16x16x16b16<T>(b[3][3][2], b[3][3][3], a[2][3][2], a[2][3][3], C_f32[2][3]);
-            b[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + BLdsOffset[1]);
+            b[1][1] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[1]);
 
             C_f32[3][3] =
                 mma_16x16x16b16<T>(b[3][0][0], b[3][0][1], a[3][0][0], a[3][0][1], C_f32[3][3]);
-            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + 0x4000 * 3 + 0x3000, BPtr + BLdgOffset[1][3])
+            LDG_B128_BSM_NO_PREDICATOR(WSM_Ldg + stage_layout::b_stage_offset(3, 1), BPtr + BLdgOffset[1][3])
             C_f32[3][3] =
                 mma_16x16x16b16<T>(b[3][0][2], b[3][0][3], a[3][0][2], a[3][0][3], C_f32[3][3]);
-            b[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + BLdsOffset[2]);
+            b[1][2] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[2]);
             C_f32[3][3] =
                 mma_16x16x16b16<T>(b[3][1][0], b[3][1][1], a[3][1][0], a[3][1][1], C_f32[3][3]);
             C_f32[3][3] =
                 mma_16x16x16b16<T>(b[3][1][2], b[3][1][3], a[3][1][2], a[3][1][3], C_f32[3][3]);
-            b[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + 0x4000 + BLdsOffset[3]);
+            b[1][3] = *reinterpret_cast<ALdsType *>(WSM_lds + stage_layout::stage_base_offset(1) + BLdsOffset[3]);
             C_f32[3][3] =
                 mma_16x16x16b16<T>(b[3][2][0], b[3][2][1], a[3][2][0], a[3][2][1], C_f32[3][3]);
             C_f32[3][3] =
@@ -482,7 +487,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 #pragma unroll
         for (int stage_i = 0; stage_i < Stage; ++stage_i) {
             const int ldsIdx = (stage_i + 1) % Stage;
-            uint8_t *WSM_lds2 = WSM_lds + (0x4000 * ldsIdx);
+            uint8_t *WSM_lds2 = WSM_lds + stage_layout::stage_base_offset(ldsIdx);
 
             for (int i = 0; i < stage_i; ++i) {
                 C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][0][0], b[i][0][1], a[stage_i][0][0],
@@ -533,16 +538,16 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
             __builtin_mxc_barrier_inst();
 
             __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + 0x4000 * stage_i + 0x0000, APtr + ALdgOffset[0][stage_i], 0, true, true,
+                WSM_Ldg + stage_layout::a_stage_offset(stage_i, 0), APtr + ALdgOffset[0][stage_i], 0, true, true,
                 false, true, A_col, K / (sizeof(ALdgType) / sizeof(T)), MACA_ICMP_SLT);
             __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + 0x4000 * stage_i + 0x1000, APtr + ALdgOffset[1][stage_i], 0, true, true,
+                WSM_Ldg + stage_layout::a_stage_offset(stage_i, 1), APtr + ALdgOffset[1][stage_i], 0, true, true,
                 false, true, A_col, K / (sizeof(ALdgType) / sizeof(T)), MACA_ICMP_SLT);
             __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + 0x4000 * stage_i + 0x2000, BPtr + BLdgOffset[0][stage_i], 0, true, true,
+                WSM_Ldg + stage_layout::b_stage_offset(stage_i, 0), BPtr + BLdgOffset[0][stage_i], 0, true, true,
                 false, true, B_row, K / (sizeof(BLdgType) / sizeof(T)), MACA_ICMP_SLT);
             __builtin_mxc_ldg_b128_bsm_predicator(
-                WSM_Ldg + 0x4000 * stage_i + 0x3000, BPtr + BLdgOffset[1][stage_i], 0, true, true,
+                WSM_Ldg + stage_layout::b_stage_offset(stage_i, 1), BPtr + BLdgOffset[1][stage_i], 0, true, true,
                 false, true, B_row, K / (sizeof(BLdgType) / sizeof(T)), MACA_ICMP_SLT);
 
             a[ldsIdx][0] = *reinterpret_cast<ALdsType *>(WSM_lds2 + ALdsOffset[0]);
@@ -561,7 +566,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 #pragma unroll
         for (int stage_i = 0; stage_i < Stage; ++stage_i) {
             const int ldsIdx = (stage_i + 1) % Stage;
-            uint8_t *WSM_lds2 = WSM_lds + (0x4000 * ldsIdx);
+            uint8_t *WSM_lds2 = WSM_lds + stage_layout::stage_base_offset(ldsIdx);
 
             for (int i = 0; i < stage_i; ++i) {
                 C_f32[stage_i][i + 0] = mma_16x16x16b16<T>(b[i][0][0], b[i][0][1], a[stage_i][0][0],
@@ -694,7 +699,8 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           typename GeometryPolicy = tn_example_swizzled_geometry,
           typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128>
+          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
+          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
 __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  const void *B,
                                                  void *C,
@@ -707,7 +713,8 @@ __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  Tscal alpha,
                                                  Tscal beta) {
     hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero,
-                                           GeometryPolicy, SchedulePolicy, TileShape>(
+                                           GeometryPolicy, SchedulePolicy, TileShape,
+                                           StageLayoutAtom>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, blockIdx.x, blockIdx.y);
 }
 

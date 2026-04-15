@@ -6,6 +6,7 @@
 #include "../contracts/stage_contract.cuh"
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
+#include "stage_layout_atom.cuh"
 #include "layoutc_skeleton.cuh"
 #include "policies.cuh"
 
@@ -13,13 +14,15 @@ namespace bf16_c500_tk_cute_local::cute_tk::families {
 
 template <typename TileShape, typename StagePolicy,
           typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule>
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
+          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
 struct layoutc_family {
     using tile = ::bf16_c500_tk_local::contracts::tile_contract;
     using stage = ::bf16_c500_tk_local::contracts::stage_contract;
     using layout = ::bf16_c500_tk_local::contracts::layout_contract;
     using geometry_atom = GeometryAtom;
     using schedule_policy = SchedulePolicy;
+    using stage_layout_atom = StageLayoutAtom;
     using host_layout = typename geometry_atom::host_layout;
 
     static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
@@ -52,7 +55,8 @@ struct layoutc_family {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
             cute_tk_bf16_layoutc_128x128x128_stage4<
                 T, Tc, Tscal, IsBetaZero,
-                HasOneDimBias, geometry_atom, schedule_policy><<<grid_dim, tile::threads>>>(
+                HasOneDimBias, geometry_atom, schedule_policy,
+                stage_layout_atom><<<grid_dim, tile::threads>>>(
                 a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
     }
 };

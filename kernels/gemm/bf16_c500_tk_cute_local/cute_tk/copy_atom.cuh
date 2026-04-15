@@ -22,7 +22,9 @@ struct copy_atom {
                                             MACA_ICMP_EQ);
     }
 
-    template <typename ALdgType, typename BLdgType, typename T>
+    template <typename ALdgType, typename BLdgType, typename T,
+              typename StageContract =
+                  ::bf16_c500_tk_local::contracts::stage_contract>
     __device__ __forceinline__ static void issue_prologue(
         uint8_t *wsm_ldg,
         uint8_t *a_ptr,
@@ -32,22 +34,28 @@ struct copy_atom {
         int k,
         int n,
         int start_col) {
-        ::bf16_c500_tk_local::kernel::issue_layoutc_prologue<ALdgType, BLdgType, T>(
+        ::bf16_c500_tk_local::kernel::issue_layoutc_prologue<ALdgType, BLdgType, T,
+                                                             StageContract>(
             wsm_ldg, a_ptr, b_ptr, a_ldg_offset, b_ldg_offset, k, n, start_col);
     }
 
-    template <typename ALdsType, typename BLdsType>
+    template <typename ALdsType, typename BLdsType,
+              typename StageContract =
+                  ::bf16_c500_tk_local::contracts::stage_contract>
     __device__ __forceinline__ static void prime_fragments(
         ALdsType (&a)[4][4],
         BLdsType (&b)[4][4],
         uint8_t *wsm_lds,
         const int (&a_lds_offset)[4],
         const int (&b_lds_offset)[4]) {
-        ::bf16_c500_tk_local::kernel::prime_layoutc_registers(
+        ::bf16_c500_tk_local::kernel::prime_layoutc_registers<ALdsType, BLdsType,
+                                                              StageContract>(
             a, b, wsm_lds, a_lds_offset, b_lds_offset);
     }
 
-    template <typename ALdsType, typename BLdsType>
+    template <typename ALdsType, typename BLdsType,
+              typename StageContract =
+                  ::bf16_c500_tk_local::contracts::stage_contract>
     __device__ __forceinline__ static void reload_stage(
         ALdsType (&a)[4][4],
         BLdsType (&b)[4][4],
@@ -55,7 +63,8 @@ struct copy_atom {
         uint8_t *wsm_lds,
         const int (&a_lds_offset)[4],
         const int (&b_lds_offset)[4]) {
-        ::bf16_c500_tk_local::kernel::reload_layoutc_stage_from_shared(
+        ::bf16_c500_tk_local::kernel::
+            reload_layoutc_stage_from_shared<ALdsType, BLdsType, StageContract>(
             a, b, lds_idx, wsm_lds, a_lds_offset, b_lds_offset);
     }
 };
