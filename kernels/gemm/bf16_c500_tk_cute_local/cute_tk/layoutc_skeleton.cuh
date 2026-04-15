@@ -23,7 +23,8 @@ using ::bf16_c500_tk_local::kernel::run_layoutc_tail_iteration;
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           bool HasOneDimBias, bool OutputContinuousC = false,
-          typename LayoutAtom = layoutc_layout_atom>
+          typename LayoutAtom = layoutc_layout_atom,
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule>
 __forceinline__ __device__ void
 layoutc_stage4_device(
     const void *A, const void *B, void *C, int M, int N, int K, int lda,
@@ -31,7 +32,9 @@ layoutc_stage4_device(
     int bidy) {
     constexpr int TileM = 128;
     constexpr int TileN = 128;
-    constexpr int Stage = 4;
+    constexpr int Stage = SchedulePolicy::stage_count;
+    static_assert(Stage == 4,
+                  "layoutc schedule abstraction is in place, but only stage4 is implemented today");
     const int src_N = N;
     using ALdgType = __NATIVE_VECTOR__(4, uint);
     using BLdgType = __NATIVE_VECTOR__(4, uint);
@@ -510,12 +513,13 @@ layoutc_stage4_device(
 }
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          bool HasOneDimBias, typename LayoutAtom = layoutc_layout_atom>
+          bool HasOneDimBias, typename LayoutAtom = layoutc_layout_atom,
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule>
 __global__ void cute_tk_bf16_layoutc_128x128x128_stage4(
     const void *A, const void *B, void *C, int M, int N, int K, int lda,
     int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias = nullptr) {
     layoutc_stage4_device<T, Tc, Tscal, IsBetaZero, HasOneDimBias, false,
-                          LayoutAtom>(
+                          LayoutAtom, SchedulePolicy>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, bias, blockIdx.x,
         blockIdx.y);
 }

@@ -237,3 +237,29 @@ This is an intentional intermediate state:
 - schedule is now positioned as the next composable axis
 - future work can add alternative stage-count or issue-order policies without
   cloning the full family shell again
+
+
+## Layoutc schedule seam status
+
+The current `layoutc` mainline family now also accepts an explicit
+schedule-policy template parameter in addition to its geometry atom.
+
+Current status:
+
+- `layoutc_family<TileShape, StagePolicy, GeometryAtom, SchedulePolicy>` is
+  now the canonical form
+- `layoutc_stage4_schedule` is the initial formal schedule policy
+- `layoutc_skeleton` accepts `SchedulePolicy` explicitly, even though only the
+  current stage4 schedule is implemented today
+
+This means both imported-example families and current layoutc families now
+share the same high-level composition direction:
+
+- host traits
+- geometry provider / geometry atom
+- schedule policy
+- family shell
+- shape legality / dispatch
+
+That is the minimum viable abstraction set required to scale toward more
+shape-specific high-performance kernels without cloning full implementations.

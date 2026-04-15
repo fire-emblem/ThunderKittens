@@ -20,6 +20,14 @@ using tile_128x256x64 = tile_shape_policy<128, 256, 64>;
 using stage_4 = stage_count_policy<4>;
 
 template <typename StagePolicy_>
+struct layoutc_schedule_policy {
+    using stage_policy = StagePolicy_;
+    static constexpr int stage_count = StagePolicy_::stage_count;
+};
+
+using layoutc_stage4_schedule = layoutc_schedule_policy<stage_4>;
+
+template <typename StagePolicy_>
 struct tn_example_schedule_policy {
     using stage_policy = StagePolicy_;
     static constexpr int stage_count = StagePolicy_::stage_count;
