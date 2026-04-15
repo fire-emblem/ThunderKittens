@@ -2,6 +2,7 @@
 
 #include <cuda_runtime.h>
 
+#include "family_pattern.cuh"
 #include "layout_atom.cuh"
 #include "policies.cuh"
 #include "stage_layout_atom.cuh"
@@ -13,13 +14,20 @@ template <typename GeometryAtom,
           typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
           typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
           typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
-struct tn_example_family {
-    using geometry_atom = GeometryAtom;
-    using host_layout = typename geometry_atom::host_layout;
+struct tn_example_family
+    : ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+          ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+          TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom> {
+    using pattern =
+        ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+            ::bf16_c500_tk_cute_local::cute_tk::tn_example_semantic_tag,
+            TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom>;
+    using geometry_atom = typename pattern::geometry_atom;
+    using host_layout = typename pattern::host_layout;
     using geometry_provider = typename geometry_atom::provider;
-    using schedule_policy = SchedulePolicy;
-    using tile_shape = TileShape;
-    using stage_layout_atom = StageLayoutAtom;
+    using schedule_policy = typename pattern::schedule_policy;
+    using tile_shape = typename pattern::tile_shape;
+    using stage_layout_atom = typename pattern::stage_layout_atom;
     static constexpr const char *family_name = "cute_tk_tn_example_generic";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;

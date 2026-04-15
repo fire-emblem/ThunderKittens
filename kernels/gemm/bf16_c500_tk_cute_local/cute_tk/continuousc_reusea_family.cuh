@@ -6,9 +6,11 @@
 #include <cuda_runtime.h>
 
 #include "../host/layout_traits.cuh"
+#include "family_pattern.cuh"
 #include "layout_atom.cuh"
 #include "continuousc_reusea_skeleton.cuh"
 #include "policies.cuh"
+#include "stage_layout_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
@@ -17,11 +19,21 @@ template <typename TileShape, typename StagePolicy, int APerWarp, int SplitN,
           typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::continuousc_layout_atom,
           typename SchedulePolicy =
               ::bf16_c500_tk_cute_local::cute_tk::continuousc_reusea_schedule_policy<
-                  StagePolicy, APerWarp, SplitN, SplitK>>
-struct continuousc_reusea_family {
-    using geometry_atom = GeometryAtom;
-    using schedule_policy = SchedulePolicy;
-    using host_layout = typename geometry_atom::host_layout;
+                  StagePolicy, APerWarp, SplitN, SplitK>,
+          typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
+struct continuousc_reusea_family
+    : ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+          ::bf16_c500_tk_cute_local::cute_tk::continuousc_reusea_semantic_tag,
+          TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom> {
+    using pattern =
+        ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+            ::bf16_c500_tk_cute_local::cute_tk::continuousc_reusea_semantic_tag,
+            TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom>;
+    using tile_shape = typename pattern::tile_shape;
+    using geometry_atom = typename pattern::geometry_atom;
+    using schedule_policy = typename pattern::schedule_policy;
+    using stage_layout_atom = typename pattern::stage_layout_atom;
+    using host_layout = typename pattern::host_layout;
     static constexpr const char *family_name =
         "cute_tk_continuousc_reusea_n_params";
     static constexpr float alpha = 1.0f;
@@ -30,7 +42,7 @@ struct continuousc_reusea_family {
 
     static_assert(TileShape::tile_k == 128,
                   "cute_tk continuousc_reusea currently assumes tile_k == 128");
-    static constexpr int NTile = TileShape::tile_n;
+    static constexpr int NTile = tile_shape::tile_n;
     static constexpr int StageCount = StagePolicy::stage_count;
     static_assert(schedule_policy::stage_count == StageCount,
                   "continuousc_reusea_family schedule policy must match stage count");

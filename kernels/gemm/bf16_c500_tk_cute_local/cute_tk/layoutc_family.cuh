@@ -6,6 +6,7 @@
 #include "../contracts/stage_contract.cuh"
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
+#include "family_pattern.cuh"
 #include "stage_layout_atom.cuh"
 #include "layoutc_skeleton.cuh"
 #include "policies.cuh"
@@ -16,14 +17,22 @@ template <typename TileShape, typename StagePolicy,
           typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
           typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
           typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
-struct layoutc_family {
+struct layoutc_family
+    : ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+          ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag, TileShape,
+          GeometryAtom, SchedulePolicy, StageLayoutAtom> {
+    using pattern =
+        ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
+            ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag,
+            TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom>;
     using tile = ::bf16_c500_tk_local::contracts::tile_contract;
     using stage = ::bf16_c500_tk_local::contracts::stage_contract;
     using layout = ::bf16_c500_tk_local::contracts::layout_contract;
-    using geometry_atom = GeometryAtom;
-    using schedule_policy = SchedulePolicy;
-    using stage_layout_atom = StageLayoutAtom;
-    using host_layout = typename geometry_atom::host_layout;
+    using tile_shape = typename pattern::tile_shape;
+    using geometry_atom = typename pattern::geometry_atom;
+    using schedule_policy = typename pattern::schedule_policy;
+    using stage_layout_atom = typename pattern::stage_layout_atom;
+    using host_layout = typename pattern::host_layout;
 
     static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
                       TileShape::tile_k == 128,

@@ -308,11 +308,36 @@ composition vocabulary:
 
 - host layout traits
 - geometry atom
+- stage-layout atom
 - schedule policy
 - family shell
 - shape legality / dispatch
 
 That is the foundation required for future multi-family scaling work.
+
+
+## Unified family-pattern status
+
+Major tk-cute family shells now also inherit a common composition pattern:
+
+- `layoutc`
+- `tn_example`
+- `continuousc`
+- `continuousc_reusea`
+- `continuousc_reusea_layoutc`
+
+The shared pattern captures:
+
+- semantic tag
+- tile shape
+- geometry atom
+- schedule policy
+- stage-layout atom
+- host layout (derived from geometry atom)
+
+This is intentionally a **family-shell unification**, not a forced kernel-body
+unification. It gives the codebase a single abstract mode of describing family
+composition without pretending that all mainloops are already interchangeable.
 
 
 ## Tile-shape seam status
