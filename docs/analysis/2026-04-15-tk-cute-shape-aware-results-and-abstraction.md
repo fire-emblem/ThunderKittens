@@ -313,3 +313,25 @@ composition vocabulary:
 - shape legality / dispatch
 
 That is the foundation required for future multi-family scaling work.
+
+
+## Tile-shape seam status
+
+The imported TN example family now also accepts an explicit tile-shape policy
+parameter in addition to geometry and schedule. Current behavior remains locked
+to `128x128x128`, but tile shape is no longer buried as an invisible family
+constant.
+
+Current status:
+
+- `tn_example_family<GeometryAtom, SchedulePolicy, TileShape>` is now the
+  canonical form
+- `tile_128x128x128` is the only implemented TN example tile today
+- the family grid logic and shape legality now flow through the tile policy
+
+This means the imported example path has explicit seams for all three major
+kernel-shaping axes we currently care about:
+
+- geometry
+- schedule / stage
+- tile shape
