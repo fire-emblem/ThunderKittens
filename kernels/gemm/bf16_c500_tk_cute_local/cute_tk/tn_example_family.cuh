@@ -2,15 +2,17 @@
 
 #include <cuda_runtime.h>
 
-#include "../host/tn_example_host_traits.cuh"
+#include "layout_atom.cuh"
 #include "tn_example_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
-struct tn_example_bf16_128x128x128_stage4_family {
-    using host_layout = ::bf16_c500_tk_local::host::tn_example_host_traits;
-    static constexpr const char *family_name =
-        "cute_tk_tn_example_bf16_128x128x128_stage4";
+template <typename GeometryAtom>
+struct tn_example_family {
+    using geometry_atom = GeometryAtom;
+    using host_layout = typename geometry_atom::host_layout;
+    using geometry_provider = typename geometry_atom::provider;
+    static constexpr const char *family_name = "cute_tk_tn_example_generic";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
     static constexpr bool requires_zero_init = false;
@@ -33,9 +35,40 @@ struct tn_example_bf16_128x128x128_stage4_family {
         static_assert(!HasOneDimBias,
                       "tn_example family does not support one-dim bias");
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            hgemm_tn_128x128x128_4m1n8k_256t<T, Tc, Tscal, IsBetaZero>
+            hgemm_tn_128x128x128_4m1n8k_256t<T, Tc, Tscal, IsBetaZero,
+                                            geometry_provider>
             <<<grid_dim, 256>>>(a, b, c, m, n, k, lda, ldb, ldc, alpha_value,
                                 beta_value);
+    }
+};
+
+struct tn_example_bf16_128x128x128_stage4_family
+    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom> {
+    static constexpr const char *family_name =
+        "cute_tk_tn_example_bf16_128x128x128_stage4";
+};
+
+struct tn_example_linear_geom_bf16_128x128x128_stage4_family
+    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_linear_layout_atom> {
+    static constexpr const char *family_name =
+        "cute_tk_tn_example_linear_geom_bf16_128x128x128_stage4";
+
+    static inline bool supports_runtime_shape(int m, int n, int k) {
+        return (m == 1664 && n == 1024 && k == 16384) ||
+               (m == 2048 && n == 2048 && k == 2048) ||
+               (m == 4096 && n == 4096 && k == 4096);
+    }
+};
+
+struct layoutc_tn_tuned_bf16_128x128x128_stage4_family
+    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom> {
+    static constexpr const char *family_name =
+        "cute_tk_layoutc_tn_tuned_bf16_128x128x128_stage4";
+
+    static inline bool supports_runtime_shape(int m, int n, int k) {
+        return (m == 1664 && n == 1024 && k == 16384) ||
+               (m == 2048 && n == 2048 && k == 2048) ||
+               (m == 4096 && n == 4096 && k == 4096);
     }
 };
 
@@ -46,5 +79,11 @@ namespace bf16_c500_tk_cute_local::cute_tk {
 using tn_example_bf16_stage4_family =
     ::bf16_c500_tk_cute_local::cute_tk::families::
         tn_example_bf16_128x128x128_stage4_family;
+using tn_example_linear_geom_bf16_stage4_family =
+    ::bf16_c500_tk_cute_local::cute_tk::families::
+        tn_example_linear_geom_bf16_128x128x128_stage4_family;
+using layoutc_tn_tuned_bf16_stage4_family =
+    ::bf16_c500_tk_cute_local::cute_tk::families::
+        layoutc_tn_tuned_bf16_128x128x128_stage4_family;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

@@ -3,10 +3,11 @@
 #include <cmath>
 #include <type_traits>
 #include "tn_example_utils.cuh"
+#include "tn_example_geometry.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
-template <typename T, typename Tc, typename Tscal, bool IsBetaZero>
+template <typename T, typename Tc, typename Tscal, bool IsBetaZero, typename GeometryPolicy = tn_example_swizzled_geometry>
 __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const void *A,
                                                                         const void *B,
                                                                         void *C,
@@ -60,53 +61,14 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     const int slot = __builtin_mxc_readfirstlane(tid / 64);
     const int lane = tid & 63;
 
-    const int A_row = (tid / 16) * 4;
-    const int A_col = (tid & 15) ^ (tid / 16);
-    const int B_col = A_row;
-    const int B_row = A_col;
-
-    int ALdgOffset[2][4];
-    ALdgOffset[0][0] = (A_col + lda * (A_row + 0 < M_A ? A_row + 0 : M_A - 1)) * sizeof(ALdgType);
-    ALdgOffset[0][1] = (A_col + lda * (A_row + 1 < M_A ? A_row + 1 : M_A - 1)) * sizeof(ALdgType);
-    ALdgOffset[0][2] = (A_col + lda * (A_row + 2 < M_A ? A_row + 2 : M_A - 1)) * sizeof(ALdgType);
-    ALdgOffset[0][3] = (A_col + lda * (A_row + 3 < M_A ? A_row + 3 : M_A - 1)) * sizeof(ALdgType);
-    ALdgOffset[1][0] =
-        (A_col + lda * (A_row + 64 + 0 < M_A ? A_row + 64 + 0 : M_A - 1)) * sizeof(ALdgType);
-    ALdgOffset[1][1] =
-        (A_col + lda * (A_row + 64 + 1 < M_A ? A_row + 64 + 1 : M_A - 1)) * sizeof(ALdgType);
-    ALdgOffset[1][2] =
-        (A_col + lda * (A_row + 64 + 2 < M_A ? A_row + 64 + 2 : M_A - 1)) * sizeof(ALdgType);
-    ALdgOffset[1][3] =
-        (A_col + lda * (A_row + 64 + 3 < M_A ? A_row + 64 + 3 : M_A - 1)) * sizeof(ALdgType);
-    int BLdgOffset[2][4];
-    BLdgOffset[0][0] = (B_row + ldb * (B_col + 0 < N_B ? B_col + 0 : N_B - 1)) * sizeof(BLdgType);
-    BLdgOffset[0][1] = (B_row + ldb * (B_col + 1 < N_B ? B_col + 1 : N_B - 1)) * sizeof(BLdgType);
-    BLdgOffset[0][2] = (B_row + ldb * (B_col + 2 < N_B ? B_col + 2 : N_B - 1)) * sizeof(BLdgType);
-    BLdgOffset[0][3] = (B_row + ldb * (B_col + 3 < N_B ? B_col + 3 : N_B - 1)) * sizeof(BLdgType);
-    BLdgOffset[1][0] =
-        (B_row + ldb * (B_col + 64 + 0 < N_B ? B_col + 64 + 0 : N_B - 1)) * sizeof(BLdgType);
-    BLdgOffset[1][1] =
-        (B_row + ldb * (B_col + 64 + 1 < N_B ? B_col + 64 + 1 : N_B - 1)) * sizeof(BLdgType);
-    BLdgOffset[1][2] =
-        (B_row + ldb * (B_col + 64 + 2 < N_B ? B_col + 64 + 2 : N_B - 1)) * sizeof(BLdgType);
-    BLdgOffset[1][3] =
-        (B_row + ldb * (B_col + 64 + 3 < N_B ? B_col + 64 + 3 : N_B - 1)) * sizeof(BLdgType);
-
-    int lds_row = tid & 15;
-    int lds_col[4];
-    for (int i = 0; i < 4; ++i) {
-        lds_col[i] = (4 * i + lane / 16) ^ lds_row;
-    }
-
-    int ALdsOffset[4];
-    int BLdsOffset[4];
-    const int ALdsOffsetTmp = (slot / 2) * 256;
-    const int BLdsOffsetTmp = (slot & 1) * 256 + (0x2000 / sizeof(ALdsType));
-    for (int i = 0; i < 4; ++i) {
-        const int tmp = lds_row * 16 + lds_col[i];
-        BLdsOffset[i] = (tmp + BLdsOffsetTmp) * sizeof(ALdsType);
-        ALdsOffset[i] = (tmp + ALdsOffsetTmp) * sizeof(ALdsType);
-    }
+    const auto geometry = GeometryPolicy::template make<ALdgType, BLdgType, ALdsType, BLdsType>(
+        tid, lane, slot, lda, ldb, M_A, N_B);
+    const auto &ALdgOffset = geometry.a_ldg_offset;
+    const auto &BLdgOffset = geometry.b_ldg_offset;
+    const auto &ALdsOffset = geometry.a_lds_offset;
+    const auto &BLdsOffset = geometry.b_lds_offset;
+    const int A_col = geometry.a_cmp_op1;
+    const int B_row = geometry.b_cmp_op1;
 
     __shared__ uint8_t WSM[0x10000];  // 64KB
 
@@ -713,7 +675,7 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     }
 }
 
-template <typename T, typename Tc, typename Tscal, bool IsBetaZero>
+template <typename T, typename Tc, typename Tscal, bool IsBetaZero, typename GeometryPolicy = tn_example_swizzled_geometry>
 __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  const void *B,
                                                  void *C,
@@ -725,7 +687,7 @@ __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  int ldc,
                                                  Tscal alpha,
                                                  Tscal beta) {
-    hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero>(
+    hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero, GeometryPolicy>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, blockIdx.x, blockIdx.y);
 }
 

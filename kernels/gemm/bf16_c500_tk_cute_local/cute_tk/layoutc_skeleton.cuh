@@ -22,7 +22,8 @@ using ::bf16_c500_tk_local::kernel::mma_16x16x16b16;
 using ::bf16_c500_tk_local::kernel::run_layoutc_tail_iteration;
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          bool HasOneDimBias, bool OutputContinuousC = false>
+          bool HasOneDimBias, bool OutputContinuousC = false,
+          typename LayoutAtom = layoutc_layout_atom>
 __forceinline__ __device__ void
 layoutc_stage4_device(
     const void *A, const void *B, void *C, int M, int N, int K, int lda,
@@ -59,8 +60,8 @@ layoutc_stage4_device(
     const int lane = tid & 63;
 
     const auto geometry =
-        layoutc_layout_atom::template make_stage_geometry<ALdgType, BLdgType,
-                                                          ALdsType, BLdsType, T>(
+        LayoutAtom::template make_stage_geometry<ALdgType, BLdgType,
+                                                 ALdsType, BLdsType, T>(
             tid, lane, slot, lda, N);
     const auto &ALdgOffset = geometry.a_ldg_offset;
     const auto &BLdgOffset = geometry.b_ldg_offset;
@@ -509,11 +510,12 @@ layoutc_stage4_device(
 }
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          bool HasOneDimBias>
+          bool HasOneDimBias, typename LayoutAtom = layoutc_layout_atom>
 __global__ void cute_tk_bf16_layoutc_128x128x128_stage4(
     const void *A, const void *B, void *C, int M, int N, int K, int lda,
     int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias = nullptr) {
-    layoutc_stage4_device<T, Tc, Tscal, IsBetaZero, HasOneDimBias, false>(
+    layoutc_stage4_device<T, Tc, Tscal, IsBetaZero, HasOneDimBias, false,
+                          LayoutAtom>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, bias, blockIdx.x,
         blockIdx.y);
 }

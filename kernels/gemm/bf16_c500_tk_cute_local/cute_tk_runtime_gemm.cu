@@ -22,12 +22,86 @@ int run_family(const char *case_name, int m, int n, int k, int warmup,
         case_name, m, n, k, warmup, profile);
 }
 
+template <int M, int N, int K, typename LocalT, typename RefT>
+int run_best_family_case(int warmup, int profile) {
+    using family = cute_tk::best_family_t<M, N, K>;
+    return run_family<LocalT, RefT, family>("cute_runtime_case_shape_aware_best",
+                                            M, N, K, warmup, profile);
+}
+
+template <typename LocalT, typename RefT>
+int run_shape_aware_dispatch(int m, int n, int k, int warmup, int profile) {
+    if (m == 1664 && n == 1024 && k == 16384) {
+        return run_best_family_case<1664, 1024, 16384, LocalT, RefT>(warmup,
+                                                                      profile);
+    }
+    if (m == 2048 && n == 2048 && k == 2048) {
+        return run_best_family_case<2048, 2048, 2048, LocalT, RefT>(warmup,
+                                                                    profile);
+    }
+    if (m == 4096 && n == 4096 && k == 4096) {
+        return run_best_family_case<4096, 4096, 4096, LocalT, RefT>(warmup,
+                                                                    profile);
+    }
+    if (m == 4608 && n == 128 && k == 3584) {
+        return run_best_family_case<4608, 128, 3584, LocalT, RefT>(warmup,
+                                                                    profile);
+    }
+    if (m == 4608 && n == 256 && k == 3584) {
+        return run_best_family_case<4608, 256, 3584, LocalT, RefT>(warmup,
+                                                                    profile);
+    }
+    if (m == 3584 && n == 128 && k == 3584) {
+        return run_best_family_case<3584, 128, 3584, LocalT, RefT>(warmup,
+                                                                    profile);
+    }
+    if (m == 3584 && n == 128 && k == 18944) {
+        return run_best_family_case<3584, 128, 18944, LocalT, RefT>(warmup,
+                                                                     profile);
+    }
+    if (m == 37888 && n == 256 && k == 3584) {
+        return run_best_family_case<37888, 256, 3584, LocalT, RefT>(warmup,
+                                                                     profile);
+    }
+    if (m == 37888 && n == 128 && k == 3584) {
+        return run_best_family_case<37888, 128, 3584, LocalT, RefT>(warmup,
+                                                                     profile);
+    }
+    return -1;
+}
+
 template <typename LocalT, typename RefT>
 int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
+    if (env_flag("TK_CUTE_USE_SHAPE_AWARE")) {
+        if (int rc =
+                run_shape_aware_dispatch<LocalT, RefT>(m, n, k, warmup, profile);
+            rc >= 0) {
+            return rc;
+        }
+        return -1;
+    }
     if (env_flag("TK_CUTE_USE_TN_EXAMPLE")) {
         using family = cute_tk::tn_example_bf16_stage4_family;
         return run_family<LocalT, RefT, family>(
             "cute_runtime_case_tn_example", m, n, k, warmup, profile);
+    }
+    if (env_flag("TK_CUTE_USE_TN_LINEAR_GEOMETRY")) {
+        using family = cute_tk::tn_example_linear_geom_bf16_stage4_family;
+        if (family::supports_runtime_shape(m, n, k)) {
+            return run_family<LocalT, RefT, family>(
+                "cute_runtime_case_tn_linear_geometry", m, n, k, warmup,
+                profile);
+        }
+        return -1;
+    }
+    if (env_flag("TK_CUTE_USE_LAYOUTC_TN_TUNING")) {
+        using family = cute_tk::layoutc_tn_tuned_bf16_stage4_family;
+        if (family::supports_runtime_shape(m, n, k)) {
+            return run_family<LocalT, RefT, family>(
+                "cute_runtime_case_layoutc_tn_tuned", m, n, k, warmup,
+                profile);
+        }
+        return -1;
     }
     if (env_flag("TK_CUTE_USE_SQUARE_TT256")) {
         if (m == 256 && n == 256 && k == 64) {

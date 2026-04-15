@@ -11,12 +11,14 @@
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
-template <typename TileShape, typename StagePolicy>
+template <typename TileShape, typename StagePolicy,
+          typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom>
 struct layoutc_family {
     using tile = ::bf16_c500_tk_local::contracts::tile_contract;
     using stage = ::bf16_c500_tk_local::contracts::stage_contract;
     using layout = ::bf16_c500_tk_local::contracts::layout_contract;
-    using host_layout = ::bf16_c500_tk_local::host::layoutc_host_traits;
+    using geometry_atom = GeometryAtom;
+    using host_layout = typename geometry_atom::host_layout;
 
     static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
                       TileShape::tile_k == 128,
@@ -48,11 +50,15 @@ struct layoutc_family {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
             cute_tk_bf16_layoutc_128x128x128_stage4<
                 T, Tc, Tscal, IsBetaZero,
-                HasOneDimBias><<<grid_dim, tile::threads>>>(
+                HasOneDimBias, geometry_atom><<<grid_dim, tile::threads>>>(
                 a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
     }
 };
 
-using layoutc_128x128x128_stage4 = layoutc_family<tile_128x128x128, stage_4>;
+using layoutc_128x128x128_stage4 =
+    layoutc_family<tile_128x128x128, stage_4>;
+using layoutc_128x128x128_stage4_tn_swizzled =
+    layoutc_family<tile_128x128x128, stage_4,
+                   ::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::families
