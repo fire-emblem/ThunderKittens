@@ -5,6 +5,36 @@
 namespace bf16_c500_tk_cute_local::cute_tk {
 
 struct copy_atom {
+    template <typename PtrType>
+    __device__ __forceinline__ static void issue_b128_bsm_no_pred(
+        uint8_t *saddr, PtrType *gaddr) {
+        __builtin_mxc_ldg_b128_bsm_predicator(saddr, gaddr, 0, true, true,
+                                              false, true, 1, 1, MACA_ICMP_EQ);
+    }
+
+    template <typename PtrType>
+    __device__ __forceinline__ static void issue_b128_bsm_pred(
+        uint8_t *saddr, PtrType *gaddr, int cmp_op1, int cmp_op2, int cmp_type) {
+        __builtin_mxc_ldg_b128_bsm_predicator(saddr, gaddr, 0, true, true,
+                                              false, true, cmp_op1, cmp_op2,
+                                              cmp_type);
+    }
+
+    template <typename PtrType>
+    __device__ __forceinline__ static void issue_b64_bsm_no_pred(
+        uint8_t *saddr, PtrType *gaddr) {
+        __builtin_mxc_ldg_b64_bsm_predicator(saddr, gaddr, 0, true, true,
+                                             false, true, 1, 1, MACA_ICMP_EQ);
+    }
+
+    template <typename PtrType>
+    __device__ __forceinline__ static void issue_b64_bsm_pred(
+        uint8_t *saddr, PtrType *gaddr, int cmp_op1, int cmp_op2, int cmp_type) {
+        __builtin_mxc_ldg_b64_bsm_predicator(saddr, gaddr, 0, true, true,
+                                             false, true, cmp_op1, cmp_op2,
+                                             cmp_type);
+    }
+
     template <typename VecType>
     __device__ __forceinline__ static VecType load_gmem_128(const VecType *ptr) {
         using INT128 = __NATIVE_VECTOR__(4, int);
