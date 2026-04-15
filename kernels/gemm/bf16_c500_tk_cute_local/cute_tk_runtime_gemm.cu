@@ -89,33 +89,6 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
         return run_family<LocalT, RefT, family>(
             "cute_runtime_case_tn_example", m, n, k, warmup, profile);
     }
-    if (env_flag("TK_CUTE_USE_TN_CONSERVATIVE")) {
-        using family = cute_tk::tn_example_conservative_bf16_stage4_family;
-        if (family::supports_runtime_shape(m, n, k)) {
-            return run_family<LocalT, RefT, family>(
-                "cute_runtime_case_tn_conservative", m, n, k, warmup,
-                profile);
-        }
-        return -1;
-    }
-    if (env_flag("TK_CUTE_USE_TN_LINEAR_GEOMETRY")) {
-        using family = cute_tk::tn_example_linear_geom_bf16_stage4_family;
-        if (family::supports_runtime_shape(m, n, k)) {
-            return run_family<LocalT, RefT, family>(
-                "cute_runtime_case_tn_linear_geometry", m, n, k, warmup,
-                profile);
-        }
-        return -1;
-    }
-    if (env_flag("TK_CUTE_USE_LAYOUTC_TN_TUNING")) {
-        using family = cute_tk::layoutc_tn_tuned_bf16_stage4_family;
-        if (family::supports_runtime_shape(m, n, k)) {
-            return run_family<LocalT, RefT, family>(
-                "cute_runtime_case_layoutc_tn_tuned", m, n, k, warmup,
-                profile);
-        }
-        return -1;
-    }
     if (env_flag("TK_CUTE_USE_SQUARE_TT256")) {
         if (m == 256 && n == 256 && k == 64) {
             using family = cute_tk::square_tt_256x256x64_stage4_family;
@@ -129,11 +102,11 @@ int run_layoutc_dispatch(int m, int n, int k, int warmup, int profile) {
                 "cute_runtime_case_2048cube_square_tt256", m, n, k, warmup,
                 profile);
         }
-    if (m == 4096 && n == 4096 && k == 4096) {
-        using family = cute_tk::square_tt_256x256x64_stage4_family;
-        return run_family<LocalT, RefT, family>(
-            "cute_runtime_case_4096cube_square_tt256", m, n, k, warmup,
-            profile);
+        if (m == 4096 && n == 4096 && k == 4096) {
+            using family = cute_tk::square_tt_256x256x64_stage4_family;
+            return run_family<LocalT, RefT, family>(
+                "cute_runtime_case_4096cube_square_tt256", m, n, k, warmup,
+                profile);
         }
     }
     if (m == 1664 && n == 1024 && k == 16384) {

@@ -45,16 +45,6 @@ struct tn_example_schedule_policy {
 
 using tn_example_stage4_schedule = tn_example_schedule_policy<stage_4>;
 
-template <typename StagePolicy_>
-struct tn_example_conservative_schedule_policy {
-    using stage_policy = StagePolicy_;
-    static constexpr int stage_count = StagePolicy_::stage_count;
-    static constexpr bool sync_each_stage_issue = true;
-    static constexpr bool sync_before_tail_drain = true;
-};
-
-using tn_example_stage4_conservative_schedule =
-    tn_example_conservative_schedule_policy<stage_4>;
 
 template <typename StagePolicy_, int APerWarp_, int SplitN_, int SplitK_>
 struct continuousc_reusea_schedule_policy {

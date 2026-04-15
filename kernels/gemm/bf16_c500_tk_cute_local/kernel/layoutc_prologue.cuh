@@ -3,7 +3,7 @@
 #include <maca.h>
 
 #include "../contracts/stage_contract.cuh"
-#include "../cute_tk/issue_order_atom.cuh"
+#include "../cute_tk/primitives/pipeline/issue_order_atom.cuh"
 
 namespace bf16_c500_tk_local::kernel {
 

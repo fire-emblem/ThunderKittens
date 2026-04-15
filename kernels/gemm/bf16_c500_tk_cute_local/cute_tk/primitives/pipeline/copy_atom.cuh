@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../kernel/layoutc_prologue.cuh"
+#include "../../../kernel/layoutc_prologue.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 

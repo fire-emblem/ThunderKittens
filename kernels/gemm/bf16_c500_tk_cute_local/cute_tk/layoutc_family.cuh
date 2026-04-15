@@ -6,8 +6,8 @@
 #include "../contracts/stage_contract.cuh"
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
-#include "family_pattern.cuh"
-#include "stage_layout_atom.cuh"
+#include "composition/family_pattern.cuh"
+#include "primitives/structure/stage_layout_atom.cuh"
 #include "layoutc_skeleton.cuh"
 #include "policies.cuh"
 

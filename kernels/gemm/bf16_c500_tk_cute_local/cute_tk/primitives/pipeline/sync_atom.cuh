@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../primitives/sync.cuh"
+#include "../../../primitives/sync.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 

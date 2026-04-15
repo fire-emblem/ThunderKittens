@@ -2,12 +2,12 @@
 
 #include <cmath>
 #include <type_traits>
-#include "family_pattern.cuh"
-#include "issue_order_atom.cuh"
+#include "composition/family_pattern.cuh"
+#include "primitives/pipeline/issue_order_atom.cuh"
 #include "policies.cuh"
-#include "reload_atom.cuh"
-#include "schedule_atom.cuh"
-#include "stage_layout_atom.cuh"
+#include "primitives/pipeline/reload_atom.cuh"
+#include "primitives/pipeline/schedule_atom.cuh"
+#include "primitives/structure/stage_layout_atom.cuh"
 #include "tn_example_utils.cuh"
 #include "tn_example_geometry.cuh"
 

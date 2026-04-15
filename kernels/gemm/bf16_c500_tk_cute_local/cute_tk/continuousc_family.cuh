@@ -6,11 +6,11 @@
 #include "../contracts/stage_contract.cuh"
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
-#include "family_pattern.cuh"
-#include "layout_atom.cuh"
+#include "composition/family_pattern.cuh"
+#include "primitives/structure/geometry_atom.cuh"
 #include "continuousc_skeleton.cuh"
 #include "policies.cuh"
-#include "stage_layout_atom.cuh"
+#include "primitives/structure/stage_layout_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 

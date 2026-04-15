@@ -36,773 +36,103 @@ class Target:
     env: dict[str, str] | None = None
 
 
+def cute_runtime_target(name: str, m: int, n: int, k: int, *, env: dict[str, str] | None = None) -> Target:
+    merged_env = {
+        "TK_CUTE_M": str(m),
+        "TK_CUTE_N": str(n),
+        "TK_CUTE_K": str(k),
+        "TK_CUTE_WARMUP": "1",
+        "TK_CUTE_PROFILE": "3",
+    }
+    if env:
+        merged_env.update(env)
+    return Target(
+        name=name,
+        dtype="bf16",
+        src="cute_tk_runtime_gemm.cu",
+        out_name=f"{name}_cmp.out",
+        extra_flags="",
+        env=merged_env,
+    )
+
+def tk_local_target(name: str, m: int, n: int, k: int) -> Target:
+    return Target(
+        name=name,
+        dtype="bf16",
+        src="tk_local_runtime_gemm.cu",
+        out_name=f"{name}_cmp.out",
+        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC",
+        env={
+            "TK_LOCAL_M": str(m),
+            "TK_LOCAL_N": str(n),
+            "TK_LOCAL_K": str(k),
+            "TK_LOCAL_WARMUP": "1",
+            "TK_LOCAL_PROFILE": "3",
+        },
+    )
+
+def tk_local_layoutc_target(name: str, m: int, n: int, k: int) -> Target:
+    return Target(
+        name=name,
+        dtype="bf16",
+        src="bf16_c500_tk_local_gemm.cu",
+        out_name=f"{name}_cmp.out",
+        extra_flags=(
+            f"-DBF16_C500_MUXI_NATIVE_M={m} "
+            f"-DBF16_C500_MUXI_NATIVE_N={n} "
+            f"-DBF16_C500_MUXI_NATIVE_K={k} "
+            "-DBF16_C500_MUXI_NATIVE_WARMUP_ITERS=1 "
+            "-DBF16_C500_MUXI_NATIVE_PROFILE_ITERS=3"
+        ),
+    )
+
 TARGETS = [
-    Target(
-        name="cute_shape_aware_best_1664x1024x16384_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_1664x1024x16384_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "1664",
-            "TK_CUTE_N": "1024",
-            "TK_CUTE_K": "16384",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_conservative_1664x1024x16384_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_conservative_1664x1024x16384_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_CONSERVATIVE": "1",
-            "TK_CUTE_M": "1664",
-            "TK_CUTE_N": "1024",
-            "TK_CUTE_K": "16384",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_1664x1024x16384_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_1664x1024x16384_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "1664",
-            "TK_CUTE_N": "1024",
-            "TK_CUTE_K": "16384",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_linear_geom_1664x1024x16384_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_linear_geom_1664x1024x16384_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_LINEAR_GEOMETRY": "1",
-            "TK_CUTE_M": "1664",
-            "TK_CUTE_N": "1024",
-            "TK_CUTE_K": "16384",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_layoutc_tuned_1664x1024x16384_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_layoutc_tuned_1664x1024x16384_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_LAYOUTC_TN_TUNING": "1",
-            "TK_CUTE_M": "1664",
-            "TK_CUTE_N": "1024",
-            "TK_CUTE_K": "16384",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_layoutc_1664x1024x16384_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_layoutc_1664x1024x16384_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "1664",
-            "TK_CUTE_N": "1024",
-            "TK_CUTE_K": "16384",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_2048cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_2048cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "2048",
-            "TK_CUTE_N": "2048",
-            "TK_CUTE_K": "2048",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_conservative_2048cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_conservative_2048cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_CONSERVATIVE": "1",
-            "TK_CUTE_M": "2048",
-            "TK_CUTE_N": "2048",
-            "TK_CUTE_K": "2048",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_2048cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_2048cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "2048",
-            "TK_CUTE_N": "2048",
-            "TK_CUTE_K": "2048",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_linear_geom_2048cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_linear_geom_2048cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_LINEAR_GEOMETRY": "1",
-            "TK_CUTE_M": "2048",
-            "TK_CUTE_N": "2048",
-            "TK_CUTE_K": "2048",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_layoutc_tuned_2048cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_layoutc_tuned_2048cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_LAYOUTC_TN_TUNING": "1",
-            "TK_CUTE_M": "2048",
-            "TK_CUTE_N": "2048",
-            "TK_CUTE_K": "2048",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_layoutc_2048cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_2048cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "2048",
-            "TK_CUTE_N": "2048",
-            "TK_CUTE_K": "2048",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_layoutc_2048cube_bf16",
-        dtype="bf16",
-        src="bf16_c500_tk_local_gemm.cu",
-        out_name="tk_local_layoutc_2048cube_bf16_cmp.out",
-        extra_flags=(
-            "-DBF16_C500_MUXI_NATIVE_M=2048 "
-            "-DBF16_C500_MUXI_NATIVE_N=2048 "
-            "-DBF16_C500_MUXI_NATIVE_K=2048 "
-            "-DBF16_C500_MUXI_NATIVE_WARMUP_ITERS=1 "
-            "-DBF16_C500_MUXI_NATIVE_PROFILE_ITERS=3"
-        ),
-    ),
-    Target(
-        name="cute_shape_aware_best_4096cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_4096cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "4096",
-            "TK_CUTE_N": "4096",
-            "TK_CUTE_K": "4096",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_conservative_4096cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_conservative_4096cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_CONSERVATIVE": "1",
-            "TK_CUTE_M": "4096",
-            "TK_CUTE_N": "4096",
-            "TK_CUTE_K": "4096",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_4096cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_4096cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "4096",
-            "TK_CUTE_N": "4096",
-            "TK_CUTE_K": "4096",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_linear_geom_4096cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_linear_geom_4096cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_LINEAR_GEOMETRY": "1",
-            "TK_CUTE_M": "4096",
-            "TK_CUTE_N": "4096",
-            "TK_CUTE_K": "4096",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_layoutc_tuned_4096cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_layoutc_tuned_4096cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_LAYOUTC_TN_TUNING": "1",
-            "TK_CUTE_M": "4096",
-            "TK_CUTE_N": "4096",
-            "TK_CUTE_K": "4096",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_layoutc_4096cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_4096cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "4096",
-            "TK_CUTE_N": "4096",
-            "TK_CUTE_K": "4096",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_8192cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_8192cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "8192",
-            "TK_CUTE_N": "8192",
-            "TK_CUTE_K": "8192",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_8192cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_8192cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "8192",
-            "TK_CUTE_N": "8192",
-            "TK_CUTE_K": "8192",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_layoutc_8192cube_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_8192cube_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "8192",
-            "TK_CUTE_N": "8192",
-            "TK_CUTE_K": "8192",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_layoutc_4096cube_bf16",
-        dtype="bf16",
-        src="bf16_c500_tk_local_gemm.cu",
-        out_name="tk_local_layoutc_4096cube_bf16_cmp.out",
-        extra_flags=(
-            "-DBF16_C500_MUXI_NATIVE_M=4096 "
-            "-DBF16_C500_MUXI_NATIVE_N=4096 "
-            "-DBF16_C500_MUXI_NATIVE_K=4096 "
-            "-DBF16_C500_MUXI_NATIVE_WARMUP_ITERS=1 "
-            "-DBF16_C500_MUXI_NATIVE_PROFILE_ITERS=3"
-        ),
-    ),
-    Target(
-        name="cute_reusea_n128",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_n128_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "4608",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_4608x128x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_4608x128x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "4608",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_4608x128x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_4608x128x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "4608",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_n128",
-        dtype="bf16",
-        src="tk_local_runtime_gemm.cu",
-        out_name="tk_local_runtime_continuousc_n128_cmp.out",
-        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC",
-        env={
-            "TK_LOCAL_M": "4608",
-            "TK_LOCAL_N": "128",
-            "TK_LOCAL_K": "3584",
-            "TK_LOCAL_WARMUP": "1",
-            "TK_LOCAL_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_reusea_n256",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_n256_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "4608",
-            "TK_CUTE_N": "256",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_3584x128x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_3584x128x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "3584",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_3584x128x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_3584x128x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "3584",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_3584x128x3584",
-        dtype="bf16",
-        src="tk_local_runtime_gemm.cu",
-        out_name="tk_local_runtime_3584x128x3584_cmp.out",
-        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC",
-        env={
-            "TK_LOCAL_M": "3584",
-            "TK_LOCAL_N": "128",
-            "TK_LOCAL_K": "3584",
-            "TK_LOCAL_WARMUP": "1",
-            "TK_LOCAL_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_reusea_3584x128x3584",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_3584x128x3584_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "3584",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_4608x256x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_4608x256x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "4608",
-            "TK_CUTE_N": "256",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_4608x256x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_4608x256x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "4608",
-            "TK_CUTE_N": "256",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_n256",
-        dtype="bf16",
-        src="tk_local_runtime_gemm.cu",
-        out_name="tk_local_runtime_continuousc_n256_cmp.out",
-        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC",
-        env={
-            "TK_LOCAL_M": "4608",
-            "TK_LOCAL_N": "256",
-            "TK_LOCAL_K": "3584",
-            "TK_LOCAL_WARMUP": "1",
-            "TK_LOCAL_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_37888x256x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_37888x256x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "37888",
-            "TK_CUTE_N": "256",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_37888x256x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_37888x256x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "37888",
-            "TK_CUTE_N": "256",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_37888x256x3584",
-        dtype="bf16",
-        src="tk_local_runtime_gemm.cu",
-        out_name="tk_local_runtime_37888x256x3584_cmp.out",
-        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC",
-        env={
-            "TK_LOCAL_M": "37888",
-            "TK_LOCAL_N": "256",
-            "TK_LOCAL_K": "3584",
-            "TK_LOCAL_WARMUP": "1",
-            "TK_LOCAL_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_reusea_37888x256x3584",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_37888x256x3584_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "37888",
-            "TK_CUTE_N": "256",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_3584x128x18944_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_3584x128x18944_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "3584",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "18944",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_3584x128x18944_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_3584x128x18944_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "3584",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "18944",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_3584x128x18944",
-        dtype="bf16",
-        src="tk_local_runtime_gemm.cu",
-        out_name="tk_local_runtime_3584x128x18944_cmp.out",
-        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC",
-        env={
-            "TK_LOCAL_M": "3584",
-            "TK_LOCAL_N": "128",
-            "TK_LOCAL_K": "18944",
-            "TK_LOCAL_WARMUP": "1",
-            "TK_LOCAL_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_reusea_3584x128x18944",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_3584x128x18944_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "3584",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "18944",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_shape_aware_best_37888x128x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_shape_aware_best_37888x128x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_SHAPE_AWARE": "1",
-            "TK_CUTE_M": "37888",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_tn_example_37888x128x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tn_example_37888x128x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_USE_TN_EXAMPLE": "1",
-            "TK_CUTE_M": "37888",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_37888x128x3584_bf16",
-        dtype="bf16",
-        src="tk_local_runtime_gemm.cu",
-        out_name="tk_local_runtime_37888x128x3584_bf16_cmp.out",
-        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC",
-        env={
-            "TK_LOCAL_M": "37888",
-            "TK_LOCAL_N": "128",
-            "TK_LOCAL_K": "3584",
-            "TK_LOCAL_WARMUP": "1",
-            "TK_LOCAL_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_continuousc_37888x128x3584_bf16",
-        dtype="bf16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_37888x128x3584_bf16_cmp.out",
-        extra_flags="",
-        env={
-            "TK_CUTE_M": "37888",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="tk_local_37888x128x3584_fp16",
-        dtype="fp16",
-        src="tk_local_runtime_gemm.cu",
-        out_name="tk_local_runtime_37888x128x3584_fp16_cmp.out",
-        extra_flags="-DTK_LOCAL_USE_CONTINUOUSC -DTK_LOCAL_USE_FP16",
-        env={
-            "TK_LOCAL_M": "37888",
-            "TK_LOCAL_N": "128",
-            "TK_LOCAL_K": "3584",
-            "TK_LOCAL_WARMUP": "1",
-            "TK_LOCAL_PROFILE": "3",
-        },
-    ),
-    Target(
-        name="cute_continuousc_37888x128x3584_fp16",
-        dtype="fp16",
-        src="cute_tk_runtime_gemm.cu",
-        out_name="cute_tk_runtime_37888x128x3584_fp16_cmp.out",
-        extra_flags="-DTK_CUTE_USE_FP16",
-        env={
-            "TK_CUTE_M": "37888",
-            "TK_CUTE_N": "128",
-            "TK_CUTE_K": "3584",
-            "TK_CUTE_WARMUP": "1",
-            "TK_CUTE_PROFILE": "3",
-        },
-    ),
+    cute_runtime_target("cute_shape_aware_best_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_1664x1024x16384_bf16", 1664, 1024, 16384, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_layoutc_1664x1024x16384_bf16", 1664, 1024, 16384),
+
+    cute_runtime_target("cute_shape_aware_best_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_2048cube_bf16", 2048, 2048, 2048, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_layoutc_2048cube_bf16", 2048, 2048, 2048),
+    tk_local_layoutc_target("tk_local_layoutc_2048cube_bf16", 2048, 2048, 2048),
+
+    cute_runtime_target("cute_shape_aware_best_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_4096cube_bf16", 4096, 4096, 4096, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_layoutc_4096cube_bf16", 4096, 4096, 4096),
+    tk_local_layoutc_target("tk_local_layoutc_4096cube_bf16", 4096, 4096, 4096),
+
+    cute_runtime_target("cute_shape_aware_best_8192cube_bf16", 8192, 8192, 8192, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_8192cube_bf16", 8192, 8192, 8192, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_layoutc_8192cube_bf16", 8192, 8192, 8192),
+
+    cute_runtime_target("cute_shape_aware_best_4608x128x3584_bf16", 4608, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_4608x128x3584_bf16", 4608, 128, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_reusea_n128", 4608, 128, 3584),
+    tk_local_target("tk_local_n128", 4608, 128, 3584),
+
+    cute_runtime_target("cute_shape_aware_best_4608x256x3584_bf16", 4608, 256, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_4608x256x3584_bf16", 4608, 256, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_reusea_n256", 4608, 256, 3584),
+    tk_local_target("tk_local_n256", 4608, 256, 3584),
+
+    cute_runtime_target("cute_shape_aware_best_3584x128x3584_bf16", 3584, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_3584x128x3584_bf16", 3584, 128, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_reusea_3584x128x3584", 3584, 128, 3584),
+    tk_local_target("tk_local_3584x128x3584", 3584, 128, 3584),
+
+    cute_runtime_target("cute_shape_aware_best_3584x128x18944_bf16", 3584, 128, 18944, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_3584x128x18944_bf16", 3584, 128, 18944, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_reusea_3584x128x18944", 3584, 128, 18944),
+    tk_local_target("tk_local_3584x128x18944", 3584, 128, 18944),
+
+    cute_runtime_target("cute_shape_aware_best_37888x256x3584_bf16", 37888, 256, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_37888x256x3584_bf16", 37888, 256, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
+    cute_runtime_target("cute_reusea_37888x256x3584", 37888, 256, 3584),
+    tk_local_target("tk_local_37888x256x3584", 37888, 256, 3584),
+
+    cute_runtime_target("cute_shape_aware_best_37888x128x3584_bf16", 37888, 128, 3584, env={"TK_CUTE_USE_SHAPE_AWARE": "1"}),
+    cute_runtime_target("cute_tn_example_37888x128x3584_bf16", 37888, 128, 3584, env={"TK_CUTE_USE_TN_EXAMPLE": "1"}),
 ]
-
-MCBLAS_DIRECT_TARGETS = {
-    ("bf16", 1664, 1024, 16384): {
-        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
-        "out_name": "mcblas_1664x1024x16384_bf16_cmp.out",
-        "extra_flags": (
-            "-lmcblas "
-            "-DBF16_MCBLAS_PROBLEM_M=1664 "
-            "-DBF16_MCBLAS_PROBLEM_N=1024 "
-            "-DBF16_MCBLAS_PROBLEM_K=16384 "
-            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
-            "-DBF16_MCBLAS_PROFILE_ITERS=20"
-        ),
-    },
-    ("bf16", 2048, 2048, 2048): {
-        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
-        "out_name": "mcblas_2048cube_bf16_cmp.out",
-        "extra_flags": (
-            "-lmcblas "
-            "-DBF16_MCBLAS_PROBLEM_M=2048 "
-            "-DBF16_MCBLAS_PROBLEM_N=2048 "
-            "-DBF16_MCBLAS_PROBLEM_K=2048 "
-            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
-            "-DBF16_MCBLAS_PROFILE_ITERS=20"
-        ),
-    },
-    ("bf16", 8192, 8192, 8192): {
-        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
-        "out_name": "mcblas_8192cube_bf16_cmp.out",
-        "extra_flags": (
-            "-lmcblas "
-            "-DBF16_MCBLAS_PROBLEM_M=8192 "
-            "-DBF16_MCBLAS_PROBLEM_N=8192 "
-            "-DBF16_MCBLAS_PROBLEM_K=8192 "
-            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
-            "-DBF16_MCBLAS_PROFILE_ITERS=20"
-        ),
-    },
-    ("bf16", 4096, 4096, 4096): {
-        "src": "../baselines/bf16_mcblas/bf16_mcblas_gemm.cu",
-        "out_name": "mcblas_4096cube_bf16_cmp.out",
-        "extra_flags": (
-            "-lmcblas "
-            "-DBF16_MCBLAS_PROBLEM_M=4096 "
-            "-DBF16_MCBLAS_PROBLEM_N=4096 "
-            "-DBF16_MCBLAS_PROBLEM_K=4096 "
-            "-DBF16_MCBLAS_WARMUP_ITERS=5 "
-            "-DBF16_MCBLAS_PROFILE_ITERS=20"
-        ),
-    },
-}
-
 
 def run_cmd(cmd: list[str], env: dict[str, str] | None = None) -> str:
     proc = subprocess.run(

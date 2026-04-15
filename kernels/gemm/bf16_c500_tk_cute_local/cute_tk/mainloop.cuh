@@ -1,19 +1,19 @@
 #pragma once
 
-#include "copy_atom.cuh"
+#include "primitives/pipeline/copy_atom.cuh"
 #include "continuousc_family.cuh"
 #include "continuousc_reusea_family.cuh"
 #include "continuousc_reusea_layoutc_family.cuh"
-#include "epilogue_atom.cuh"
+#include "primitives/epilogue/epilogue_atom.cuh"
 #include "layoutc_family.cuh"
 #include "layoutc_tt_256x256x64_traits.cuh"
 #include "layoutc_square_candidates.cuh"
-#include "layout_atom.cuh"
-#include "mainloop_atom.cuh"
-#include "mma_atom.cuh"
+#include "primitives/structure/geometry_atom.cuh"
+#include "primitives/pipeline/mainloop_atom.cuh"
+#include "primitives/compute/mma_atom.cuh"
 #include "square_tt_256x256x64_family.cuh"
 #include "tn_example_family.cuh"
-#include "sync_atom.cuh"
+#include "primitives/pipeline/sync_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 

@@ -1,7 +1,7 @@
 #include <maca_bfloat16.h>
 
 #include "continuousc_reusea_family.cuh"
-#include "mainloop_atom.cuh"
+#include "primitives/pipeline/mainloop_atom.cuh"
 #include "continuousc_reusea_skeleton.cuh"
 
 using schedule =

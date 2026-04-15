@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../kernel/continuousc_store.cuh"
-#include "../kernel/layoutc_epilogue.cuh"
-#include "../kernel/layoutc_store.cuh"
+#include "../../../kernel/continuousc_store.cuh"
+#include "../../../kernel/layoutc_epilogue.cuh"
+#include "../../../kernel/layoutc_store.cuh"
 #include "bias_atom.cuh"
 #include "store_atom.cuh"
 

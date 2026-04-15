@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mma_atom.cuh"
+#include "../compute/mma_atom.cuh"
 #include "sync_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {

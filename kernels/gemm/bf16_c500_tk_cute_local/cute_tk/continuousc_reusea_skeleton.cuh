@@ -6,13 +6,13 @@
 #include <mc_runtime.h>
 
 #include "../kernel/layoutc_support.cuh"
-#include "copy_atom.cuh"
-#include "epilogue_atom.cuh"
-#include "mainloop_atom.cuh"
-#include "mma_atom.cuh"
+#include "primitives/pipeline/copy_atom.cuh"
+#include "primitives/epilogue/epilogue_atom.cuh"
+#include "primitives/pipeline/mainloop_atom.cuh"
+#include "primitives/compute/mma_atom.cuh"
 #include "policies.cuh"
-#include "schedule_atom.cuh"
-#include "sync_atom.cuh"
+#include "primitives/pipeline/schedule_atom.cuh"
+#include "primitives/pipeline/sync_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 

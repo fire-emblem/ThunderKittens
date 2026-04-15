@@ -499,6 +499,54 @@ shape as the other recent refactors:
 - repeated low-level fragment action moves to a dedicated atom
 
 
+## Direct primitive-library layout
+
+The Cute-side implementation now targets a direct primitive-library layout
+instead of keeping atoms flat under one folder or retaining compatibility
+forwarders.
+
+Current structure:
+
+- `cute_tk/composition/`
+  - `family_pattern.cuh`
+- `cute_tk/primitives/structure/`
+  - `geometry_atom.cuh`
+  - `stage_layout_atom.cuh`
+- `cute_tk/primitives/pipeline/`
+  - `copy_atom.cuh`
+  - `sync_atom.cuh`
+  - `schedule_atom.cuh`
+  - `issue_order_atom.cuh`
+  - `prologue_atom.cuh`
+  - `reload_atom.cuh`
+  - `mainloop_atom.cuh`
+- `cute_tk/primitives/compute/`
+  - `mma_atom.cuh`
+- `cute_tk/primitives/epilogue/`
+  - `store_atom.cuh`
+  - `bias_atom.cuh`
+  - `epilogue_atom.cuh`
+
+This is intentionally a direct end-state structure: no compatibility wrapper
+headers, no duplicate old paths, and no need to keep historical flat-header
+layout alive.
+
+
+## Deleted historical experiment surface
+
+The following experimental comparison surface is no longer part of the active
+code path:
+
+- TN conservative schedule runtime switch
+- TN linear-geometry runtime switch
+- layoutc-TN tuning runtime switch
+- their family aliases and benchmark targets
+
+Those artifacts served their purpose as temporary evaluation lanes, but they do
+not belong in the long-lived primitive library because they are not part of the
+current winner-selection path or the target abstraction model.
+
+
 ## Tile-shape seam status
 
 The imported TN example family now also accepts an explicit tile-shape policy

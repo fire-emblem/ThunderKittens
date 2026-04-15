@@ -2,10 +2,10 @@
 
 #include <cuda_runtime.h>
 
-#include "family_pattern.cuh"
-#include "layout_atom.cuh"
+#include "composition/family_pattern.cuh"
+#include "primitives/structure/geometry_atom.cuh"
 #include "policies.cuh"
-#include "stage_layout_atom.cuh"
+#include "primitives/structure/stage_layout_atom.cuh"
 #include "tn_example_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
@@ -65,47 +65,8 @@ struct tn_example_bf16_128x128x128_stage4_family
         "cute_tk_tn_example_bf16_128x128x128_stage4";
 };
 
-struct tn_example_linear_geom_bf16_128x128x128_stage4_family
-    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_linear_layout_atom,
-                        ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-                        ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128> {
-    static constexpr const char *family_name =
-        "cute_tk_tn_example_linear_geom_bf16_128x128x128_stage4";
 
-    static inline bool supports_runtime_shape(int m, int n, int k) {
-        return (m == 1664 && n == 1024 && k == 16384) ||
-               (m == 2048 && n == 2048 && k == 2048) ||
-               (m == 4096 && n == 4096 && k == 4096);
-    }
-};
 
-struct tn_example_conservative_bf16_128x128x128_stage4_family
-    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
-                        ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_conservative_schedule,
-                        ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128> {
-    static constexpr const char *family_name =
-        "cute_tk_tn_example_conservative_bf16_128x128x128_stage4";
-
-    static inline bool supports_runtime_shape(int m, int n, int k) {
-        return (m == 1664 && n == 1024 && k == 16384) ||
-               (m == 2048 && n == 2048 && k == 2048) ||
-               (m == 4096 && n == 4096 && k == 4096);
-    }
-};
-
-struct layoutc_tn_tuned_bf16_128x128x128_stage4_family
-    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
-                        ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-                        ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128> {
-    static constexpr const char *family_name =
-        "cute_tk_layoutc_tn_tuned_bf16_128x128x128_stage4";
-
-    static inline bool supports_runtime_shape(int m, int n, int k) {
-        return (m == 1664 && n == 1024 && k == 16384) ||
-               (m == 2048 && n == 2048 && k == 2048) ||
-               (m == 4096 && n == 4096 && k == 4096);
-    }
-};
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::families
 
@@ -114,14 +75,5 @@ namespace bf16_c500_tk_cute_local::cute_tk {
 using tn_example_bf16_stage4_family =
     ::bf16_c500_tk_cute_local::cute_tk::families::
         tn_example_bf16_128x128x128_stage4_family;
-using tn_example_linear_geom_bf16_stage4_family =
-    ::bf16_c500_tk_cute_local::cute_tk::families::
-        tn_example_linear_geom_bf16_128x128x128_stage4_family;
-using tn_example_conservative_bf16_stage4_family =
-    ::bf16_c500_tk_cute_local::cute_tk::families::
-        tn_example_conservative_bf16_128x128x128_stage4_family;
-using layoutc_tn_tuned_bf16_stage4_family =
-    ::bf16_c500_tk_cute_local::cute_tk::families::
-        layoutc_tn_tuned_bf16_128x128x128_stage4_family;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk
