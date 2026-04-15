@@ -6,23 +6,30 @@
 #include "../contracts/stage_contract.cuh"
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
+#include "layout_atom.cuh"
 #include "continuousc_skeleton.cuh"
 #include "policies.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
-template <typename TileShape, typename StagePolicy>
+template <typename TileShape, typename StagePolicy,
+          typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::continuousc_layout_atom,
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::continuousc_stage4_schedule>
 struct continuousc_family {
     using tile = ::bf16_c500_tk_local::contracts::tile_contract;
     using stage = ::bf16_c500_tk_local::contracts::stage_contract;
     using layout = ::bf16_c500_tk_local::contracts::layout_contract;
-    using host_layout = ::bf16_c500_tk_local::host::continuousc_host_traits;
+    using geometry_atom = GeometryAtom;
+    using schedule_policy = SchedulePolicy;
+    using host_layout = typename geometry_atom::host_layout;
 
     static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
                       TileShape::tile_k == 128,
                   "cute_tk continuousc_family currently supports only 128x128x128");
     static_assert(StagePolicy::stage_count == 4,
                   "cute_tk continuousc_family currently supports only stage4");
+    static_assert(schedule_policy::stage_count == StagePolicy::stage_count,
+                  "continuousc_family schedule policy must match stage policy");
 
     static constexpr const char *family_name =
         "cute_tk_continuousc_128x128x128_stage4";

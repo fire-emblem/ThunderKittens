@@ -291,3 +291,25 @@ Interpretation:
   existing imported TN schedule on the tested shapes
 - future schedule work should explore more meaningful issue-order / wait-window
   variants, not just extra synchronization
+
+
+## Continuousc / reusea composition status
+
+The current `continuousc`, `continuousc_reusea`, and
+`continuousc_reusea_layoutc` family shells now also expose explicit
+`geometry_atom` and `schedule_policy` seams at the family level.
+
+This does not yet rewrite their kernel internals around alternate geometry or
+schedule implementations, but it aligns their family-shell abstraction model
+with the direction already established for `tn_example` and `layoutc`.
+
+The practical result is that all major tk-cute family lanes now speak a shared
+composition vocabulary:
+
+- host layout traits
+- geometry atom
+- schedule policy
+- family shell
+- shape legality / dispatch
+
+That is the foundation required for future multi-family scaling work.

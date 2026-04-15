@@ -28,6 +28,14 @@ struct layoutc_schedule_policy {
 using layoutc_stage4_schedule = layoutc_schedule_policy<stage_4>;
 
 template <typename StagePolicy_>
+struct continuousc_schedule_policy {
+    using stage_policy = StagePolicy_;
+    static constexpr int stage_count = StagePolicy_::stage_count;
+};
+
+using continuousc_stage4_schedule = continuousc_schedule_policy<stage_4>;
+
+template <typename StagePolicy_>
 struct tn_example_schedule_policy {
     using stage_policy = StagePolicy_;
     static constexpr int stage_count = StagePolicy_::stage_count;
@@ -47,6 +55,15 @@ struct tn_example_conservative_schedule_policy {
 
 using tn_example_stage4_conservative_schedule =
     tn_example_conservative_schedule_policy<stage_4>;
+
+template <typename StagePolicy_, int APerWarp_, int SplitN_, int SplitK_>
+struct continuousc_reusea_schedule_policy {
+    using stage_policy = StagePolicy_;
+    static constexpr int stage_count = StagePolicy_::stage_count;
+    static constexpr int a_per_warp = APerWarp_;
+    static constexpr int split_n = SplitN_;
+    static constexpr int split_k = SplitK_;
+};
 
 template <int M, int N, int K>
 struct layoutc_perf_policy;

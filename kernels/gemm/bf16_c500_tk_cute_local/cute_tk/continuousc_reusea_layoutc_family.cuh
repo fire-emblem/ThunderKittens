@@ -6,15 +6,22 @@
 #include <cuda_runtime.h>
 
 #include "../host/layout_traits.cuh"
+#include "layout_atom.cuh"
 #include "continuousc_reusea_skeleton.cuh"
 #include "policies.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
 template <typename TileShape, typename StagePolicy, int APerWarp, int SplitN,
-          int SplitK>
+          int SplitK,
+          typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
+          typename SchedulePolicy =
+              ::bf16_c500_tk_cute_local::cute_tk::continuousc_reusea_schedule_policy<
+                  StagePolicy, APerWarp, SplitN, SplitK>>
 struct continuousc_reusea_layoutc_family {
-    using host_layout = ::bf16_c500_tk_local::host::layoutc_host_traits;
+    using geometry_atom = GeometryAtom;
+    using schedule_policy = SchedulePolicy;
+    using host_layout = typename geometry_atom::host_layout;
     static constexpr const char *family_name =
         "cute_tk_continuousc_reusea_layoutc_n_params";
     static constexpr float alpha = 1.0f;
@@ -22,6 +29,14 @@ struct continuousc_reusea_layoutc_family {
     static constexpr bool requires_zero_init = (SplitK > 1);
     static constexpr int NTile = TileShape::tile_n;
     static constexpr int StageCount = StagePolicy::stage_count;
+    static_assert(schedule_policy::stage_count == StageCount,
+                  "continuousc_reusea_layoutc_family schedule policy must match stage count");
+    static_assert(schedule_policy::a_per_warp == APerWarp,
+                  "continuousc_reusea_layoutc_family schedule policy must match APerWarp");
+    static_assert(schedule_policy::split_n == SplitN,
+                  "continuousc_reusea_layoutc_family schedule policy must match SplitN");
+    static_assert(schedule_policy::split_k == SplitK,
+                  "continuousc_reusea_layoutc_family schedule policy must match SplitK");
 
     static inline dim3 grid(int m, int n) {
         (void)n;
