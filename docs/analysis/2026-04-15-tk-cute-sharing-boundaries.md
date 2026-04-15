@@ -189,6 +189,22 @@ Recommendation:
 - do not force one universal mainloop body yet
 - share actions, not full choreography
 
+### 10.5. Square-TT stage I/O
+
+Shareability: **medium-high** inside the square-tt family, **partial** across
+the wider family set
+
+Why:
+- square-tt has repeated stage-store and stage-load actions (`STSx2` /
+  `LDSx2`-style pairs)
+- these actions are meaningful semantic units inside that family even though
+  the full choreography is still square-tt-specific
+
+Recommendation:
+- keep square-tt-specific stage I/O in the primitive library as its own atom
+- treat it as a family-local primitive that may later inform more general
+  stage-I/O abstraction if another lane converges on the same unit
+
 ### 11. ReuseA hot refill / seed path
 
 Shareability: **low** for now

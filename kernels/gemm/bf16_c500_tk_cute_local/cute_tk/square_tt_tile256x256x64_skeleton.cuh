@@ -7,6 +7,7 @@
 #include <bit>
 #include <cute/tensor.hpp>
 
+#include "primitives/pipeline/square_tt_stage_io_atom.cuh"
 #include "square_tt_tile256x256x64_traits.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
@@ -87,43 +88,35 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
         }
     }
 
-#define TK_FENC() asm(";--------------");
-#define STSx2(dst0, dst1, src0, src1, ststype)                                  \
-    TK_FENC();                                                                   \
-    *reinterpret_cast<ststype *>((dst0)) = *reinterpret_cast<ststype *>(&(src0)); \
-    *reinterpret_cast<ststype *>((dst1)) = *reinterpret_cast<ststype *>(&(src1)); \
-    TK_FENC();
 #define STS_B64X2_I(i)                                                           \
-    STSx2(smem + sts_off + traits::sts_stride_bytes * i,                         \
-          smem + sts_off + traits::sts_stride_bytes * (i + 1), A_frag[i],       \
-          A_frag[i + 1], sts_type)
-#define LDSx2(dst0, dst1, src0, src1, ldstype)                                   \
-    TK_FENC();                                                                   \
-    *reinterpret_cast<ldstype *>(&(dst0)) = *reinterpret_cast<ldstype *>((src0)); \
-    *reinterpret_cast<ldstype *>(&(dst1)) = *reinterpret_cast<ldstype *>((src1)); \
-    TK_FENC();
+    square_tt_stage_io_atom::template store_pair<sts_type>(                      \
+        smem, sts_off, traits::sts_stride_bytes, i, A_frag[i], A_frag[i + 1])
 #define LDS_B64X2_STAGE_I(stage, i)                                              \
-    LDSx2(a[i], a[i + 1], smem + lds_off[stage] + traits::lds_stride_bytes * i,  \
-          smem + lds_off[stage] + traits::lds_stride_bytes * (i + 1), lds_type)
+    square_tt_stage_io_atom::template load_pair<lds_type>(                       \
+        a[i], a[i + 1], smem, lds_off[stage], traits::lds_stride_bytes, i)
 #define LDG_A(tileK, i)                                                          \
-    TK_FENC();                                                                   \
+    asm(";--------------");                                                                   \
     A_frag[i] = __builtin_mxc_ldg_b64(&(gA(ldg_m[i], ldg_kA, tileK)), 0, -1,    \
                                       true, true, false, false);                 \
-    TK_FENC();
+    asm(";--------------");
 #define LDG_B(tileK, i, j)                                                       \
-    TK_FENC();                                                                   \
+    asm(";--------------");                                                                   \
     *reinterpret_cast<b_ldg_type *>(&(B_frag[i][j])) =                           \
         __builtin_mxc_ldg_b32(&(gB(ldg_n, ldg_kB_base + j + i * 16, tileK)), 0,  \
                               -1, true, true, false, false);                     \
-    TK_FENC();
+    asm(";--------------");
 #define MMA_MNK(m, n, k)                                                         \
     accum[m][n] = __builtin_mxc_mma_16x16x16bf16(a[m], b[k][n], accum[m][n]);
 
     int sts_off = traits::sts_offset_bytes(tidx);
-    STS_B64X2_I(0);
-    STS_B64X2_I(2);
-    STS_B64X2_I(4);
-    STS_B64X2_I(6);
+    square_tt_stage_io_atom::template store_pair<sts_type>(
+        smem, sts_off, traits::sts_stride_bytes, 0, A_frag[0], A_frag[1]);
+    square_tt_stage_io_atom::template store_pair<sts_type>(
+        smem, sts_off, traits::sts_stride_bytes, 2, A_frag[2], A_frag[3]);
+    square_tt_stage_io_atom::template store_pair<sts_type>(
+        smem, sts_off, traits::sts_stride_bytes, 4, A_frag[4], A_frag[5]);
+    square_tt_stage_io_atom::template store_pair<sts_type>(
+        smem, sts_off, traits::sts_stride_bytes, 6, A_frag[6], A_frag[7]);
 
     ab_type a[traits::accum_m];
     int lds_off[4];
@@ -132,10 +125,14 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
     }
     int4_t accum[traits::accum_m][traits::accum_n] = {0};
     __syncthreadshared();
-    LDS_B64X2_STAGE_I(0, 0);
-    LDS_B64X2_STAGE_I(0, 2);
-    LDS_B64X2_STAGE_I(0, 4);
-    LDS_B64X2_STAGE_I(0, 6);
+    square_tt_stage_io_atom::template load_pair<lds_type>(
+        a[0], a[1], smem, lds_off[0], traits::lds_stride_bytes, 0);
+    square_tt_stage_io_atom::template load_pair<lds_type>(
+        a[2], a[3], smem, lds_off[0], traits::lds_stride_bytes, 2);
+    square_tt_stage_io_atom::template load_pair<lds_type>(
+        a[4], a[5], smem, lds_off[0], traits::lds_stride_bytes, 4);
+    square_tt_stage_io_atom::template load_pair<lds_type>(
+        a[6], a[7], smem, lds_off[0], traits::lds_stride_bytes, 6);
 
     ab_type b[2][2];
     b[0][0][0] = __builtin_mxc_byte_perm(B_frag[0][0], B_frag[0][1], 0x01000504u);
@@ -323,6 +320,8 @@ __global__ void __launch_bounds__(512) cute_tk_bf16_square_tt_tile256x256x64_sta
 #undef MMA_MNK
 #undef LDG_B
 #undef LDG_A
+#undef LDS_B64X2_STAGE_I
+#undef STS_B64X2_I
 #undef LDS_B64X2_STAGE_I
 #undef LDSx2
 #undef STS_B64X2_I
