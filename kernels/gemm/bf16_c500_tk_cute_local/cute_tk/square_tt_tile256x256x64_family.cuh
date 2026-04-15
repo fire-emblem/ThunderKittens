@@ -2,6 +2,7 @@
 
 #include <cuda_runtime.h>
 
+#include "../contracts/square_tt_tile_contract.cuh"
 #include "../host/layout_traits.cuh"
 #include "composition/family_pattern.cuh"
 #include "layoutc_square_candidates.cuh"
@@ -17,6 +18,8 @@ struct square_tt_tile256x256x64_family
           ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
           ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom> {
     using host_layout = ::bf16_c500_tk_local::host::square_tt_host_traits;
+    using tile_contract =
+        ::bf16_c500_tk_cute_local::contracts::square_tt_tile_contract;
     static constexpr const char *family_name =
         "cute_tk_square_tt_tile256x256x64_stage4";
     static constexpr float alpha = 1.0f;
@@ -51,9 +54,8 @@ struct square_tt_tile256x256x64_family
             cute_tk_bf16_square_tt_tile256x256x64_stage4<T, Tc, Tscal, IsBetaZero,
                                                      HasOneDimBias>
             <<<grid_dim,
-               ::bf16_c500_tk_cute_local::cute_tk::square_tt_tile256x256x64_traits::threads,
-               ::bf16_c500_tk_cute_local::cute_tk::square_tt_tile256x256x64_traits::
-                   a_smem_double_buffer_bytes>>>(
+               tile_contract::threads,
+               tile_contract::a_smem_double_buffer_bytes>>>(
                 a, b, c, m, n, k, lda, ldb, ldc, alpha_value, beta_value, bias);
     }
 };

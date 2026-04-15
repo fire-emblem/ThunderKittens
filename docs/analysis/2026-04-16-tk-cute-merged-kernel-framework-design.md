@@ -174,8 +174,17 @@ than being forced into the tile128 body.
 - `square_tt`
 
 This lane now participates in the same naming and registry surface, and has
-family-local primitives for stage-I/O and fragment arrangement. It still needs
-its own body template before it can be considered structurally normalized.
+family-local primitives for:
+- stage-I/O
+- fragment arrangement
+- thread-map / offset calculation
+
+Its former monolithic traits bundle has been split into:
+- `contracts/square_tt_tile_contract.cuh`
+- `primitives/structure/square_tt_thread_map_atom.cuh`
+
+It still needs its own body template before it can be considered structurally
+normalized.
 
 ## Immediate next steps
 
