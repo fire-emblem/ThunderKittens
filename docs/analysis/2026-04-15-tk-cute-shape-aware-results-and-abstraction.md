@@ -447,6 +447,27 @@ workflows, a hot path only graduates into a shared atom once its abstraction
 cost is proven acceptable.
 
 
+## Store-atom status
+
+The next stable epilogue-facing primitive is the fragment store action.
+
+Current extracted store atoms:
+
+- `store_layoutc_fragment(...)`
+- `store_continuousc_fragment(...)`
+
+These now sit under `epilogue_atom`, which remains the semantic façade for
+layout-specific epilogues while delegating the low-level fragment writeback
+action to a smaller reusable primitive.
+
+This is again intentionally narrow and TK/Cute-aligned:
+
+- the semantic epilogue boundary remains explicit
+- the repeated fragment writeback math becomes reusable
+- family-specific surrounding logic stays where it belongs until evidence says
+  more can be shared safely
+
+
 ## Tile-shape seam status
 
 The imported TN example family now also accepts an explicit tile-shape policy
