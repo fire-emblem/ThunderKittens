@@ -412,6 +412,7 @@ Current extracted issue-order atoms:
 - predicated B-bank issue
 - non-predicated A-bank issue
 - non-predicated B-bank issue
+- predicated A/B stage issue
 
 These are now used by:
 

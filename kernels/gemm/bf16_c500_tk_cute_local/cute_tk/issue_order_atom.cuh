@@ -42,6 +42,27 @@ struct issue_order_atom {
             b_ptr + b_ldg_offset, 0, true, true, false, true, cmp_op1, cmp_op2,
             MACA_ICMP_SLT);
     }
+
+    template <typename StageLayout, typename ALdgType, typename BLdgType,
+              typename ScalarT>
+    __device__ __forceinline__ static void issue_ab_stage_pred(
+        uint8_t *wsm_ldg, uint8_t *a_ptr, uint8_t *b_ptr,
+        const int (&a_ldg_offset)[2][4], const int (&b_ldg_offset)[2][4],
+        int stage_idx, int a_cmp_op1, int a_cmp_op2, int b_cmp_op1_bank0,
+        int b_cmp_op2_bank0, int b_cmp_op1_bank1, int b_cmp_op2_bank1) {
+        issue_a_bank_pred<StageLayout, ALdgType, ScalarT>(
+            wsm_ldg, a_ptr, a_ldg_offset[0][stage_idx], stage_idx, 0,
+            a_cmp_op1, a_cmp_op2);
+        issue_a_bank_pred<StageLayout, ALdgType, ScalarT>(
+            wsm_ldg, a_ptr, a_ldg_offset[1][stage_idx], stage_idx, 1,
+            a_cmp_op1, a_cmp_op2);
+        issue_b_bank_pred<StageLayout, BLdgType, ScalarT>(
+            wsm_ldg, b_ptr, b_ldg_offset[0][stage_idx], stage_idx, 0,
+            b_cmp_op1_bank0, b_cmp_op2_bank0);
+        issue_b_bank_pred<StageLayout, BLdgType, ScalarT>(
+            wsm_ldg, b_ptr, b_ldg_offset[1][stage_idx], stage_idx, 1,
+            b_cmp_op1_bank1, b_cmp_op2_bank1);
+    }
 };
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

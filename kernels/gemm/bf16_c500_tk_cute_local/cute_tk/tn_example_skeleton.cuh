@@ -102,17 +102,11 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     uint8_t *WSM_Ldg = WSM + slot * 0x400;
 
     for (int stage_i = 0; stage_i < Stage; ++stage_i) {
-        issue_order_atom::template issue_a_bank_pred<stage_layout, ALdgType, T>(
-            WSM_Ldg, APtr, ALdgOffset[0][stage_i], stage_i, 0, A_col,
-            K / (sizeof(ALdgType) / sizeof(T)));
-        issue_order_atom::template issue_a_bank_pred<stage_layout, ALdgType, T>(
-            WSM_Ldg, APtr, ALdgOffset[1][stage_i], stage_i, 1, A_col,
-            K / (sizeof(ALdgType) / sizeof(T)));
-        issue_order_atom::template issue_b_bank_pred<stage_layout, BLdgType, T>(
-            WSM_Ldg, BPtr, BLdgOffset[0][stage_i], stage_i, 0, B_row,
-            K / (sizeof(BLdgType) / sizeof(T)));
-        issue_order_atom::template issue_b_bank_pred<stage_layout, BLdgType, T>(
-            WSM_Ldg, BPtr, BLdgOffset[1][stage_i], stage_i, 1, B_row,
+        issue_order_atom::template issue_ab_stage_pred<stage_layout, ALdgType,
+                                                       BLdgType, T>(
+            WSM_Ldg, APtr, BPtr, ALdgOffset, BLdgOffset, stage_i, A_col,
+            K / (sizeof(ALdgType) / sizeof(T)), B_row,
+            K / (sizeof(BLdgType) / sizeof(T)), B_row,
             K / (sizeof(BLdgType) / sizeof(T)));
         schedule_atom::template maybe_sync_each_stage_issue<schedule_policy>();
     }
@@ -535,17 +529,12 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
             schedule_atom::template wait_prologue_stage1<Stage>();
 
-            issue_order_atom::template issue_a_bank_pred<stage_layout, ALdgType, T>(
-                WSM_Ldg, APtr, ALdgOffset[0][stage_i], stage_i, 0, A_col,
-                K / (sizeof(ALdgType) / sizeof(T)));
-            issue_order_atom::template issue_a_bank_pred<stage_layout, ALdgType, T>(
-                WSM_Ldg, APtr, ALdgOffset[1][stage_i], stage_i, 1, A_col,
-                K / (sizeof(ALdgType) / sizeof(T)));
-            issue_order_atom::template issue_b_bank_pred<stage_layout, BLdgType, T>(
-                WSM_Ldg, BPtr, BLdgOffset[0][stage_i], stage_i, 0, B_row,
-                K / (sizeof(BLdgType) / sizeof(T)));
-            issue_order_atom::template issue_b_bank_pred<stage_layout, BLdgType, T>(
-                WSM_Ldg, BPtr, BLdgOffset[1][stage_i], stage_i, 1, B_row,
+            issue_order_atom::template issue_ab_stage_pred<stage_layout,
+                                                           ALdgType, BLdgType,
+                                                           T>(
+                WSM_Ldg, APtr, BPtr, ALdgOffset, BLdgOffset, stage_i, A_col,
+                K / (sizeof(ALdgType) / sizeof(T)), B_row,
+                K / (sizeof(BLdgType) / sizeof(T)), B_row,
                 K / (sizeof(BLdgType) / sizeof(T)));
 
             a[ldsIdx][0] = reload_atom::load_fragment<ALdsType>(WSM_lds2, ALdsOffset, 0);

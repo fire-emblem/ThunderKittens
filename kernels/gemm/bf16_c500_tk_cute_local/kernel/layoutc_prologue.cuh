@@ -31,21 +31,10 @@ __device__ __forceinline__ void issue_layoutc_prologue(
 #pragma unroll
     for (int stage_i = 0; stage_i < stage_count; ++stage_i) {
         ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
-            template issue_a_bank_pred<StageContract, ALdgType, T>(
-                wsm_ldg, a_ptr, a_ldg_offset[0][stage_i], stage_i, 0, 0,
-                k / (sizeof(ALdgType) / sizeof(T)));
-        ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
-            template issue_a_bank_pred<StageContract, ALdgType, T>(
-                wsm_ldg, a_ptr, a_ldg_offset[1][stage_i], stage_i, 1, 0,
-                k / (sizeof(ALdgType) / sizeof(T)));
-        ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
-            template issue_b_bank_pred<StageContract, BLdgType, T>(
-                wsm_ldg, b_ptr, b_ldg_offset[0][stage_i], stage_i, 0,
-                start_col + stage_i * 16, n);
-        ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
-            template issue_b_bank_pred<StageContract, BLdgType, T>(
-                wsm_ldg, b_ptr, b_ldg_offset[1][stage_i], stage_i, 1,
-                start_col + (4 + stage_i) * 16, n);
+            template issue_ab_stage_pred<StageContract, ALdgType, BLdgType, T>(
+                wsm_ldg, a_ptr, b_ptr, a_ldg_offset, b_ldg_offset, stage_i, 0,
+                k / (sizeof(ALdgType) / sizeof(T)), start_col + stage_i * 16,
+                n, start_col + (4 + stage_i) * 16, n);
     }
 }
 
