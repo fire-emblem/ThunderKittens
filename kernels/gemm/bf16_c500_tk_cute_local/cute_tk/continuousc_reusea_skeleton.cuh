@@ -11,6 +11,7 @@
 #include "mainloop_atom.cuh"
 #include "mma_atom.cuh"
 #include "policies.cuh"
+#include "schedule_atom.cuh"
 #include "sync_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
@@ -117,9 +118,8 @@ __global__ void __launch_bounds__(256) cute_tk_continuousc_reusea_n(
 #pragma unroll
         for (int t = 0; t < Stages; ++t) {
             asm("/* Stop compiler reordering (loop) */");
-            mainloop_atom::template wait_steady<SharedArriveCount, APerWarp,
-                                                Stages>();
-            sync_atom::barrier();
+            schedule_atom::template wait_reusea_steady<SharedArriveCount,
+                                                       APerWarp, Stages>();
 
             mainloop_atom::template load_b_fragments<SharedNumCycleB>(
                 sharedTmpB[t], laneId, tmpB);
@@ -149,8 +149,7 @@ __global__ void __launch_bounds__(256) cute_tk_continuousc_reusea_n(
 #pragma unroll
     for (int t = 0; t < Stages; ++t) {
         asm("/* Stop compiler reordering (end loop) */");
-        mainloop_atom::template wait_drain<SharedArriveCount, Stages>(t);
-        sync_atom::barrier();
+        schedule_atom::template wait_reusea_drain<SharedArriveCount, Stages>(t);
 
         mainloop_atom::template load_b_fragments<SharedNumCycleB>(sharedTmpB[t],
                                                                   laneId, tmpB);

@@ -385,11 +385,20 @@ These are now consumed by both:
 
 - `tn_example_skeleton`
 - `layoutc_skeleton`
+- `continuousc_reusea_skeleton`
 
 This is intentionally the first stable slice of schedule abstraction. It does
 not yet generalize full issue-order choreography, but it does unify the wait
 and barrier semantics that were previously duplicated as raw `arrive_gvmcnt`
-formulas in both kernels.
+formulas in the leading kernels.
+
+The same schedule-atom layer now also covers the `continuousc_reusea` steady
+and drain waits, which means the project's three most important BF16 lanes now
+share one wait/sync primitive vocabulary:
+
+- `tn_example`
+- `layoutc`
+- `continuousc_reusea`
 
 
 ## Tile-shape seam status
