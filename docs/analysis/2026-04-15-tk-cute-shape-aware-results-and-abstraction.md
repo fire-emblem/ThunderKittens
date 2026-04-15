@@ -401,6 +401,28 @@ share one wait/sync primitive vocabulary:
 - `continuousc_reusea`
 
 
+## Issue-order atom status
+
+The next stable pipeline primitive extracted from the imported example is the
+stage-issue action itself.
+
+Current extracted issue-order atoms:
+
+- predicated A-bank issue
+- predicated B-bank issue
+- non-predicated A-bank issue
+- non-predicated B-bank issue
+
+These are now used by:
+
+- `tn_example_skeleton` for predicated TN-example stage issues
+- `layoutc_prologue` for layoutc prologue stage issues
+
+This is still narrower than a full reorderable issue-order policy, but it
+means the project no longer duplicates the basic A/B stage-issue builtins in
+those leading lanes.
+
+
 ## Tile-shape seam status
 
 The imported TN example family now also accepts an explicit tile-shape policy

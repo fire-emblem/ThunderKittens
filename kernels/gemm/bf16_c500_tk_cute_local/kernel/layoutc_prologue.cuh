@@ -3,6 +3,7 @@
 #include <maca.h>
 
 #include "../contracts/stage_contract.cuh"
+#include "../cute_tk/issue_order_atom.cuh"
 
 namespace bf16_c500_tk_local::kernel {
 
@@ -29,26 +30,22 @@ __device__ __forceinline__ void issue_layoutc_prologue(
     constexpr int stage_count = StageContract::stage_count;
 #pragma unroll
     for (int stage_i = 0; stage_i < stage_count; ++stage_i) {
-        __builtin_mxc_ldg_b128_bsm_predicator(
-            wsm_ldg + StageContract::a_stage_offset(stage_i, 0),
-            a_ptr + a_ldg_offset[0][stage_i],
-            0, true, true, false, true, 0, k / (sizeof(ALdgType) / sizeof(T)),
-            MACA_ICMP_SLT);
-        __builtin_mxc_ldg_b128_bsm_predicator(
-            wsm_ldg + StageContract::a_stage_offset(stage_i, 1),
-            a_ptr + a_ldg_offset[1][stage_i],
-            0, true, true, false, true, 0, k / (sizeof(ALdgType) / sizeof(T)),
-            MACA_ICMP_SLT);
-        __builtin_mxc_ldg_b128_bsm_predicator(
-            wsm_ldg + StageContract::b_stage_offset(stage_i, 0),
-            b_ptr + b_ldg_offset[0][stage_i],
-            0, true, true, false, true, start_col + stage_i * 16, n,
-            MACA_ICMP_SLT);
-        __builtin_mxc_ldg_b128_bsm_predicator(
-            wsm_ldg + StageContract::b_stage_offset(stage_i, 1),
-            b_ptr + b_ldg_offset[1][stage_i],
-            0, true, true, false, true, start_col + (4 + stage_i) * 16, n,
-            MACA_ICMP_SLT);
+        ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
+            template issue_a_bank_pred<StageContract, ALdgType, T>(
+                wsm_ldg, a_ptr, a_ldg_offset[0][stage_i], stage_i, 0, 0,
+                k / (sizeof(ALdgType) / sizeof(T)));
+        ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
+            template issue_a_bank_pred<StageContract, ALdgType, T>(
+                wsm_ldg, a_ptr, a_ldg_offset[1][stage_i], stage_i, 1, 0,
+                k / (sizeof(ALdgType) / sizeof(T)));
+        ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
+            template issue_b_bank_pred<StageContract, BLdgType, T>(
+                wsm_ldg, b_ptr, b_ldg_offset[0][stage_i], stage_i, 0,
+                start_col + stage_i * 16, n);
+        ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::
+            template issue_b_bank_pred<StageContract, BLdgType, T>(
+                wsm_ldg, b_ptr, b_ldg_offset[1][stage_i], stage_i, 1,
+                start_col + (4 + stage_i) * 16, n);
     }
 }
 
