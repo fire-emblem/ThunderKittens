@@ -3,15 +3,18 @@
 #include <cuda_runtime.h>
 
 #include "layout_atom.cuh"
+#include "policies.cuh"
 #include "tn_example_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
-template <typename GeometryAtom>
+template <typename GeometryAtom,
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule>
 struct tn_example_family {
     using geometry_atom = GeometryAtom;
     using host_layout = typename geometry_atom::host_layout;
     using geometry_provider = typename geometry_atom::provider;
+    using schedule_policy = SchedulePolicy;
     static constexpr const char *family_name = "cute_tk_tn_example_generic";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
@@ -36,20 +39,22 @@ struct tn_example_family {
                       "tn_example family does not support one-dim bias");
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
             hgemm_tn_128x128x128_4m1n8k_256t<T, Tc, Tscal, IsBetaZero,
-                                            geometry_provider>
+                                            geometry_provider, schedule_policy>
             <<<grid_dim, 256>>>(a, b, c, m, n, k, lda, ldb, ldc, alpha_value,
                                 beta_value);
     }
 };
 
 struct tn_example_bf16_128x128x128_stage4_family
-    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom> {
+    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
+                        ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule> {
     static constexpr const char *family_name =
         "cute_tk_tn_example_bf16_128x128x128_stage4";
 };
 
 struct tn_example_linear_geom_bf16_128x128x128_stage4_family
-    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_linear_layout_atom> {
+    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_linear_layout_atom,
+                        ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule> {
     static constexpr const char *family_name =
         "cute_tk_tn_example_linear_geom_bf16_128x128x128_stage4";
 
@@ -61,7 +66,8 @@ struct tn_example_linear_geom_bf16_128x128x128_stage4_family
 };
 
 struct layoutc_tn_tuned_bf16_128x128x128_stage4_family
-    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom> {
+    : tn_example_family<::bf16_c500_tk_cute_local::cute_tk::tn_example_swizzled_layout_atom,
+                        ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule> {
     static constexpr const char *family_name =
         "cute_tk_layoutc_tn_tuned_bf16_128x128x128_stage4";
 

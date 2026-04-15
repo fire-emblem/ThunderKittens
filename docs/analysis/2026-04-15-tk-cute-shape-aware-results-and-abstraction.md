@@ -215,3 +215,25 @@ than a monolithic replacement kernel.
 
 The current project is now in a good position to scale because the critical
 abstraction seam — geometry provider selection — has been established.
+
+
+## Schedule policy seam status
+
+The imported TN example path now also exposes an explicit schedule/stage
+policy seam.
+
+Current status:
+
+- `tn_example_stage4_schedule` is the first formal schedule policy
+- `tn_example_family` is parameterized by both `GeometryAtom` and
+  `SchedulePolicy`
+- the current implementation still executes only the existing stage4
+  schedule, but the family/skeleton boundary no longer hardcodes schedule as
+  an invisible implementation detail
+
+This is an intentional intermediate state:
+
+- geometry has already been proven to be a decisive optimization axis
+- schedule is now positioned as the next composable axis
+- future work can add alternative stage-count or issue-order policies without
+  cloning the full family shell again

@@ -2,12 +2,15 @@
 
 #include <cmath>
 #include <type_traits>
+#include "policies.cuh"
 #include "tn_example_utils.cuh"
 #include "tn_example_geometry.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
-template <typename T, typename Tc, typename Tscal, bool IsBetaZero, typename GeometryPolicy = tn_example_swizzled_geometry>
+template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
+          typename GeometryPolicy = tn_example_swizzled_geometry,
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule>
 __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const void *A,
                                                                         const void *B,
                                                                         void *C,
@@ -23,7 +26,9 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
                                                                         int bidy) {
     constexpr int TileM = 128;
     constexpr int TileN = 128;
-    constexpr int Stage = 4;
+    constexpr int Stage = SchedulePolicy::stage_count;
+    static_assert(Stage == 4,
+                  "tn_example schedule abstraction is in place, but only stage4 is implemented today");
 
     using ALdgType = __NATIVE_VECTOR__(4, uint);
     using BLdgType = __NATIVE_VECTOR__(4, uint);
@@ -675,7 +680,9 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     }
 }
 
-template <typename T, typename Tc, typename Tscal, bool IsBetaZero, typename GeometryPolicy = tn_example_swizzled_geometry>
+template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
+          typename GeometryPolicy = tn_example_swizzled_geometry,
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule>
 __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  const void *B,
                                                  void *C,
@@ -687,7 +694,8 @@ __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  int ldc,
                                                  Tscal alpha,
                                                  Tscal beta) {
-    hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero, GeometryPolicy>(
+    hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero,
+                                           GeometryPolicy, SchedulePolicy>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, blockIdx.x, blockIdx.y);
 }
 
