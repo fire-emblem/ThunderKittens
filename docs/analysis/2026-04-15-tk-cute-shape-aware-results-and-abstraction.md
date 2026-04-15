@@ -369,6 +369,29 @@ This is still not a universal kernel body, but it is the first step toward a
 single implementation-facing composition protocol.
 
 
+## Schedule-atom status
+
+The first reusable schedule primitive layer now exists as a shared
+`schedule_atom` utility for the leading lanes.
+
+Current extracted primitives:
+
+- prologue wait helpers
+- steady-state wait-window helper
+- tail wait helper
+- optional schedule-controlled sync gates
+
+These are now consumed by both:
+
+- `tn_example_skeleton`
+- `layoutc_skeleton`
+
+This is intentionally the first stable slice of schedule abstraction. It does
+not yet generalize full issue-order choreography, but it does unify the wait
+and barrier semantics that were previously duplicated as raw `arrive_gvmcnt`
+formulas in both kernels.
+
+
 ## Tile-shape seam status
 
 The imported TN example family now also accepts an explicit tile-shape policy

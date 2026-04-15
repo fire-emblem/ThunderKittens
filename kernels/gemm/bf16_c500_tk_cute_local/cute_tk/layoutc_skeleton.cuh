@@ -14,6 +14,7 @@
 #include "family_pattern.cuh"
 #include "layout_atom.cuh"
 #include "mma_atom.cuh"
+#include "schedule_atom.cuh"
 #include "stage_layout_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
@@ -145,8 +146,7 @@ layoutc_stage4_device(
                 b[0][2][2], b[0][2][3], a[1][2][2], a[1][2][3], C_f32[1][0]);
             C_f32[1][0] = mma_16x16x16b16<T, true>(
                 b[0][3][0], b[0][3][1], a[1][3][0], a[1][3][1], C_f32[1][0]);
-            arrive_gvmcnt(4 * (Stage - 3) + 2);
-            __builtin_mxc_barrier_inst();
+            schedule_atom::template wait_steady_window<Stage>();
             C_f32[1][0] = mma_16x16x16b16<T, true>(
                 b[0][3][2], b[0][3][3], a[1][3][2], a[1][3][3], C_f32[1][0]);
 
@@ -233,8 +233,7 @@ layoutc_stage4_device(
                 b[1][0][2], b[1][0][3], a[2][0][2], a[2][0][3], C_f32[2][1]);
             C_f32[2][1] = mma_16x16x16b16<T, true>(
                 b[1][1][0], b[1][1][1], a[2][1][0], a[2][1][1], C_f32[2][1]);
-            arrive_gvmcnt(4 * (Stage - 4) + 6);
-            __builtin_mxc_barrier_inst();
+            schedule_atom::template wait_steady_window<Stage>();
             C_f32[2][1] = mma_16x16x16b16<T, true>(
                 b[1][1][2], b[1][1][3], a[2][1][2], a[2][1][3], C_f32[2][1]);
             a[3][0] = load_layoutc_fragment_from_shared<ALdsType>(
@@ -339,8 +338,7 @@ layoutc_stage4_device(
                 b[0][3][0], b[0][3][1], a[3][3][0], a[3][3][1], C_f32[3][0]);
             C_f32[3][0] = mma_16x16x16b16<T, true>(
                 b[0][3][2], b[0][3][3], a[3][3][2], a[3][3][3], C_f32[3][0]);
-            arrive_gvmcnt(4 * (Stage - 5) + 10);
-            __builtin_mxc_barrier_inst();
+            schedule_atom::template wait_steady_window<Stage>();
 
             C_f32[0][3] = mma_16x16x16b16<T, true>(
                 b[3][0][0], b[3][0][1], a[0][0][0], a[0][0][1], C_f32[0][3]);
@@ -429,8 +427,7 @@ layoutc_stage4_device(
                 b[2][1][2], b[2][1][3], a[3][1][2], a[3][1][3], C_f32[3][2]);
             C_f32[3][2] = mma_16x16x16b16<T, true>(
                 b[2][2][0], b[2][2][1], a[3][2][0], a[3][2][1], C_f32[3][2]);
-            arrive_gvmcnt(4 * (Stage - 6) + 14);
-            __builtin_mxc_barrier_inst();
+            schedule_atom::template wait_steady_window<Stage>();
             C_f32[3][2] = mma_16x16x16b16<T, true>(
                 b[2][2][2], b[2][2][3], a[3][2][2], a[3][2][3], C_f32[3][2]);
             a[1][0] = load_layoutc_fragment_from_shared<ALdsType>(
