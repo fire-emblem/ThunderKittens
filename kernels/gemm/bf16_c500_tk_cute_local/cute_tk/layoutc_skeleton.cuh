@@ -520,21 +520,17 @@ layoutc_stage4_device(
     }
 }
 
-template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          bool HasOneDimBias,
-          typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-              ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag,
-              ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
-              ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
-              ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
-              ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
-__global__ void cute_tk_bf16_layoutc_tile128x128x128_stage4_family_t(
-    const void *A, const void *B, void *C, int M, int N, int K, int lda,
-    int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias = nullptr) {
-    layoutc_stage4_device<T, Tc, Tscal, IsBetaZero, HasOneDimBias, false,
-                          Pattern>(
-        A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, bias, blockIdx.x,
-        blockIdx.y);
-}
+struct layoutc_stage4_body {
+    template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
+              bool HasOneDimBias, typename Pattern>
+    __device__ __forceinline__ static void run(
+        const void *A, const void *B, void *C, int M, int N, int K, int lda,
+        int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias, int bidx,
+        int bidy) {
+        layoutc_stage4_device<T, Tc, Tscal, IsBetaZero, HasOneDimBias, false,
+                              Pattern>(A, B, C, M, N, K, lda, ldb, ldc, alpha,
+                                       beta, bias, bidx, bidy);
+    }
+};
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::kernel

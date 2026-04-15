@@ -49,18 +49,19 @@ Where the family-specific part is only the irreducible hot-path ordering.
 
 ## What is still non-conformant
 
-### 1. No first-class template kernel bodies yet
+### 1. Shared kernel entry exists, but not a shared 128-family body yet
 
-`layoutc` and `swizzled_tn` are already close enough that they should be moving
-behind a shared template body for the 128x128x128 stage4 family.
+`layoutc` and `swizzled_tn` now share a single template kernel-entry surface
+through `composition/gemm_kernel_template.cuh`.
 
 Current issue:
-- each lane still keeps its own large skeleton function
-- primitives are called inside those skeletons, but the skeleton itself is not
-  yet a reusable body template
+- each lane still keeps its own large stage4 device-body function
+- primitives are called inside those skeletons, but the steady-state body
+  itself is not yet a reusable 128-family template body
 
 Consequence:
-- the codebase has a primitive library, but not yet a normalized kernel library
+- launch structure is normalized
+- hot-loop structure is not yet normalized
 
 ### 2. `continuousc` is still mostly a shell, not a primitive-library consumer
 

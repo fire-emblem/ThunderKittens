@@ -646,26 +646,20 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     }
 }
 
-template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
-          typename Pattern = ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-              ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_semantic_tag,
-              ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128,
-              ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_layout_atom,
-              ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
-              ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>>
-__global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
-                                                 const void *B,
-                                                 void *C,
-                                                 int M,
-                                                 int N,
-                                                 int K,
-                                                 int lda,
-                                                 int ldb,
-                                                 int ldc,
-                                                 Tscal alpha,
-                                                 Tscal beta) {
-    hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero, Pattern>(
-        A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, blockIdx.x, blockIdx.y);
-}
+struct swizzled_tn_stage4_body {
+    template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
+              bool HasOneDimBias, typename Pattern>
+    __device__ __forceinline__ static void run(
+        const void *A, const void *B, void *C, int M, int N, int K, int lda,
+        int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias, int bidx,
+        int bidy) {
+        (void)bias;
+        static_assert(!HasOneDimBias,
+                      "swizzled_tn body does not support one-dim bias");
+        hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero,
+                                               Pattern>(
+            A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, bidx, bidy);
+    }
+};
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::kernel

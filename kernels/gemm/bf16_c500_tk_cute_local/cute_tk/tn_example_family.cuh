@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 
 #include "composition/family_pattern.cuh"
+#include "composition/gemm_kernel_template.cuh"
 #include "primitives/structure/geometry_atom.cuh"
 #include "policies.cuh"
 #include "primitives/structure/stage_layout_atom.cuh"
@@ -47,13 +48,12 @@ struct swizzled_tn_family
                               void *c, int m, int n, int k, int lda, int ldb,
                               int ldc, Tscal alpha_value, Tscal beta_value,
                               const void *bias = nullptr) {
-        (void)bias;
-        static_assert(!HasOneDimBias,
-                      "tn_example family does not support one-dim bias");
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            hgemm_tn_128x128x128_4m1n8k_256t<T, Tc, Tscal, IsBetaZero, pattern>
-            <<<grid_dim, 256>>>(a, b, c, m, n, k, lda, ldb, ldc, alpha_value,
-                                beta_value);
+            launch_gemm_pattern_kernel<
+                ::bf16_c500_tk_cute_local::cute_tk::kernel::swizzled_tn_stage4_body,
+                256, T, Tc, Tscal, IsBetaZero, HasOneDimBias, pattern>(
+                grid_dim, a, b, c, m, n, k, lda, ldb, ldc, alpha_value,
+                beta_value, bias);
     }
 };
 
