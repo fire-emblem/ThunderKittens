@@ -35,6 +35,11 @@ struct continuousc_family
     using schedule_policy = typename pattern::schedule_policy;
     using stage_layout_atom = typename pattern::stage_layout_atom;
     using host_layout = typename pattern::host_layout;
+    using impl_hooks =
+        ::bf16_c500_tk_cute_local::cute_tk::kernel::continuousc_stage4_impl;
+    using body_template =
+        ::bf16_c500_tk_cute_local::cute_tk::kernel::continuousc_stage4_body;
+    static constexpr int threads = tile::threads;
 
     static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
                       TileShape::tile_k == 128,
@@ -62,8 +67,7 @@ struct continuousc_family
                               const void *bias = nullptr) {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
             launch_gemm_pattern_kernel<
-                ::bf16_c500_tk_cute_local::cute_tk::kernel::continuousc_stage4_body,
-                tile::threads, T, Tc, Tscal, IsBetaZero, HasOneDimBias,
+                body_template, threads, T, Tc, Tscal, IsBetaZero, HasOneDimBias,
                 pattern>(grid_dim, a, b, c, m, n, k, lda, ldb, ldc,
                          alpha_value, beta_value, bias);
     }

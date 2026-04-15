@@ -28,6 +28,11 @@ struct swizzled_tn_family
     using schedule_policy = typename pattern::schedule_policy;
     using tile_shape = typename pattern::tile_shape;
     using stage_layout_atom = typename pattern::stage_layout_atom;
+    using impl_hooks =
+        ::bf16_c500_tk_cute_local::cute_tk::kernel::swizzled_tn_stage4_impl;
+    using body_template =
+        ::bf16_c500_tk_cute_local::cute_tk::kernel::swizzled_tn_stage4_body;
+    static constexpr int threads = 256;
     static constexpr const char *family_name = "cute_tk_swizzled_tn_generic";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
@@ -50,8 +55,8 @@ struct swizzled_tn_family
                               const void *bias = nullptr) {
         ::bf16_c500_tk_cute_local::cute_tk::kernel::
             launch_gemm_pattern_kernel<
-                ::bf16_c500_tk_cute_local::cute_tk::kernel::swizzled_tn_stage4_body,
-                256, T, Tc, Tscal, IsBetaZero, HasOneDimBias, pattern>(
+                body_template, threads, T, Tc, Tscal, IsBetaZero,
+                HasOneDimBias, pattern>(
                 grid_dim, a, b, c, m, n, k, lda, ldb, ldc, alpha_value,
                 beta_value, bias);
     }
