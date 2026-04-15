@@ -5,7 +5,6 @@
 #include <maca_fp16.h>
 #include <mc_runtime.h>
 
-#include "../kernel/layoutc_support.cuh"
 #include "primitives/pipeline/copy_atom.cuh"
 #include "primitives/epilogue/epilogue_atom.cuh"
 #include "primitives/pipeline/mainloop_atom.cuh"

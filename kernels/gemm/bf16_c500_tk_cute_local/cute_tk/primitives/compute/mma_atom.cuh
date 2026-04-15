@@ -1,16 +1,16 @@
 #pragma once
 
-#include "../../../kernel/layoutc_support.cuh"
+#include "../mma.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
 struct mma_atom {
-    using float4_t = ::bf16_c500_tk_local::kernel::FLOAT4;
+    using float4_t = ::bf16_c500_tk_local::primitives::float4_native;
 
     template <typename T>
     __device__ __forceinline__ static float4_t
     fma_pair(uint a0, uint a1, uint b0, uint b1, float4_t c) {
-        return ::bf16_c500_tk_local::kernel::mma_16x16x16b16<T>(
+        return ::bf16_c500_tk_local::primitives::mma_16x16x16_b16<T>(
             a0, a1, b0, b1, c);
     }
 
@@ -38,8 +38,23 @@ struct mma_atom {
     accumulate_kgroup(const BFragType (&b_frag)[4],
                       const AFragType (&a_frag)[4],
                       CFragType c) {
-        return ::bf16_c500_tk_local::kernel::accumulate_layoutc_kgroup<T>(
-            b_frag, a_frag, c);
+        c = fma_pair<T>(b_frag[0][0], b_frag[0][1], a_frag[0][0],
+                        a_frag[0][1], c);
+        c = fma_pair<T>(b_frag[0][2], b_frag[0][3], a_frag[0][2],
+                        a_frag[0][3], c);
+        c = fma_pair<T>(b_frag[1][0], b_frag[1][1], a_frag[1][0],
+                        a_frag[1][1], c);
+        c = fma_pair<T>(b_frag[1][2], b_frag[1][3], a_frag[1][2],
+                        a_frag[1][3], c);
+        c = fma_pair<T>(b_frag[2][0], b_frag[2][1], a_frag[2][0],
+                        a_frag[2][1], c);
+        c = fma_pair<T>(b_frag[2][2], b_frag[2][3], a_frag[2][2],
+                        a_frag[2][3], c);
+        c = fma_pair<T>(b_frag[3][0], b_frag[3][1], a_frag[3][0],
+                        a_frag[3][1], c);
+        c = fma_pair<T>(b_frag[3][2], b_frag[3][3], a_frag[3][2],
+                        a_frag[3][3], c);
+        return c;
     }
 };
 
