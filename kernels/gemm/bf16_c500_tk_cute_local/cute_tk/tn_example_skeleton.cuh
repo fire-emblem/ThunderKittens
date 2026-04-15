@@ -10,7 +10,8 @@ namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           typename GeometryPolicy = tn_example_swizzled_geometry,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule>
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
+          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128>
 __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const void *A,
                                                                         const void *B,
                                                                         void *C,
@@ -24,9 +25,12 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
                                                                         Tscal beta,
                                                                         int bidx,
                                                                         int bidy) {
-    constexpr int TileM = 128;
-    constexpr int TileN = 128;
+    constexpr int TileM = TileShape::tile_m;
+    constexpr int TileN = TileShape::tile_n;
     constexpr int Stage = SchedulePolicy::stage_count;
+    static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
+                      TileShape::tile_k == 128,
+                  "tn_example tile-shape abstraction is in place, but only 128x128x128 is implemented today");
     static_assert(Stage == 4,
                   "tn_example schedule abstraction is in place, but only stage4 is implemented today");
 
@@ -689,7 +693,8 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
 
 template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
           typename GeometryPolicy = tn_example_swizzled_geometry,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule>
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::tn_example_stage4_schedule,
+          typename TileShape = ::bf16_c500_tk_cute_local::cute_tk::tile_128x128x128>
 __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  const void *B,
                                                  void *C,
@@ -702,7 +707,7 @@ __global__ void hgemm_tn_128x128x128_4m1n8k_256t(const void *A,
                                                  Tscal alpha,
                                                  Tscal beta) {
     hgemm_tn_128x128x128_4m1n8k_256t_device<T, Tc, Tscal, IsBetaZero,
-                                           GeometryPolicy, SchedulePolicy>(
+                                           GeometryPolicy, SchedulePolicy, TileShape>(
         A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, blockIdx.x, blockIdx.y);
 }
 
