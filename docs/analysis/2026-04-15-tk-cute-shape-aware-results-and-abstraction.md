@@ -423,6 +423,30 @@ means the project no longer duplicates the basic A/B stage-issue builtins in
 those leading lanes.
 
 
+## Prologue-atom status
+
+The next stable implementation-facing primitive extracted after issue and wait
+atoms is the prologue/seed layer.
+
+Current extracted prologue atoms:
+
+- `prime_layoutc(...)`
+
+These now cover:
+
+- layoutc prologue + initial fragment priming
+
+This keeps with the Cute/TK design style: factor out small, stable preparation
+actions into explicit atoms while leaving family-specific mainloop structure
+intact.
+
+The attempted `reusea` stage-seed abstraction was intentionally **not kept**
+after measurement because it preserved correctness but caused a large
+performance regression. That is an important design boundary: in TK/Cute-style
+workflows, a hot path only graduates into a shared atom once its abstraction
+cost is proven acceptable.
+
+
 ## Tile-shape seam status
 
 The imported TN example family now also accepts an explicit tile-shape policy

@@ -14,6 +14,7 @@
 #include "family_pattern.cuh"
 #include "layout_atom.cuh"
 #include "mma_atom.cuh"
+#include "prologue_atom.cuh"
 #include "schedule_atom.cuh"
 #include "stage_layout_atom.cuh"
 
@@ -95,19 +96,12 @@ layoutc_stage4_device(
 
     uint8_t *WSM_Ldg = WSM + slot * 0x400;
 
-    copy_atom::template issue_prologue<ALdgType, BLdgType, T,
-                                       typename stage_layout::contract>(
-        WSM_Ldg, APtr, BPtr, geometry.a_ldg_offset, geometry.b_ldg_offset, K, N,
-        startCol);
-
-    APtr += (128 / 8) * 16 * sizeof(ALdgType);
-    BPtr += 16 * N * sizeof(BLdgType);
-    K -= 128;
-
     uint8_t *WSM_lds = reinterpret_cast<uint8_t *>(&WSM[0]);
-    copy_atom::template prime_fragments<ALdsType, BLdsType,
-                                        typename stage_layout::contract>(
-        a, b, WSM_lds, geometry.a_lds_offset, geometry.b_lds_offset);
+    prologue_atom::template prime_layoutc<ALdgType, BLdgType, T, ALdsType,
+                                          BLdsType,
+                                          typename stage_layout::contract>(
+        WSM_Ldg, APtr, BPtr, K, N, startCol, WSM_lds, a, b, geometry.a_ldg_offset,
+        geometry.b_ldg_offset, geometry.a_lds_offset, geometry.b_lds_offset);
 
     for (; K >= 128; K -= 128) {
         {
