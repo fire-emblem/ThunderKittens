@@ -3,6 +3,7 @@
 #include <cmath>
 #include <type_traits>
 #include "composition/family_pattern.cuh"
+#include "composition/tile128_stage4_body_template.cuh"
 #include "primitives/pipeline/issue_order_atom.cuh"
 #include "policies.cuh"
 #include "primitives/pipeline/reload_atom.cuh"
@@ -646,10 +647,10 @@ __forceinline__ __device__ void hgemm_tn_128x128x128_4m1n8k_256t_device(const vo
     }
 }
 
-struct swizzled_tn_stage4_body {
+struct swizzled_tn_stage4_impl {
     template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
               bool HasOneDimBias, typename Pattern>
-    __device__ __forceinline__ static void run(
+    __device__ __forceinline__ static void run_stage4(
         const void *A, const void *B, void *C, int M, int N, int K, int lda,
         int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias, int bidx,
         int bidy) {
@@ -661,5 +662,8 @@ struct swizzled_tn_stage4_body {
             A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, bidx, bidy);
     }
 };
+
+using swizzled_tn_stage4_body =
+    tile128_stage4_body_template<swizzled_tn_stage4_impl, false>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::kernel

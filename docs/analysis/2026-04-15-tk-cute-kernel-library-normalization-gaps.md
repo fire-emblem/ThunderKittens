@@ -49,18 +49,23 @@ Where the family-specific part is only the irreducible hot-path ordering.
 
 ## What is still non-conformant
 
-### 1. Shared kernel entry exists, but not a shared 128-family body yet
+### 1. Shared kernel entry and shared tile128/stage4 body protocol exist, but
+not a shared steady-state body yet
 
-`layoutc` and `swizzled_tn` now share a single template kernel-entry surface
-through `composition/gemm_kernel_template.cuh`.
+`layoutc`, `swizzled_tn`, and `continuousc` now share:
+- a single template kernel-entry surface through
+  `composition/gemm_kernel_template.cuh`
+- a shared tile128/stage4 body template protocol through
+  `composition/tile128_stage4_body_template.cuh`
 
 Current issue:
-- each lane still keeps its own large stage4 device-body function
-- primitives are called inside those skeletons, but the steady-state body
-  itself is not yet a reusable 128-family template body
+- each lane still keeps its own large stage4 implementation function
+- primitives are called inside those implementations, but the steady-state body
+  itself is not yet a reusable 128-family compute template
 
 Consequence:
 - launch structure is normalized
+- body protocol is normalized
 - hot-loop structure is not yet normalized
 
 ### 2. `continuousc` still delegates its body to tk-local logic
