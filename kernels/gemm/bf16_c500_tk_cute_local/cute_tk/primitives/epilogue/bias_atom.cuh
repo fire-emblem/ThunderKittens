@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../kernel/layoutc_epilogue.cuh"
+#include "store_ops_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
@@ -9,8 +9,7 @@ struct bias_atom {
     __device__ __forceinline__ static void load_layoutc_bias(
         CStgType (&bias_load)[4], const void *bias, int start_row, int slot,
         int lane) {
-        ::bf16_c500_tk_local::kernel::load_layoutc_bias_fragment<CStgType,
-                                                                 HasOneDimBias>(
+        primitives::bias_load_atom::load_layoutc_bias<CStgType, HasOneDimBias>(
             bias_load, bias, start_row, slot, lane);
     }
 };
