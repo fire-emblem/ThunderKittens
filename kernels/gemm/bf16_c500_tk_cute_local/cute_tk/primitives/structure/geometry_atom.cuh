@@ -2,7 +2,7 @@
 
 #include "../../../host/layout_traits.cuh"
 #include "../../../host/tn_example_host_traits.cuh"
-#include "../../../kernel/layoutc_geometry.cuh"
+#include "layoutc_geometry_atom.cuh"
 #include "../../tn_example_geometry.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
@@ -25,9 +25,9 @@ struct current_layoutc_geometry_provider {
               typename BLdsType>
     __host__ __device__ static auto make(int tid, int lane, int slot, int lda,
                                          int n) {
-        return ::bf16_c500_tk_local::kernel::make_layoutc_stage_geometry<
-            ALdgType, BLdgType, ALdsType, BLdsType, __maca_bfloat16>(
-            tid, lane, slot, lda, n);
+        return ::bf16_c500_tk_cute_local::cute_tk::primitives::
+            make_layoutc_stage_geometry<ALdgType, BLdgType, ALdsType, BLdsType,
+                                        __maca_bfloat16>(tid, lane, slot, lda, n);
     }
 };
 
