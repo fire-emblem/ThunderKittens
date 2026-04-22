@@ -31,8 +31,8 @@ struct epilogue_atom {
         Tscal alpha,
         Tscal beta,
         const CStgType (&bias_load)[4]) {
-        ::bf16_c500_tk_local::kernel::store_layoutc_tile<Tc, Tscal, CStgType, Float4,
-                                                         IsBetaZero, HasOneDimBias>(
+        primitives::layoutc_store_atom::store_tile<Tc, Tscal, CStgType, Float4,
+                                                    IsBetaZero, HasOneDimBias>(
             c_ptr, c_f32, src_n, start_row, start_col, slot, lane, alpha, beta,
             bias_load);
     }
@@ -92,9 +92,9 @@ struct epilogue_atom {
         Tscal alpha,
         Tscal beta,
         const CVecType (&bias_load)[4]) {
-        ::bf16_c500_tk_local::kernel::store_continuousc_tile<Tc, Tscal, CVecType,
-                                                             Float4, IsBetaZero,
-                                                             HasOneDimBias>(
+        primitives::continuousc_store_atom::store_tile<Tc, Tscal, CVecType,
+                                                        Float4, IsBetaZero,
+                                                        HasOneDimBias>(
             c_ptr, c_f32, src_m, src_n, start_row, start_col, slot, lane, alpha,
             beta, bias_load);
     }
