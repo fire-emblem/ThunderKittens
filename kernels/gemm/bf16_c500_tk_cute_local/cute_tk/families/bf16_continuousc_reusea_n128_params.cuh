@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 
 #include "../host/layout_traits.cuh"
-#include "../kernel/continuousc_reusea_n128.cuh"
+#include "../../kernel/continuousc_reusea_n128.cuh"
 
 namespace bf16_c500_tk_local::families {
 

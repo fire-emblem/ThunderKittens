@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../../host/layout_traits.cuh"
-#include "../../../host/tn_example_host_traits.cuh"
+#include "../../host/layout_traits.cuh"
+#include "../../host/tn_example_host_traits.cuh"
 #include "layoutc_geometry_atom.cuh"
-#include "../../tn_example_geometry.cuh"
+#include "tn_example_geometry.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 

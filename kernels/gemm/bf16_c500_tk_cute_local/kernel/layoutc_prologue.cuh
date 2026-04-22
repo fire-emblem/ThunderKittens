@@ -2,7 +2,7 @@
 
 #include <maca.h>
 
-#include "../contracts/stage_contract.cuh"
+#include "../cute_tk/contracts/stage_contract.cuh"
 #include "../cute_tk/primitives/pipeline/fragment_atom.cuh"
 #include "../cute_tk/primitives/pipeline/issue_order_atom.cuh"
 

@@ -6,7 +6,7 @@
 #include "../contracts/stage_contract.cuh"
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
-#include "../kernel/layoutc_mainloop.cuh"
+#include "../../kernel/layoutc_mainloop.cuh"
 
 namespace bf16_c500_tk_local::families {
 

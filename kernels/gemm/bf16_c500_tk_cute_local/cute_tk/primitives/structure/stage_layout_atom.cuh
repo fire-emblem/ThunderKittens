@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../contracts/stage_contract.cuh"
+#include "../../contracts/stage_contract.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 

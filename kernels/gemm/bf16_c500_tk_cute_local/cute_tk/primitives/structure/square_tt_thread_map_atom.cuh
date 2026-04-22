@@ -2,7 +2,7 @@
 
 #include <maca.h>
 
-#include "../../../contracts/square_tt_tile_contract.cuh"
+#include "../../contracts/square_tt_tile_contract.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 

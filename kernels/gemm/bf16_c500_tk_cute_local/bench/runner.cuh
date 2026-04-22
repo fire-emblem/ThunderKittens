@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "../../common.cuh"
-#include "../host/reference.cuh"
+#include "../cute_tk/host/reference.cuh"
 #include "../mainloop.cuh"
 
 namespace bf16_c500_tk_local::bench {

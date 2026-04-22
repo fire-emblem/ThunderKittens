@@ -6,17 +6,17 @@
 #include <maca_fp16.h>
 #include <mc_runtime.h>
 
-#include "composition/tile128_stage4_body_template.cuh"
-#include "primitives/pipeline/copy_atom.cuh"
-#include "primitives/epilogue/epilogue_atom.cuh"
-#include "composition/family_pattern.cuh"
-#include "primitives/structure/geometry_atom.cuh"
-#include "primitives/compute/mma_atom.cuh"
-#include "primitives/pipeline/prologue_atom.cuh"
-#include "primitives/pipeline/reload_atom.cuh"
-#include "primitives/pipeline/schedule_atom.cuh"
-#include "primitives/pipeline/tail_atom.cuh"
-#include "primitives/structure/stage_layout_atom.cuh"
+#include "../composition/tile128_stage4_body_template.cuh"
+#include "../primitives/pipeline/copy_atom.cuh"
+#include "../primitives/epilogue/epilogue_atom.cuh"
+#include "../composition/family_pattern.cuh"
+#include "../primitives/structure/geometry_atom.cuh"
+#include "../primitives/compute/mma_atom.cuh"
+#include "../primitives/pipeline/prologue_atom.cuh"
+#include "../primitives/pipeline/reload_atom.cuh"
+#include "../primitives/pipeline/schedule_atom.cuh"
+#include "../primitives/pipeline/tail_atom.cuh"
+#include "../primitives/structure/stage_layout_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 

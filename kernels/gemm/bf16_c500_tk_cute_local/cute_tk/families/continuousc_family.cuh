@@ -6,25 +6,26 @@
 #include "../contracts/stage_contract.cuh"
 #include "../contracts/tile_contract.cuh"
 #include "../host/layout_traits.cuh"
-#include "composition/family_pattern.cuh"
-#include "composition/gemm_kernel_template.cuh"
-#include "primitives/structure/stage_layout_atom.cuh"
-#include "layoutc_skeleton.cuh"
-#include "policies.cuh"
+#include "../composition/family_pattern.cuh"
+#include "../composition/gemm_kernel_template.cuh"
+#include "../primitives/structure/geometry_atom.cuh"
+#include "../skeletons/continuousc_skeleton.cuh"
+#include "../policies.cuh"
+#include "../primitives/structure/stage_layout_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 
 template <typename TileShape, typename StagePolicy,
-          typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::layoutc_layout_atom,
-          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::layoutc_stage4_schedule,
+          typename GeometryAtom = ::bf16_c500_tk_cute_local::cute_tk::continuousc_layout_atom,
+          typename SchedulePolicy = ::bf16_c500_tk_cute_local::cute_tk::continuousc_stage4_schedule,
           typename StageLayoutAtom = ::bf16_c500_tk_cute_local::cute_tk::default_stage_layout_atom>
-struct layoutc_family
+struct continuousc_family
     : ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-          ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag, TileShape,
-          GeometryAtom, SchedulePolicy, StageLayoutAtom> {
+          ::bf16_c500_tk_cute_local::cute_tk::continuousc_semantic_tag,
+          TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom> {
     using pattern =
         ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
-            ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag,
+            ::bf16_c500_tk_cute_local::cute_tk::continuousc_semantic_tag,
             TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom>;
     using tile = ::bf16_c500_tk_local::contracts::tile_contract;
     using stage = ::bf16_c500_tk_local::contracts::stage_contract;
@@ -35,30 +36,27 @@ struct layoutc_family
     using stage_layout_atom = typename pattern::stage_layout_atom;
     using host_layout = typename pattern::host_layout;
     using impl_hooks =
-        ::bf16_c500_tk_cute_local::cute_tk::kernel::layoutc_stage4_impl;
+        ::bf16_c500_tk_cute_local::cute_tk::kernel::continuousc_stage4_impl;
     using body_template =
-        ::bf16_c500_tk_cute_local::cute_tk::kernel::layoutc_stage4_body;
+        ::bf16_c500_tk_cute_local::cute_tk::kernel::continuousc_stage4_body;
     static constexpr int threads = tile::threads;
 
     static_assert(TileShape::tile_m == 128 && TileShape::tile_n == 128 &&
                       TileShape::tile_k == 128,
-                  "cute_tk layoutc_family currently supports only 128x128x128");
+                  "cute_tk continuousc_family currently supports only 128x128x128");
     static_assert(StagePolicy::stage_count == 4,
-                  "cute_tk layoutc_family currently supports only stage4");
+                  "cute_tk continuousc_family currently supports only stage4");
+    static_assert(schedule_policy::stage_count == StagePolicy::stage_count,
+                  "continuousc_family schedule policy must match stage policy");
 
     static constexpr const char *family_name =
-        "cute_tk_layoutc_tile128x128x128_stage4";
+        "cute_tk_continuousc_tile128x128x128_stage4";
     static constexpr float alpha = 1.0f;
     static constexpr float beta = 0.0f;
     static constexpr bool requires_zero_init = false;
 
     static inline dim3 grid(int m, int n) {
-        return dim3((m + tile::tile_m - 1) / tile::tile_m,
-                    (n + tile::tile_n - 1) / tile::tile_n);
-    }
-
-    static inline bool supports_runtime_shape(int m, int n, int k) {
-        return m > 0 && n > 0 && (k % tile::tile_k) == 0;
+        return dim3(m / tile::tile_m, n / tile::tile_n);
     }
 
     template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
@@ -75,21 +73,15 @@ struct layoutc_family
     }
 };
 
-using layoutc_tile128x128x128_stage4_family_t =
-    layoutc_family<tile_128x128x128, stage_4>;
-using layoutc_tile128x128x128_stage4_swizzled_tn_geometry_family_t =
-    layoutc_family<tile_128x128x128, stage_4,
-                   ::bf16_c500_tk_cute_local::cute_tk::swizzled_tn_layout_atom>;
+using continuousc_tile128x128x128_stage4_family_t =
+    continuousc_family<tile_128x128x128, stage_4>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::families
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
-using layoutc_tile128x128x128_stage4_family_t =
+using continuousc_tile128x128x128_stage4_family_t =
     ::bf16_c500_tk_cute_local::cute_tk::families::
-        layoutc_tile128x128x128_stage4_family_t;
-using layoutc_tile128x128x128_stage4_swizzled_tn_geometry_family_t =
-    ::bf16_c500_tk_cute_local::cute_tk::families::
-        layoutc_tile128x128x128_stage4_swizzled_tn_geometry_family_t;
+        continuousc_tile128x128x128_stage4_family_t;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

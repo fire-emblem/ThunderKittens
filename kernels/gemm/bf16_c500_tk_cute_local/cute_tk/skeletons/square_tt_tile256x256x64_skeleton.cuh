@@ -8,9 +8,9 @@
 #include <cute/tensor.hpp>
 
 #include "../contracts/square_tt_tile_contract.cuh"
-#include "primitives/pipeline/square_tt_fragment_atom.cuh"
-#include "primitives/pipeline/square_tt_stage_io_atom.cuh"
-#include "primitives/structure/square_tt_thread_map_atom.cuh"
+#include "../primitives/pipeline/square_tt_fragment_atom.cuh"
+#include "../primitives/pipeline/square_tt_stage_io_atom.cuh"
+#include "../primitives/structure/square_tt_thread_map_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 

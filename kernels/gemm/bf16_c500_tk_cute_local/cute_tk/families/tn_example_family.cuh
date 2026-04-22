@@ -2,12 +2,12 @@
 
 #include <cuda_runtime.h>
 
-#include "composition/family_pattern.cuh"
-#include "composition/gemm_kernel_template.cuh"
-#include "primitives/structure/geometry_atom.cuh"
-#include "policies.cuh"
-#include "primitives/structure/stage_layout_atom.cuh"
-#include "tn_example_skeleton.cuh"
+#include "../composition/family_pattern.cuh"
+#include "../composition/gemm_kernel_template.cuh"
+#include "../primitives/structure/geometry_atom.cuh"
+#include "../policies.cuh"
+#include "../primitives/structure/stage_layout_atom.cuh"
+#include "../skeletons/tn_example_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 

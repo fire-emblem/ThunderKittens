@@ -4,9 +4,9 @@
 
 #include "../contracts/square_tt_tile_contract.cuh"
 #include "../host/layout_traits.cuh"
-#include "composition/family_pattern.cuh"
+#include "../composition/family_pattern.cuh"
 #include "layoutc_square_candidates.cuh"
-#include "square_tt_tile256x256x64_skeleton.cuh"
+#include "../skeletons/square_tt_tile256x256x64_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::families {
 

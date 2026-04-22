@@ -1,7 +1,7 @@
 #pragma once
 
-#include "composition/tile128_stage4_body_template.cuh"
-#include "../kernel/layoutc_mainloop.cuh"
+#include "../composition/tile128_stage4_body_template.cuh"
+#include "../../kernel/layoutc_mainloop.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 

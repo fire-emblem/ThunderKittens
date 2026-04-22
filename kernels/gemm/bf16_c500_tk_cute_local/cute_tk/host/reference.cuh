@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common.cuh"
+#include "../../../common.cuh"
 
 namespace bf16_c500_tk_local::host {
 

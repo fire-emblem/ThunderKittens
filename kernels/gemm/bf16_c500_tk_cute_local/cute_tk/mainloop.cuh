@@ -1,20 +1,20 @@
 #pragma once
 
 #include "primitives/pipeline/copy_atom.cuh"
-#include "continuousc_family.cuh"
-#include "continuousc_reusea_family.cuh"
-#include "continuousc_reusea_layoutc_family.cuh"
+#include "families/continuousc_family.cuh"
+#include "families/continuousc_reusea_family.cuh"
+#include "families/continuousc_reusea_layoutc_family.cuh"
 #include "primitives/epilogue/epilogue_atom.cuh"
 #include "primitives/pipeline/fragment_atom.cuh"
-#include "layoutc_family.cuh"
-#include "layoutc_square_candidates.cuh"
+#include "families/layoutc_family.cuh"
+#include "families/layoutc_square_candidates.cuh"
 #include "primitives/structure/geometry_atom.cuh"
 #include "primitives/structure/square_tt_thread_map_atom.cuh"
 #include "primitives/pipeline/mainloop_atom.cuh"
 #include "primitives/compute/mma_atom.cuh"
-#include "square_tt_tile256x256x64_family.cuh"
+#include "families/square_tt_tile256x256x64_family.cuh"
 #include "primitives/pipeline/tail_atom.cuh"
-#include "tn_example_family.cuh"
+#include "families/tn_example_family.cuh"
 #include "primitives/pipeline/sync_atom.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
@@ -108,7 +108,7 @@ template <int M, int N, int K>
 using best_shape_selected_family_t = typename best_family_policy<M, N, K>::type;
 
 // Default family aliases for compile-time dispatch
-using default_layoutc_family = layoutc_tile128x128x128_stage4_family_t;
+using default_layoutc_family = families::layoutc_tile128x128x128_stage4_family_t;
 using default_continuousc_family = families::continuousc_family<tile_128x128x128, stage_4>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

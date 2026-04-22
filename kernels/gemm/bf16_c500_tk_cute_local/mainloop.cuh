@@ -1,8 +1,8 @@
 #pragma once
 
-#include "dispatch/bf16_dispatch.cuh"
-#include "families/bf16_continuousc_128x128x128_stage4.cuh"
-#include "families/bf16_continuousc_reusea_n128_params.cuh"
+#include "cute_tk/dispatch/bf16_dispatch.cuh"
+#include "cute_tk/families/bf16_continuousc_128x128x128_stage4.cuh"
+#include "cute_tk/families/bf16_continuousc_reusea_n128_params.cuh"
 
 namespace bf16_c500_tk_local {
 
