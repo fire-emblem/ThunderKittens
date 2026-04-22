@@ -16,7 +16,7 @@ namespace bf16_c500_tk_local::kernel {
 
 // Legacy macros for hand-scheduled mainloops — delegate to cute_tk atoms
 #define arrive_gvmcnt(num) \
-    ::bf16_c500_tk_cute_local::cute_tk::sync_atom::wait_gmem_async<(num)>();
+    ::bf16_c500_tk_cute_local::cute_tk::sync_atom::arrive_gvmcnt<(num)>();
 #define arrive_bsmcnt(num) \
     ::bf16_c500_tk_local::primitives::arrive_bsmcnt<(num)>();
 
