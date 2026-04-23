@@ -67,12 +67,14 @@ struct swizzled_tn_geometry_t {
     __device__ __forceinline__ static auto make(int tid, int lane, int slot,
                                                  int lda, int ldb, int m_a,
                                                  int n_b) {
-        primitives::stage_geometry_t<ALdgType, BLdgType, ALdsType, BLdsType> g{};
+        primitives::swizzled_tn_geometry_t<ALdgType, BLdgType, ALdsType, BLdsType> g{};
 
         const int a_row = (tid / 16) * 4;
         const int a_col = (tid & 15) ^ (tid / 16);
         const int b_col = a_row;
         const int b_row = a_col;
+        g.a_cmp_op1 = a_col;
+        g.b_cmp_op1 = b_row;
 
         g.a_ldg_offset[0][0] =
             (a_col + lda * (a_row + 0 < m_a ? a_row + 0 : m_a - 1)) * sizeof(ALdgType);

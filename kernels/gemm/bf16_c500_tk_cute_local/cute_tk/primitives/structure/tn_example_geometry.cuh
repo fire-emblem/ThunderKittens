@@ -7,10 +7,10 @@
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
-// Legacy alias
+// Legacy alias - use swizzled_tn_geometry_t for TN layout
 template <typename ALdgType, typename BLdgType, typename ALdsType,
           typename BLdsType>
-using tn_example_stage_geometry = ::bf16_c500_tk_cute_local::primitives::stage_geometry_t<
+using tn_example_stage_geometry = ::bf16_c500_tk_cute_local::primitives::swizzled_tn_geometry_t<
     ALdgType, BLdgType, ALdsType, BLdsType>;
 
 // Legacy alias - use swizzled_tn_geometry_t instead
