@@ -2,14 +2,15 @@
 
 #include "copy_atom.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct issue_order_atom {
+// Pipeline issue order primitive - load issue ordering across pipeline stages
+struct pipeline_issue_order_t {
     template <typename StageLayout>
     __device__ __forceinline__ static void issue_a_bank_no_pred(
         uint8_t *wsm_ldg, uint8_t *a_ptr, int a_ldg_offset, int stage_idx,
         int bank_idx) {
-        copy_atom::issue_b128_bsm_no_pred(
+        pipeline_copy_t::issue_b128_bsm_no_pred(
             wsm_ldg + StageLayout::a_stage_offset(stage_idx, bank_idx),
             a_ptr + a_ldg_offset);
     }
@@ -18,7 +19,7 @@ struct issue_order_atom {
     __device__ __forceinline__ static void issue_b_bank_no_pred(
         uint8_t *wsm_ldg, uint8_t *b_ptr, int b_ldg_offset, int stage_idx,
         int bank_idx) {
-        copy_atom::issue_b128_bsm_no_pred(
+        pipeline_copy_t::issue_b128_bsm_no_pred(
             wsm_ldg + StageLayout::b_stage_offset(stage_idx, bank_idx),
             b_ptr + b_ldg_offset);
     }
@@ -27,7 +28,7 @@ struct issue_order_atom {
     __device__ __forceinline__ static void issue_a_bank_pred(
         uint8_t *wsm_ldg, uint8_t *a_ptr, int a_ldg_offset, int stage_idx,
         int bank_idx, int cmp_op1, int cmp_op2) {
-        copy_atom::template issue_b128_bsm_pred<MACA_ICMP_SLT>(
+        pipeline_copy_t::template issue_b128_bsm_pred<MACA_ICMP_SLT>(
             wsm_ldg + StageLayout::a_stage_offset(stage_idx, bank_idx),
             a_ptr + a_ldg_offset, cmp_op1, cmp_op2);
     }
@@ -36,7 +37,7 @@ struct issue_order_atom {
     __device__ __forceinline__ static void issue_b_bank_pred(
         uint8_t *wsm_ldg, uint8_t *b_ptr, int b_ldg_offset, int stage_idx,
         int bank_idx, int cmp_op1, int cmp_op2) {
-        copy_atom::template issue_b128_bsm_pred<MACA_ICMP_SLT>(
+        pipeline_copy_t::template issue_b128_bsm_pred<MACA_ICMP_SLT>(
             wsm_ldg + StageLayout::b_stage_offset(stage_idx, bank_idx),
             b_ptr + b_ldg_offset, cmp_op1, cmp_op2);
     }
@@ -63,4 +64,9 @@ struct issue_order_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using issue_order_atom = ::bf16_c500_tk_cute_local::primitives::pipeline_issue_order_t;
+}

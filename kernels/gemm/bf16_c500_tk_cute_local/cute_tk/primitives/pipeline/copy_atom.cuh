@@ -2,9 +2,10 @@
 
 #include "../arch/async_copy.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct copy_atom {
+// Pipeline copy primitive - async copy operations for pipeline stages
+struct pipeline_copy_t {
     template <typename PtrType>
     __device__ __forceinline__ static void issue_b128_bsm_no_pred(
         uint8_t *saddr, PtrType *gaddr) {
@@ -39,4 +40,9 @@ struct copy_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using copy_atom = ::bf16_c500_tk_cute_local::primitives::pipeline_copy_t;
+}

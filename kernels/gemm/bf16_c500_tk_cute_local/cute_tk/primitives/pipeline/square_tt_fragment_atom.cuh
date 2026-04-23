@@ -1,8 +1,9 @@
 #pragma once
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct square_tt_fragment_atom {
+// Square tile fragment primitive - fragment packing for 256x256x64 tiles
+struct square_tile_fragment_t {
     template <typename BRegType, typename PackedType>
     __device__ __forceinline__ static void pack_b_quartet(
         BRegType (&dst)[2], PackedType const (&src)[4]) {
@@ -13,4 +14,9 @@ struct square_tt_fragment_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using square_tt_fragment_atom = ::bf16_c500_tk_cute_local::primitives::square_tile_fragment_t;
+}

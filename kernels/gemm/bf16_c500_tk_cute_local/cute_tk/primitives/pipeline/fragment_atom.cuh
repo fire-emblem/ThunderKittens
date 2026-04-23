@@ -2,9 +2,10 @@
 
 #include "sync_atom.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct fragment_atom {
+// Pipeline fragment primitive - shared-to-register fragment loads
+struct pipeline_fragment_t {
     template <typename LdsType>
     __device__ __forceinline__ static LdsType load_from_shared(
         uint8_t *wsm_lds,
@@ -22,8 +23,8 @@ struct fragment_atom {
         uint8_t *wsm_lds,
         const int (&a_lds_offset)[4],
         const int (&b_lds_offset)[4]) {
-        sync_atom::wait_gmem_async<12>();
-        sync_atom::barrier();
+        pipeline_sync_t::wait_gmem_async<12>();
+        pipeline_sync_t::barrier();
 
         a[0][0] = load_from_shared<ALdsType>(wsm_lds, a_lds_offset, 0);
         a[0][1] = load_from_shared<ALdsType>(wsm_lds, a_lds_offset, 1);
@@ -35,8 +36,8 @@ struct fragment_atom {
         b[0][2] = load_from_shared<BLdsType>(wsm_lds, b_lds_offset, 2);
         b[0][3] = load_from_shared<BLdsType>(wsm_lds, b_lds_offset, 3);
 
-        sync_atom::wait_gmem_async<8>();
-        sync_atom::barrier();
+        pipeline_sync_t::wait_gmem_async<8>();
+        pipeline_sync_t::barrier();
 
         uint8_t *stage1_lds = wsm_lds + StageContract::stage_base_offset(1);
         a[1][0] = load_from_shared<ALdsType>(stage1_lds, a_lds_offset, 0);
@@ -71,4 +72,9 @@ struct fragment_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using fragment_atom = ::bf16_c500_tk_cute_local::primitives::pipeline_fragment_t;
+}

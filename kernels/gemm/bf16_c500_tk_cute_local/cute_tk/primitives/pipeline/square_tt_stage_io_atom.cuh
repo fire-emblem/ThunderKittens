@@ -1,8 +1,9 @@
 #pragma once
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct square_tt_stage_io_atom {
+// Square tile stage I/O primitive - stage load/store for 256x256x64 tiles
+struct square_tile_stage_io_t {
     template <typename StoreType, typename FragType>
     __device__ __forceinline__ static void store_pair(
         uint8_t *smem, int base_offset, int stride_bytes, int pair_idx,
@@ -32,4 +33,9 @@ struct square_tt_stage_io_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using square_tt_stage_io_atom = ::bf16_c500_tk_cute_local::primitives::square_tile_stage_io_t;
+}

@@ -3,9 +3,10 @@
 #include "fragment_atom.cuh"
 #include "issue_order_atom.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct prologue_atom {
+// Pipeline prologue primitive - prologue stage loading
+struct pipeline_prologue_t {
     template <typename ALdgType, typename BLdgType, typename T,
               typename ALdsType, typename BLdsType,
               typename StageContract =
@@ -19,7 +20,7 @@ struct prologue_atom {
         constexpr int stage_count = StageContract::stage_count;
 #pragma unroll
         for (int stage_i = 0; stage_i < stage_count; ++stage_i) {
-            issue_order_atom::template issue_ab_stage_pred<StageContract, ALdgType, BLdgType, T>(
+            ::bf16_c500_tk_cute_local::cute_tk::issue_order_atom::template issue_ab_stage_pred<StageContract, ALdgType, BLdgType, T>(
                 wsm_ldg, a_ptr, b_ptr, a_ldg_offset, b_ldg_offset, stage_i, 0,
                 k / (sizeof(ALdgType) / sizeof(T)), start_col + stage_i * 16,
                 n, start_col + (4 + stage_i) * 16, n);
@@ -29,9 +30,14 @@ struct prologue_atom {
         b_ptr += 16 * n * sizeof(BLdgType);
         k -= 128;
 
-        fragment_atom::prime_registers<ALdsType, BLdsType, StageContract>(
+        pipeline_fragment_t::prime_registers<ALdsType, BLdsType, StageContract>(
             a, b, wsm_lds, a_lds_offset, b_lds_offset);
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using prologue_atom = ::bf16_c500_tk_cute_local::primitives::pipeline_prologue_t;
+}

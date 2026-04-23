@@ -2,17 +2,17 @@
 
 #include "../arch/sync.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct sync_atom {
+// Pipeline sync primitive - synchronization for pipeline stages
+struct pipeline_sync_t {
     // Wait for N global memory async operations to complete
-    // Direct mapping to MXC arrive_gvmcnt
     template <int Num>
     __device__ __forceinline__ static void arrive_gvmcnt() {
         ::bf16_c500_tk_cute_local::arch::arrive_gvmcnt<Num>();
     }
 
-    // Legacy alias - prefer arrive_gvmcnt for clarity
+    // Alias for clarity
     template <int Num>
     __device__ __forceinline__ static void wait_gmem_async() {
         arrive_gvmcnt<Num>();
@@ -24,4 +24,9 @@ struct sync_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using sync_atom = ::bf16_c500_tk_cute_local::primitives::pipeline_sync_t;
+}

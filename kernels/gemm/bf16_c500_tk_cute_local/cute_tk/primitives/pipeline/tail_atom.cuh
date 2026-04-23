@@ -6,9 +6,10 @@
 #include "schedule_atom.cuh"
 #include "sync_atom.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct tail_atom {
+// Pipeline tail primitive - tail iteration and drain logic
+struct pipeline_tail_t {
     template <typename T, int Stage, typename FLOAT4, typename ALdsType,
               typename BLdsType>
     __device__ __forceinline__ static void accumulate_stage_tiles(
@@ -18,11 +19,11 @@ struct tail_atom {
         int stage_i) {
         for (int i = 0; i < stage_i; ++i) {
             c_f32[stage_i][i] =
-                mma_atom::accumulate_kgroup<T>(b[i], a[stage_i], c_f32[stage_i][i]);
+                ::bf16_c500_tk_cute_local::cute_tk::mma_atom::accumulate_kgroup<T>(b[i], a[stage_i], c_f32[stage_i][i]);
         }
         for (int i = 0; i <= stage_i; ++i) {
             c_f32[i][stage_i] =
-                mma_atom::accumulate_kgroup<T>(b[stage_i], a[i], c_f32[i][stage_i]);
+                ::bf16_c500_tk_cute_local::cute_tk::mma_atom::accumulate_kgroup<T>(b[stage_i], a[i], c_f32[i][stage_i]);
         }
     }
 
@@ -50,33 +51,33 @@ struct tail_atom {
 
         accumulate_stage_tiles<T, Stage>(c_f32, a, b, stage_i);
 
-        sync_atom::wait_gmem_async<4 * (Stage - 2)>();
-        sync_atom::barrier();
+        pipeline_sync_t::wait_gmem_async<4 * (Stage - 2)>();
+        pipeline_sync_t::barrier();
 
-        copy_atom::issue_b128_bsm_pred<MACA_ICMP_SLT>(
+        pipeline_copy_t::issue_b128_bsm_pred<MACA_ICMP_SLT>(
             wsm_ldg + 0x4000 * stage_i + 0x0000,
             a_ptr + a_ldg_offset[0][stage_i], 0,
             k_remaining / (sizeof(ALdgType) / sizeof(T)));
-        copy_atom::issue_b128_bsm_pred<MACA_ICMP_SLT>(
+        pipeline_copy_t::issue_b128_bsm_pred<MACA_ICMP_SLT>(
             wsm_ldg + 0x4000 * stage_i + 0x1000,
             a_ptr + a_ldg_offset[1][stage_i], 0,
             k_remaining / (sizeof(ALdgType) / sizeof(T)));
-        copy_atom::issue_b128_bsm_pred<MACA_ICMP_SLT>(
+        pipeline_copy_t::issue_b128_bsm_pred<MACA_ICMP_SLT>(
             wsm_ldg + 0x4000 * stage_i + 0x2000,
             b_ptr + b_ldg_offset[0][stage_i],
             start_col + stage_i * 16, n);
-        copy_atom::issue_b128_bsm_pred<MACA_ICMP_SLT>(
+        pipeline_copy_t::issue_b128_bsm_pred<MACA_ICMP_SLT>(
             wsm_ldg + 0x4000 * stage_i + 0x3000,
             b_ptr + b_ldg_offset[1][stage_i],
             start_col + stage_i * 16 + 64, n);
 
-        fragment_atom::reload_stage(a, b, lds_idx, wsm_lds2, a_lds_offset,
+        pipeline_fragment_t::reload_stage(a, b, lds_idx, wsm_lds2, a_lds_offset,
                                     b_lds_offset);
     }
 
     template <int Stage>
     __device__ __forceinline__ static void arrive_drain_barrier(int stage_i) {
-        schedule_atom::template wait_tail_stage<Stage>(stage_i);
+        pipeline_schedule_t::template wait_tail_stage<Stage>(stage_i);
     }
 
     template <typename T, int Stage, typename FLOAT4, typename ALdsType,
@@ -97,11 +98,16 @@ struct tail_atom {
             arrive_drain_barrier<Stage>(stage_i);
 
             if (stage_i < Stage - 1) {
-                fragment_atom::reload_stage(a, b, lds_idx, wsm_lds2,
+                pipeline_fragment_t::reload_stage(a, b, lds_idx, wsm_lds2,
                                             a_lds_offset, b_lds_offset);
             }
         }
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using tail_atom = ::bf16_c500_tk_cute_local::primitives::pipeline_tail_t;
+}
