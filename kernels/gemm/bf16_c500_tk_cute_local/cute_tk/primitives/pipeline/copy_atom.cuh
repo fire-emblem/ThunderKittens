@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../async_copy.cuh"
+#include "../arch/async_copy.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
@@ -8,14 +8,14 @@ struct copy_atom {
     template <typename PtrType>
     __device__ __forceinline__ static void issue_b128_bsm_no_pred(
         uint8_t *saddr, PtrType *gaddr) {
-        ::bf16_c500_tk_local::primitives::ldg_b128_bsm_no_predicator(
+        ::bf16_c500_tk_cute_local::arch::ldg_b128_bsm_no_predicator(
             reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr));
     }
 
     template <int CmpType, typename PtrType>
     __device__ __forceinline__ static void issue_b128_bsm_pred(
         uint8_t *saddr, PtrType *gaddr, int cmp_op1, int cmp_op2) {
-        ::bf16_c500_tk_local::primitives::ldg_b128_bsm_with_predicator<CmpType>(
+        ::bf16_c500_tk_cute_local::arch::ldg_b128_bsm_with_predicator<CmpType>(
             reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr),
             cmp_op1, cmp_op2);
     }
@@ -33,7 +33,7 @@ struct copy_atom {
         PtrType *gaddr,
         int cmp_op1,
         int cmp_op2) {
-        ::bf16_c500_tk_local::primitives::ldg_b128_bsm_with_predicator_noret0<MACA_ICMP_EQ>(
+        ::bf16_c500_tk_cute_local::arch::ldg_b128_bsm_with_predicator_noret0<MACA_ICMP_EQ>(
             reinterpret_cast<void *>(saddr), reinterpret_cast<void *>(gaddr),
             cmp_op1, cmp_op2);
     }

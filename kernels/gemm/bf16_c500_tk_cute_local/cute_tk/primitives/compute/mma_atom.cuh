@@ -1,16 +1,16 @@
 #pragma once
 
-#include "../mma.cuh"
+#include "../arch/mma.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
 struct mma_atom {
-    using float4_t = ::bf16_c500_tk_local::primitives::float4_native;
+    using float4_t = ::bf16_c500_tk_cute_local::arch::float4_native;
 
     template <typename T>
     __device__ __forceinline__ static float4_t
     fma_pair(uint a0, uint a1, uint b0, uint b1, float4_t c) {
-        return ::bf16_c500_tk_local::primitives::mma_16x16x16_b16<T>(
+        return ::bf16_c500_tk_cute_local::arch::mma_16x16x16_b16<T>(
             a0, a1, b0, b1, c);
     }
 

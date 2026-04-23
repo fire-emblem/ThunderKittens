@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../sync.cuh"
+#include "../arch/sync.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
@@ -9,7 +9,7 @@ struct sync_atom {
     // Direct mapping to MXC arrive_gvmcnt
     template <int Num>
     __device__ __forceinline__ static void arrive_gvmcnt() {
-        ::bf16_c500_tk_local::primitives::arrive_gvmcnt<Num>();
+        ::bf16_c500_tk_cute_local::arch::arrive_gvmcnt<Num>();
     }
 
     // Legacy alias - prefer arrive_gvmcnt for clarity
@@ -20,7 +20,7 @@ struct sync_atom {
 
     // Block-level barrier
     __device__ __forceinline__ static void barrier() {
-        ::bf16_c500_tk_local::primitives::barrier();
+        ::bf16_c500_tk_cute_local::arch::barrier();
     }
 };
 
