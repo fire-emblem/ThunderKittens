@@ -4,9 +4,10 @@
 #include "bias_atom.cuh"
 #include "store_atom.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct epilogue_atom {
+// Epilogue primitive - unified epilogue interface
+struct epilogue_t {
     template <typename CStgType, bool HasOneDimBias>
     __device__ __forceinline__ static void load_bias(
         CStgType (&bias_load)[4],
@@ -14,7 +15,7 @@ struct epilogue_atom {
         int start_row,
         int slot,
         int lane) {
-        bias_atom::template load_layoutc_bias<CStgType, HasOneDimBias>(
+        epilogue_bias_t::template load_layoutc_bias<CStgType, HasOneDimBias>(
             bias_load, bias, start_row, slot, lane);
     }
 
@@ -31,7 +32,7 @@ struct epilogue_atom {
         Tscal alpha,
         Tscal beta,
         const CStgType (&bias_load)[4]) {
-        primitives::layoutc_store_atom::store_tile<Tc, Tscal, CStgType, Float4,
+        epilogue_layoutc_store_t::store_tile<Tc, Tscal, CStgType, Float4,
                                                     IsBetaZero, HasOneDimBias>(
             c_ptr, c_f32, src_n, start_row, start_col, slot, lane, alpha, beta,
             bias_load);
@@ -51,9 +52,10 @@ struct epilogue_atom {
         int quarter_lane_id,
         Tscal alpha,
         Tscal beta) {
-        store_atom::template store_layoutc_fragment<Tc, Tscal, Float4,
+        epilogue_store_t::template store_layoutc_fragment<Tc, Tscal, Float4,
                                                     IsBetaZero>(
-            c_ptr, frag, src_m, src_n, warp_rows_group_begin, split_n_start,
+            c_ptr, frag, src_m, src_n,
+            warp_rows_group_begin, split_n_start,
             idx_a, j, quarter_warp_id, quarter_lane_id, alpha, beta);
     }
 
@@ -72,7 +74,7 @@ struct epilogue_atom {
         int quarter_lane_id,
         Tscal alpha,
         Tscal beta) {
-        store_atom::template store_continuousc_fragment<Tc, Tscal, Float4,
+        epilogue_store_t::template store_continuousc_fragment<Tc, Tscal, Float4,
                                                         IsBetaZero, SplitK>(
             c_ptr, frag, src_m, src_n, c_offset, row_n, alpha_idx, beta_idx,
             quarter_warp_id, quarter_lane_id, alpha, beta);
@@ -92,7 +94,7 @@ struct epilogue_atom {
         Tscal alpha,
         Tscal beta,
         const CVecType (&bias_load)[4]) {
-        primitives::continuousc_store_atom::store_tile<Tc, Tscal, CVecType,
+        epilogue_continuousc_store_t::store_tile<Tc, Tscal, CVecType,
                                                         Float4, IsBetaZero,
                                                         HasOneDimBias>(
             c_ptr, c_f32, src_m, src_n, start_row, start_col, slot, lane, alpha,
@@ -100,4 +102,9 @@ struct epilogue_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using epilogue_atom = ::bf16_c500_tk_cute_local::primitives::epilogue_t;
+}

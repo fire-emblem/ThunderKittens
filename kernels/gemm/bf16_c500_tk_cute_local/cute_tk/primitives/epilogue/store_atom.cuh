@@ -1,14 +1,14 @@
 #pragma once
 
 #include <type_traits>
-
 #include <maca.h>
 #include <maca_bfloat16.h>
 #include <maca_fp16.h>
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct store_atom {
+// Epilogue store primitive - fragment store operations
+struct epilogue_store_t {
     template <typename Tc, typename Tscal, typename Float4, bool IsBetaZero>
     __device__ __forceinline__ static void store_layoutc_fragment(
         Tc *c_ptr, Float4 const &frag, int src_m, int src_n,
@@ -98,4 +98,9 @@ struct store_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using store_atom = ::bf16_c500_tk_cute_local::primitives::epilogue_store_t;
+}

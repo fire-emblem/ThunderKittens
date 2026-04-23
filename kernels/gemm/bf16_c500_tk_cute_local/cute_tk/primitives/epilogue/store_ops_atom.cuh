@@ -4,10 +4,10 @@
 #include <maca_bfloat16.h>
 #include <maca_fp16.h>
 
-namespace bf16_c500_tk_cute_local::cute_tk::primitives {
+namespace bf16_c500_tk_cute_local::primitives {
 
-// Bias loading primitive for layout-C GEMM
-struct bias_load_atom {
+// Epilogue bias load primitive
+struct epilogue_bias_load_t {
     template <typename CStgType, bool HasOneDimBias>
     __device__ __forceinline__ static void load_layoutc_bias(
         CStgType (&bias_load)[4],
@@ -26,7 +26,7 @@ struct bias_load_atom {
     }
 };
 
-// Layout-C store primitive
+// Layout-C store offset calculation
 template <typename Tc, typename CStgType>
 __device__ __forceinline__ size_t layoutc_store_offset(
     int src_n, int start_row, int start_col, int slot, int lane, int i, int j) {
@@ -43,8 +43,8 @@ __device__ __forceinline__ size_t layoutc_store_offset(
            (warp_cols_group_begin + j) * 2 * 64;
 }
 
-// Layout-C tile store with bias and scaling
-struct layoutc_store_atom {
+// Layout-C tile store primitive
+struct epilogue_layoutc_store_t {
     template <typename Tc, typename Tscal, typename CStgType, typename Float4,
               bool IsBetaZero, bool HasOneDimBias>
     __device__ __forceinline__ static void store_tile(
@@ -96,8 +96,8 @@ struct layoutc_store_atom {
     }
 };
 
-// Continuous-C tile store with bias and scaling
-struct continuousc_store_atom {
+// Continuous-C tile store primitive
+struct epilogue_continuousc_store_t {
     template <typename Tc, typename Tscal, typename CVectorType, typename Float4,
               bool IsBetaZero, bool HasOneDimBias>
     __device__ __forceinline__ static void store_tile(
@@ -160,44 +160,19 @@ struct continuousc_store_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk::primitives
+} // namespace bf16_c500_tk_cute_local::primitives
 
 // Backward compatibility aliases
+namespace bf16_c500_tk_cute_local::cute_tk::primitives {
+using bias_load_atom = ::bf16_c500_tk_cute_local::primitives::epilogue_bias_load_t;
+using layoutc_store_atom = ::bf16_c500_tk_cute_local::primitives::epilogue_layoutc_store_t;
+using continuousc_store_atom = ::bf16_c500_tk_cute_local::primitives::epilogue_continuousc_store_t;
+using ::bf16_c500_tk_cute_local::primitives::layoutc_store_offset;
+}
+
 namespace bf16_c500_tk_local::kernel {
 using ::bf16_c500_tk_cute_local::cute_tk::primitives::bias_load_atom;
 using ::bf16_c500_tk_cute_local::cute_tk::primitives::continuousc_store_atom;
 using ::bf16_c500_tk_cute_local::cute_tk::primitives::layoutc_store_atom;
 using ::bf16_c500_tk_cute_local::cute_tk::primitives::layoutc_store_offset;
-
-template <typename CStgType, bool HasOneDimBias>
-__device__ __forceinline__ void load_layoutc_bias_fragment(
-    CStgType (&bias_load)[4], const void *bias, int start_row, int slot,
-    int lane) {
-    bias_load_atom::load_layoutc_bias<CStgType, HasOneDimBias>(bias_load, bias,
-                                                                start_row, slot, lane);
 }
-
-template <typename Tc, typename Tscal, typename CStgType, typename Float4,
-          bool IsBetaZero, bool HasOneDimBias>
-__device__ __forceinline__ void store_layoutc_tile(
-    CStgType *c_ptr, const Float4 (&c_f32)[4][4], int src_n, int start_row,
-    int start_col, int slot, int lane, Tscal alpha, Tscal beta,
-    const CStgType (&bias_load)[4]) {
-    layoutc_store_atom::store_tile<Tc, Tscal, CStgType, Float4, IsBetaZero,
-                                    HasOneDimBias>(c_ptr, c_f32, src_n, start_row,
-                                                   start_col, slot, lane, alpha,
-                                                   beta, bias_load);
-}
-
-template <typename Tc, typename Tscal, typename CVectorType, typename Float4,
-          bool IsBetaZero, bool HasOneDimBias>
-__device__ __forceinline__ void store_continuousc_tile(
-    Tc *c_ptr, const Float4 (&c_f32)[4][4], int src_m, int src_n, int start_row,
-    int start_col, int slot, int lane, Tscal alpha, Tscal beta,
-    const CVectorType (&bias_load)[4]) {
-    continuousc_store_atom::store_tile<Tc, Tscal, CVectorType, Float4, IsBetaZero,
-                                        HasOneDimBias>(c_ptr, c_f32, src_m, src_n,
-                                                       start_row, start_col, slot,
-                                                       lane, alpha, beta, bias_load);
-}
-} // namespace bf16_c500_tk_local::kernel

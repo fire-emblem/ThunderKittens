@@ -2,9 +2,10 @@
 
 #include "../arch/mma.cuh"
 
-namespace bf16_c500_tk_cute_local::cute_tk {
+namespace bf16_c500_tk_cute_local::primitives {
 
-struct mma_atom {
+// Compute MMA primitive - matrix multiply-accumulate operations
+struct compute_mma_t {
     using float4_t = ::bf16_c500_tk_cute_local::arch::float4_native;
 
     template <typename T>
@@ -58,4 +59,9 @@ struct mma_atom {
     }
 };
 
-} // namespace bf16_c500_tk_cute_local::cute_tk
+} // namespace bf16_c500_tk_cute_local::primitives
+
+// Backward compatibility alias
+namespace bf16_c500_tk_cute_local::cute_tk {
+using mma_atom = ::bf16_c500_tk_cute_local::primitives::compute_mma_t;
+}
