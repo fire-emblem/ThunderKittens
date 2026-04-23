@@ -3,8 +3,8 @@
 // Kernel-specific geometry providers for GEMM
 // These are concrete implementations that use the abstract primitives
 
-#include "../primitives/layout/stage_geometry.cuh"
-#include "../primitives/arch/mxc_builtins.cuh"
+#include "../../primitives/layout/stage_geometry.cuh"
+#include "../../primitives/arch/mxc_builtins.cuh"
 
 namespace bf16_c500_tk_cute_local::kernel::gemm {
 

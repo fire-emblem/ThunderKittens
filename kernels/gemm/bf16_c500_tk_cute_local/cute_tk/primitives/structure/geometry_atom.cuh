@@ -1,12 +1,16 @@
 #pragma once
 
+// Backward compatibility layer - delegates to kernel/gemm/geometry.cuh
+// This file will be removed after migration is complete
+
+#include "../layout/stage_geometry.cuh"
+#include "../../kernel/gemm/geometry.cuh"
 #include "../../host/layout_traits.cuh"
 #include "../../host/tn_example_host_traits.cuh"
-#include "layoutc_geometry_atom.cuh"
-#include "tn_example_geometry.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk {
 
+// Abstract geometry atom - wraps geometry providers
 template <typename HostLayoutT, typename GeometryProviderT>
 struct geometry_atom {
     using host_layout = HostLayoutT;
@@ -20,37 +24,18 @@ struct geometry_atom {
     }
 };
 
-struct current_layoutc_geometry_provider {
-    template <typename ALdgType, typename BLdgType, typename ALdsType,
-              typename BLdsType>
-    __host__ __device__ static auto make(int tid, int lane, int slot, int lda,
-                                         int n) {
-        return ::bf16_c500_tk_cute_local::cute_tk::primitives::
-            make_layoutc_stage_geometry<ALdgType, BLdgType, ALdsType, BLdsType,
-                                        __maca_bfloat16>(tid, lane, slot, lda, n);
-    }
-};
+// Concrete geometry providers - kernel-specific
+using column_major_c_geometry_provider = ::bf16_c500_tk_cute_local::kernel::gemm::column_major_c_geometry_t;
+using continuous_c_geometry_provider = ::bf16_c500_tk_cute_local::kernel::gemm::continuous_c_geometry_t;
+using swizzled_tn_geometry_provider = ::bf16_c500_tk_cute_local::kernel::gemm::swizzled_tn_geometry_t;
 
-struct swizzled_tn_geometry_provider {
-    template <typename ALdgType, typename BLdgType, typename ALdsType,
-              typename BLdsType>
-    __device__ __forceinline__ static auto make(int tid, int lane, int slot,
-                                                int lda, int ldb, int m_a,
-                                                int n_b) {
-        return ::bf16_c500_tk_cute_local::cute_tk::kernel::
-            swizzled_tn_geometry::template make<ALdgType, BLdgType,
-                                                        ALdsType, BLdsType>(
-                tid, lane, slot, lda, ldb, m_a, n_b);
-    }
-};
-
-
+// Legacy aliases with layoutc/continuousc naming (kernel-specific)
 using layoutc_layout_atom =
     geometry_atom<::bf16_c500_tk_local::host::layoutc_host_traits,
-                  current_layoutc_geometry_provider>;
+                  column_major_c_geometry_provider>;
 using continuousc_layout_atom =
     geometry_atom<::bf16_c500_tk_local::host::continuousc_host_traits,
-                  current_layoutc_geometry_provider>;
+                  continuous_c_geometry_provider>;
 using swizzled_tn_layout_atom =
     geometry_atom<::bf16_c500_tk_local::host::tn_example_host_traits,
                   swizzled_tn_geometry_provider>;

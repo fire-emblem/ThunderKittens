@@ -1,66 +1,25 @@
 #pragma once
 
-#include <maca.h>
+// Backward compatibility layer - delegates to kernel/gemm/geometry.cuh
+// This file will be removed after migration is complete
+
+#include "../../kernel/gemm/geometry.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::primitives {
 
-// Stage geometry descriptor for layout-C GEMM
-// Encapsulates load/store offsets for A and B matrices across pipeline stages
+// Legacy alias - use kernel::gemm::column_major_c_geometry_t instead
 template <typename ALdgType, typename BLdgType, typename ALdsType,
           typename BLdsType, typename T>
-struct layoutc_stage_geometry {
-    int a_ldg_offset[2][4];  // Global load offsets for A (2 banks x 4 stages)
-    int b_ldg_offset[2][4];  // Global load offsets for B (2 banks x 4 stages)
-    int a_lds_offset[4];     // Shared load offsets for A (4 fragments)
-    int b_lds_offset[4];     // Shared load offsets for B (4 fragments)
-};
+using layoutc_stage_geometry = ::bf16_c500_tk_cute_local::primitives::stage_geometry_t<
+    ALdgType, BLdgType, ALdsType, BLdsType>;
 
-// Factory function for layout-C stage geometry
-// Computes thread-specific offsets based on tile geometry
+// Legacy factory function
 template <typename ALdgType, typename BLdgType, typename ALdsType,
           typename BLdsType, typename T>
-__device__ __forceinline__ layoutc_stage_geometry<ALdgType, BLdgType, ALdsType,
-                                                   BLdsType, T>
+__device__ __forceinline__ auto
 make_layoutc_stage_geometry(int tid, int lane, int slot, int lda, int n) {
-    layoutc_stage_geometry<ALdgType, BLdgType, ALdsType, BLdsType, T> g{};
-
-    // A matrix: each thread loads 8 elements along K dimension
-    // Offsets are strided by 16*lda bytes per row
-    g.a_ldg_offset[0][0] = (tid + 16 * lda * 0) * sizeof(ALdgType);
-    g.a_ldg_offset[0][1] = (tid + 16 * lda * 1) * sizeof(ALdgType);
-    g.a_ldg_offset[0][2] = (tid + 16 * lda * 2) * sizeof(ALdgType);
-    g.a_ldg_offset[0][3] = (tid + 16 * lda * 3) * sizeof(ALdgType);
-    g.a_ldg_offset[1][0] = (tid + 16 * lda * 4) * sizeof(ALdgType);
-    g.a_ldg_offset[1][1] = (tid + 16 * lda * 5) * sizeof(ALdgType);
-    g.a_ldg_offset[1][2] = (tid + 16 * lda * 6) * sizeof(ALdgType);
-    g.a_ldg_offset[1][3] = (tid + 16 * lda * 7) * sizeof(ALdgType);
-
-    // B matrix: column-major access pattern
-    // Each warp quadrant handles different column groups
-    const int b_row_offset = lane + slot * 64 * (n / 16);
-    g.b_ldg_offset[0][0] = (b_row_offset + 64 * 0) * sizeof(BLdgType);
-    g.b_ldg_offset[0][1] = (b_row_offset + 64 * 1) * sizeof(BLdgType);
-    g.b_ldg_offset[0][2] = (b_row_offset + 64 * 2) * sizeof(BLdgType);
-    g.b_ldg_offset[0][3] = (b_row_offset + 64 * 3) * sizeof(BLdgType);
-    g.b_ldg_offset[1][0] = (b_row_offset + 64 * 4) * sizeof(BLdgType);
-    g.b_ldg_offset[1][1] = (b_row_offset + 64 * 5) * sizeof(BLdgType);
-    g.b_ldg_offset[1][2] = (b_row_offset + 64 * 6) * sizeof(BLdgType);
-    g.b_ldg_offset[1][3] = (b_row_offset + 64 * 7) * sizeof(BLdgType);
-
-    // Shared memory offsets with bank conflict avoidance
-    // A: bank 0/1 at offsets 0x0000/0x1000
-    // B: bank 0/1 at offsets 0x2000/0x3000
-#pragma unroll
-    for (int i = 0; i < 4; i++) {
-        g.a_lds_offset[i] = (lane + slot / 2 * 0x1000 / sizeof(ALdsType) +
-                             i * 0x400 / sizeof(ALdsType)) *
-                            sizeof(ALdsType);
-        g.b_lds_offset[i] = (lane + 0x2000 / sizeof(BLdsType) +
-                             (slot & 1) * 0x1000 / sizeof(BLdsType) +
-                             i * 0x400 / sizeof(BLdsType)) *
-                            sizeof(BLdgType);
-    }
-    return g;
+    return ::bf16_c500_tk_cute_local::kernel::gemm::column_major_c_geometry_t::make<
+        ALdgType, BLdgType, ALdsType, BLdsType>(tid, lane, slot, lda, n);
 }
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::primitives
@@ -70,15 +29,14 @@ namespace bf16_c500_tk_local::kernel {
 template <typename ALdgType, typename BLdgType, typename ALdsType,
           typename BLdsType, typename T>
 using layoutc_stage_geometry =
-    ::bf16_c500_tk_cute_local::cute_tk::primitives::layoutc_stage_geometry<
-        ALdgType, BLdgType, ALdsType, BLdsType, T>;
+    ::bf16_c500_tk_cute_local::primitives::stage_geometry_t<
+        ALdgType, BLdgType, ALdsType, BLdsType>;
 
 template <typename ALdgType, typename BLdgType, typename ALdsType,
           typename BLdsType, typename T>
 __device__ __forceinline__ auto
 make_layoutc_stage_geometry(int tid, int lane, int slot, int lda, int n) {
-    return ::bf16_c500_tk_cute_local::cute_tk::primitives::
-        make_layoutc_stage_geometry<ALdgType, BLdgType, ALdsType, BLdsType, T>(
-            tid, lane, slot, lda, n);
+    return ::bf16_c500_tk_cute_local::kernel::gemm::column_major_c_geometry_t::make<
+        ALdgType, BLdgType, ALdsType, BLdsType>(tid, lane, slot, lda, n);
 }
 } // namespace bf16_c500_tk_local::kernel
