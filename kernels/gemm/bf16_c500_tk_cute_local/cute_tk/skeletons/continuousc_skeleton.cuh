@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../composition/tile128_stage4_body_template.cuh"
-#include "../../kernel/layoutc_mainloop.cuh"
+#include "layoutc_skeleton.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
+// continuousc is a variant of layoutc with OutputContinuousC=true
 struct continuousc_stage4_impl {
     template <typename T, typename Tc, typename Tscal, bool IsBetaZero,
               bool HasOneDimBias, typename Pattern>
@@ -12,8 +12,7 @@ struct continuousc_stage4_impl {
         const void *A, const void *B, void *C, int M, int N, int K, int lda,
         int ldb, int ldc, Tscal alpha, Tscal beta, const void *bias, int bidx,
         int bidy) {
-        ::bf16_c500_tk_local::kernel::tk_local_b16_128x128x128_stage4_device<
-            T, Tc, Tscal, IsBetaZero, HasOneDimBias, true>(
+        layoutc_stage4_device<T, Tc, Tscal, IsBetaZero, HasOneDimBias, true, Pattern>(
             A, B, C, M, N, K, lda, ldb, ldc, alpha, beta, bias, bidx, bidy);
     }
 };
