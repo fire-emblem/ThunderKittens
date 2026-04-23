@@ -30,6 +30,7 @@
 #include "pipeline/reload_atom.cuh"        // Steady-state reload
 #include "pipeline/tail_atom.cuh"          // Tail iteration and drain
 #include "pipeline/issue_order_atom.cuh"   // Load issue ordering
+#include "pipeline/mainloop_atom.cuh"      // Mainloop compute primitives
 
 // ============================================================================
 // Layer 5: Structure Primitives (data layout and geometry)
@@ -57,5 +58,6 @@ using fragment_atom = ::bf16_c500_tk_cute_local::cute_tk::fragment_atom;
 using tail_atom = ::bf16_c500_tk_cute_local::cute_tk::tail_atom;
 using geometry_atom = ::bf16_c500_tk_cute_local::cute_tk::geometry_atom;
 using epilogue_atom = ::bf16_c500_tk_cute_local::cute_tk::epilogue_atom;
+using mainloop_atom = ::bf16_c500_tk_cute_local::cute_tk::mainloop_atom;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk::primitives
