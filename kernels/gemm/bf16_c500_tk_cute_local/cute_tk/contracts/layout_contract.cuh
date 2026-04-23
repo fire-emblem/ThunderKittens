@@ -1,6 +1,6 @@
 #pragma once
 
-namespace bf16_c500_tk_local::contracts {
+namespace bf16_c500_tk_cute_local::contracts {
 
 struct layout_contract {
     static constexpr int a_pack_row = 16;
@@ -11,4 +11,4 @@ struct layout_contract {
     static constexpr int c_pack_n = 16;
 };
 
-} // namespace bf16_c500_tk_local::contracts
+} // namespace bf16_c500_tk_cute_local::contracts

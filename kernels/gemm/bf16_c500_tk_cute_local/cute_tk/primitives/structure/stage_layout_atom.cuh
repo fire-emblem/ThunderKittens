@@ -31,6 +31,6 @@ struct stage_layout_atom {
 };
 
 using default_stage_layout_atom =
-    stage_layout_atom<::bf16_c500_tk_local::contracts::stage_contract>;
+    stage_layout_atom<::bf16_c500_tk_cute_local::contracts::stage_contract>;
 
 } // namespace bf16_c500_tk_cute_local::cute_tk

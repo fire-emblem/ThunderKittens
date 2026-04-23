@@ -1,6 +1,6 @@
 #pragma once
 
-namespace bf16_c500_tk_local::contracts {
+namespace bf16_c500_tk_cute_local::contracts {
 
 struct tile_contract {
     static constexpr int tile_m = 128;
@@ -11,4 +11,4 @@ struct tile_contract {
     static constexpr int stage_count = 4;
 };
 
-} // namespace bf16_c500_tk_local::contracts
+} // namespace bf16_c500_tk_cute_local::contracts

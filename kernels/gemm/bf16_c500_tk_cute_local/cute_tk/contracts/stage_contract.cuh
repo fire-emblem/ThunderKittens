@@ -2,7 +2,7 @@
 
 #include <cuda_runtime.h>
 
-namespace bf16_c500_tk_local::contracts {
+namespace bf16_c500_tk_cute_local::contracts {
 
 struct stage_contract {
     static constexpr int stage_count = 4;
@@ -35,4 +35,4 @@ struct stage_contract {
     }
 };
 
-} // namespace bf16_c500_tk_local::contracts
+} // namespace bf16_c500_tk_cute_local::contracts

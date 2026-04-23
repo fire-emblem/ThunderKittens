@@ -15,7 +15,7 @@ struct fragment_atom {
 
     template <typename ALdsType, typename BLdsType,
               typename StageContract =
-                  ::bf16_c500_tk_local::contracts::stage_contract>
+                  ::bf16_c500_tk_cute_local::contracts::stage_contract>
     __device__ __forceinline__ static void prime_registers(
         ALdsType (&a)[4][4],
         BLdsType (&b)[4][4],
@@ -52,7 +52,7 @@ struct fragment_atom {
 
     template <typename ALdsType, typename BLdsType,
               typename StageContract =
-                  ::bf16_c500_tk_local::contracts::stage_contract>
+                  ::bf16_c500_tk_cute_local::contracts::stage_contract>
     __device__ __forceinline__ static void reload_stage(
         ALdsType (&a)[4][4],
         BLdsType (&b)[4][4],

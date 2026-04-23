@@ -9,7 +9,7 @@ struct prologue_atom {
     template <typename ALdgType, typename BLdgType, typename T,
               typename ALdsType, typename BLdsType,
               typename StageContract =
-                  ::bf16_c500_tk_local::contracts::stage_contract>
+                  ::bf16_c500_tk_cute_local::contracts::stage_contract>
     __device__ __forceinline__ static void prime_layoutc(
         uint8_t *wsm_ldg, uint8_t *&a_ptr, uint8_t *&b_ptr, int &k, int n,
         int start_col, uint8_t *wsm_lds, ALdsType (&a)[4][4],

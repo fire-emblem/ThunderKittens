@@ -26,9 +26,9 @@ struct layoutc_family
         ::bf16_c500_tk_cute_local::cute_tk::family_pattern<
             ::bf16_c500_tk_cute_local::cute_tk::layoutc_semantic_tag,
             TileShape, GeometryAtom, SchedulePolicy, StageLayoutAtom>;
-    using tile = ::bf16_c500_tk_local::contracts::tile_contract;
-    using stage = ::bf16_c500_tk_local::contracts::stage_contract;
-    using layout = ::bf16_c500_tk_local::contracts::layout_contract;
+    using tile = ::bf16_c500_tk_cute_local::contracts::tile_contract;
+    using stage = ::bf16_c500_tk_cute_local::contracts::stage_contract;
+    using layout = ::bf16_c500_tk_cute_local::contracts::layout_contract;
     using tile_shape = typename pattern::tile_shape;
     using geometry_atom = typename pattern::geometry_atom;
     using schedule_policy = typename pattern::schedule_policy;
