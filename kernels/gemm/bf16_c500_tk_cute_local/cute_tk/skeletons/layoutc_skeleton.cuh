@@ -17,6 +17,7 @@
 #include "../primitives/pipeline/schedule_atom.cuh"
 #include "../primitives/pipeline/tail_atom.cuh"
 #include "../primitives/structure/stage_layout_atom.cuh"
+#include "../policies.cuh"
 
 namespace bf16_c500_tk_cute_local::cute_tk::kernel {
 
